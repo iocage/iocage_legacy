@@ -1,0 +1,841 @@
+#!/bin/sh
+#-------------------------------------------------------------------------+
+# Copyright (C) 2014 Peter Toth (pannon)
+# All rights reserved
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted providing that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+unset LC_ALL
+unset LANG
+PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
+
+
+if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
+    echo "iocage 1.0 (2014/06/10)"
+    exit 0
+fi
+
+# Auto UUID
+uuid=`uuidgen`
+
+# Network defaults for jails
+interfaces="vnet0:bridge0,vnet1:bridge1"
+host_hostname=$uuid
+exec_fib=0
+hostname=$uuid
+
+# Standard jail properties
+devfs_ruleset="4"
+exec_start="/bin/sh /etc/rc"
+exec_stop="/bin/sh /etc/rc.shutdown"
+exec_prestart="/usr/bin/true"
+exec_poststart="/usr/bin/true"
+exec_prestop="/usr/bin/true"
+exec_poststop="/usr/bin/true"
+exec_clean=1
+exec_timeout=60
+stop_timeout=30
+exec_jail_user=root
+exec_system_jail_user=0
+exec_system_user=root
+mount_devfs=1
+mount_fdescfs=1
+enforce_statfs="2"
+children_max="0"
+login_flags='-f root'
+securelevel="3"
+host_hostuuid=$uuid
+allow_set_hostname=1
+allow_sysvipc=0
+allow_raw_sockets=0
+allow_chflags=0
+allow_mount=0
+allow_mount_devfs=0
+allow_mount_nullfs=0
+allow_mount_procfs=0
+allow_mount_tmpfs=0
+allow_mount_zfs=0
+allow_quotas=0
+allow_socket_af=0
+
+# RCTL limits
+cpuset="off"
+rlimits="off"
+memoryuse="8G:log"
+memorylocked="off"
+vmemoryuse="off"
+maxproc="off"
+cputime="off"
+pcpu="off"
+datasize="off"
+stacksize="off"
+coredumpsize="off"
+openfiles="off"
+pseudoterminals="off"
+swapuse="off"
+nthr="off"
+msgqqueued="off"
+msgqsize="off"
+nmsgq="off"
+nsemop="off"
+nshm="off"
+shmsize="off"
+wallclock="off"
+
+# Custom properties
+tag=`date "+%F@%T"`
+template="no"
+boot="off"
+notes="none"
+owner="root"
+priority="99"
+last_started="none"
+type="jail"
+release=`uname -r|cut -f 1,2 -d'-'`
+hostid=`cat /etc/hostid`
+
+# Native ZFS properties
+compression="lz4"
+origin="readonly"
+quota="15G"
+mountpoint="readonly"
+compressratio="readonly"
+available="readonly"
+used="readonly"
+dedup="off"
+reservation="none"
+
+# Sync properties
+sync_state="none"
+sync_target="none"
+sync_tgt_zpool="none"
+
+# FTP variables
+ftphost="ftp.freebsd.org"
+ftpfiles="base.txz doc.txz lib32.txz"
+
+
+CONF_RCTL="cpuset
+           memoryuse
+           memorylocked
+           vmemoryuse
+           maxproc
+           cputime
+           pcpu
+           datasize
+           stacksize
+           coredumpsize
+           openfiles
+           pseudoterminals
+           swapuse
+           nthr
+           msgqqueued
+           msgqsize
+           nmsgq
+           nsemop
+           nshm
+           shmsize
+           wallclock"
+
+CONF_NET="interfaces
+          host_hostname
+          hostname
+          exec_fib"
+
+CONF_JAIL="devfs_ruleset
+           mount_devfs
+           exec_start
+           exec_stop
+           exec_prestart
+           exec_prestop
+           exec_poststop
+           exec_poststart
+           exec_clean
+           exec_timeout
+           stop_timeout
+           exec_jail_user
+           exec_system_jail_user
+           exec_system_user
+           mount_fdescfs
+           mount_procfs
+           enforce_statfs
+           children_max
+           login_flags
+           securelevel
+           allow_set_hostname
+           allow_sysvipc
+           allow_raw_sockets
+           allow_chflags
+           allow_mount
+           allow_mount_devfs
+           allow_mount_nullfs
+           allow_mount_procfs
+           allow_mount_tmpfs
+           allow_mount_zfs
+           allow_quotas
+           allow_socket_af
+           host_hostuuid"
+
+CONF_CUSTOM="tag
+             template
+             rlimits
+             boot
+             notes
+             owner
+             priority
+             last_started
+             type
+             hostid
+             release"
+
+CONF_ZFS="compression
+          origin
+          quota
+          mountpoint
+          compressratio
+          available
+          used
+          dedup
+          reservation"
+
+CONF_SYNC="sync_stat
+           sync_target
+           sync_tgt_zpool"
+
+CONF_FTP="ftphost ftpdir"
+
+# Process command line options-------------------------
+__parse_cmd () {
+    while [ $# -gt 0 ] ; do
+        case "$1" in
+            list)       __list_jails $@
+                ;;
+            console)    __console $2
+                ;;
+            defaults)   __print_defaults
+                ;;
+            create)     __export_props $@
+                        __create_jail $@
+                ;;
+            clone)      __export_props $@
+                        __clone_jail $2
+                ;;
+            fetch)      __fetch_release
+                ;;
+            get)        __get_jail_prop $@
+                ;;
+            set)        __export_props "$@"
+                        __set_jail_prop "$@"
+                ;;
+            start)      __start_jail $2
+                ;;
+            stop)       __stop_jail $2
+                ;;
+            df)         __print_disk
+                ;;
+            snapshot)   __snapshot $2
+                ;;
+            snaplist)   __snaplist $2
+                ;;
+            snapremove) __snapremove $2 $3
+                ;;
+            uncap)      __rctl_uncap $2
+                ;;
+            cap)        __rctl_limits $2
+                ;;
+            inuse)      __rctl_used $2
+                ;;
+            help)       __usage
+                ;;
+            *)          __usage
+                ;;
+        esac
+        shift
+    done
+}
+
+# Print defaults set in this script---------------------------
+__print_defaults () {
+    CONF="$CONF_NET
+          $CONF_JAIL
+          $CONF_RCTL
+          $CONF_CUSTOM
+          $CONF_ZFS
+          $CONF_SYNC
+          $CONF_FTP"
+
+    for prop in `echo $CONF`  ; do
+        prop_name=$prop
+        eval prop="\$${prop}"
+        if [ ! -z "$prop" ] ; then
+            echo "$prop_name=$prop"
+        fi
+    done
+}
+
+# Print supported releases----------------------------------
+__print_release () {
+    supported="10.0-RELEASE
+                9.2-RELEASE
+                9.1-RELEASE"
+
+    echo "Supported releases are: " 
+    for rel in `echo $supported` ; do
+        printf "%15s\n" "$rel"
+    done
+}
+
+# Fetch release and prepare base ZFS filesystems-----------
+__fetch_release () {
+    local exist=`zfs list | grep -w ^$pool/iocage`
+    __print_release
+    echo -n "Please specify release [$release]: "
+    read answer
+    if [ ! -z "$answer" ] ; then
+        release=$answer
+    else
+        answer=$release
+    fi
+
+    for rel in `echo $supported` ; do
+        if [ "$answer" == "$rel" ] ; then
+            release=$rel
+            match="1"
+            break
+        fi
+    done
+
+    if [ -z $match ] ; then
+        echo "Invalid release $release specified, exiting.."
+        exit 1
+    fi
+  
+    local exist=`zfs list | grep -w ^$pool/iocage`
+    local download_exist=`zfs list | grep -w ^$pool/iocage/download/$release`
+    local rel_exist=`zfs list | grep -w ^$pool/iocage/releases/$release`
+
+    if [ -z "$exist" ] ; then
+        zfs create $pool/iocage
+        zfs set mountpoint=/iocage $pool/iocage
+        zfs create $pool/iocage/jails
+    fi 
+
+    if [ -z "$download_exist" ] ; then
+        zfs create -p $pool/iocage/download/$release
+    fi
+
+    ftpdir="/pub/FreeBSD/releases/amd64/$release"
+
+    cd /iocage/download/$release
+    for file in $ftpfiles ; do
+        if [ ! -e "$file" ] ; then        
+            fetch http://$ftphost$ftpdir/$file
+        fi
+    done
+
+    if [ -z "$rel_exist" ] ; then
+        zfs create -p $pool/iocage/releases/$release/root
+    fi
+
+    for file in `echo $ftpfiles` ; do
+        if [ -e "$file" ] ; then
+            echo "Exctracting: $file"
+            tar -C /iocage/releases/$release/root -xf $file 
+        fi
+    done
+
+    mkdir /iocage/log
+}
+
+# This creates jails----------------------------------------------------
+__create_jail () {
+    local installed=`zfs list -r $pool/iocage/releases|grep $release`
+
+    if [ -z "$installed" ] ; then
+        echo "Release $release not found locally, run fetch first"
+        exit 1
+    fi
+
+    if [ "${2}" = "-c" ] ; then
+        fs_list=`zfs list -rH -o name $pool/iocage/releases/$release`
+
+        zfs snapshot -r $pool/iocage/releases/$release@$uuid
+        for fs in $fs_list ; do
+            cfs=`echo $fs | sed s#/releases/$release#/jails/$uuid#g`
+            #echo "cloning $fs into $cfs"
+            zfs clone $fs@$uuid $cfs
+        done
+    else
+        zfs snapshot -r $pool/iocage/releases/$release@$uuid
+        zfs send     -R $pool/iocage/releases/$release@$uuid | \
+        zfs recv        $pool/iocage/jails/$uuid
+        zfs destroy  -r $pool/iocage/releases/$release@$uuid
+        zfs destroy  -r $pool/iocage/jails/$uuid@$uuid
+    fi
+
+    __configure_jail $pool/iocage/jails/$uuid
+    touch /iocage/jails/$uuid/fstab
+
+    echo 'cron_flags="$cron_flags -J 15"' >> \
+    /iocage/jails/${uuid}/root/etc/rc.conf
+
+    echo "hostname=${uuid}" >> /iocage/jails/${uuid}/root/etc/rc.conf
+
+}
+
+__clone_jail () {
+    dataset=`__find_jail $@`
+    fs_list=`zfs list -rH -o name $dataset`
+
+    zfs snapshot -r ${dataset}@${uuid}
+    for fs in $fs_list ; do
+        cfs=`echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g`
+        zfs clone $fs@$uuid $cfs
+    done
+
+    __configure_jail $pool/iocage/jails/$uuid
+    mv /iocage/jails/$uuid/fstab /iocage/jails/$uuid/fstab.$1
+    touch /iocage/jails/$uuid/fstab
+}
+
+__configure_jail () {
+    local CONF="$CONF_NET
+                $CONF_JAIL
+                $CONF_RCTL
+                $CONF_CUSTOM
+                $CONF_SYNC"
+
+    echo "Configuring jail.."
+    for prop in $CONF ; do
+        prop_name=$prop
+        eval prop="\$${prop}"
+        if [ ! -z "$prop" ] ; then
+            echo "** $prop_name=$prop"
+            zfs set org.freebsd.iocage:$prop_name="$prop" $1
+        fi
+    done
+
+    for prop in $CONF_ZFS ; do
+        prop_name=$prop
+        eval prop="\$${prop}"
+        if [ ! -z "$prop" ] && [ "$prop" != "readonly" ] ; then
+            zfs set $prop_name="$prop" $1
+        fi
+    done
+}
+
+__export_props () {
+    for i in $@ ; do
+        if [ `echo $i | grep -e ".*=.*"` ] ; then
+            export $i
+        fi
+    done
+}
+
+__set_jail_prop () {
+    local name=`__get_jail_name "$@"`
+    local property="$2"
+    local dataset=`__find_jail $name`
+    local pname="`echo $property|cut -f 1 -d'='`"
+    local pval="`echo $property|cut -f 2 -d'='`"
+
+    local CONF="$CONF_NET
+                $CONF_JAIL
+                $CONF_RCTL
+                $CONF_CUSTOM
+                $CONF_SYNC"
+
+    for prop in $CONF ; do
+        if [ "$prop" == "$pname" ] ; then
+            zfs set org.freebsd.iocage:${prop}="${pval}" $dataset
+        fi
+    done
+
+    for prop in $CONF_ZFS ; do
+        if [ "$prop" == "$pname" ] ; then
+            zfs set $prop="$pval" $dataset
+        fi
+    done
+}
+
+__get_jail_prop () {
+    local name=`__get_jail_name "$@"`
+    local property=$2
+    local dataset=`__find_jail $name`
+
+    local CONF="$CONF_NET
+                $CONF_JAIL
+                $CONF_RCTL
+                $CONF_CUSTOM
+                $CONF_SYNC"
+
+    for prop in $CONF ; do
+        if [ $prop == $property ] ; then
+            local value=`zfs get -H -o value org.freebsd.iocage:$prop $dataset`
+            echo "$value"
+        elif [ $property == "all" ] ; then
+            local value=`zfs get -H -o value org.freebsd.iocage:$prop \
+            $dataset`
+            echo "$prop:$value"
+        fi
+    done
+
+    for prop in $CONF_ZFS ; do
+        if [ $prop == $property ] ; then
+            local value=`zfs get -H -o value $prop $dataset`
+            echo "$value"
+        fi
+    done
+}
+
+__usage () {
+    echo "usage:"
+    echo "  iocage fetch [release=RELEASE]"
+    echo "  iocage create [-c | property=value]"
+    echo "  iocage clone UUID"
+    echo "  iocage list [-t]"
+    echo "  iocage start UUID"
+    echo "  iocage stop UUID"
+    echo "  iocage console UUID"
+    echo "  iocage df"
+    echo "  iocage get [property | all ] UUID"
+    echo "  iocage set property=value UUID"
+    echo "  iocage cap UUID"
+    echo "  iocage uncap UUID"
+    echo "  iocage inuse UUID"
+    echo "  iocage snapshot UUID"
+    echo "  iocage snaplist UUID"
+    echo "  iocage snapremove snapshotname UUID"
+
+}
+
+__get_jail_name () {
+    for i in $@; do
+        :;
+    done
+
+    echo $i
+}
+
+# Find and return the jail's top level ZFS dataset
+__find_jail () {
+    local jails=`zfs list -rH -o name $pool/iocage/jails \
+                | grep -E "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$"`
+
+    for jail in $jails ; do
+        if [ $1 == "ALL" ] ; then
+            echo $jail
+        elif [ `echo $jail |grep -E ${1}` ] ; then
+            echo $jail
+        fi
+    done
+}
+
+__jail_state () {
+    #if [   ] ; then 
+
+
+
+}
+
+__start_jail () {
+    local name=`__get_jail_name "$@"`
+    local jail_hostid="`__get_jail_prop get hostid $name`"
+    local jail_path="`__get_jail_prop get mountpoint $name`"
+
+    if [ "$jail_hostid" != "$hostid" ] ; then
+        echo "ERROR: hostid mismatch, start failed!"
+        echo "    jail hostid: $jail_hostid"
+        echo "  host's hostid: $hostid"
+        exit 1
+    fi
+
+    jail -c vnet \
+    name="ioc-`__get_jail_prop get host_hostuuid $name`" \
+    host.hostname=`__get_jail_prop get hostname $name` \
+    path="${jail_path}/root" \
+    securelevel=`__get_jail_prop get seclevel $name` \
+    host.hostuuid=`__get_jail_prop get host_hostuuid $name` \
+    devfs_ruleset=`__get_jail_prop get devfs_ruleset $name` \
+    enforce_statfs=`__get_jail_prop get enforce_statfs $name` \
+    children.max=`__get_jail_prop get children_max $name` \
+    allow.set_hostname=`__get_jail_prop get allow_set_hostname $name` \
+    allow.sysvipc=`__get_jail_prop get allow_sysvipc $name` \
+    allow.raw_sockets=`__get_jail_prop get allow_raw_sockets $name` \
+    allow.chflags=`__get_jail_prop get allow_chflags $name` \
+    allow.mount=`__get_jail_prop get allow_mount $name` \
+    allow.mount.devfs=`__get_jail_prop get allow_mount_devfs $name` \
+    allow.mount.nullfs=`__get_jail_prop get allow_mount_nullfs $name` \
+    allow.mount.procfs=`__get_jail_prop get allow_mount_procfs $name` \
+    allow.mount.tmpfs=`__get_jail_prop get allow_mount_tmpfs $name` \
+    allow.mount.zfs=`__get_jail_prop get allow_mount_zfs $name` \
+    allow.quotas=`__get_jail_prop get allow_quotas $name` \
+    allow.socket_af=`__get_jail_prop get allow_socket_af $name` \
+    exec.prestart="`__get_jail_prop get exec_prestart $name`" \
+    exec.poststart="`__get_jail_prop get exec_poststart $name`" \
+    exec.prestop="`__get_jail_prop get exec_prestop $name`" \
+    exec.stop="`__get_jail_prop get exec_stop $name`" \
+    exec.clean=`__get_jail_prop get exec_clean $name` \
+    exec.timeout=`__get_jail_prop get exec_timeout $name` \
+    stop.timeout=`__get_jail_prop get stop_timeout $name` \
+    mount.fstab=/iocage/jails/$name/fstab \
+    mount.devfs=`__get_jail_prop get mount_devfs $name ` \
+    mount.fdescfs=`__get_jail_prop get mount_fdescfs $name` \
+    allow.dying \
+    exec.consolelog="/iocage/log/${name}-console.log" \
+    persist
+
+    cd ${jail_path}/root/dev && ln -s ../var/run/log log
+
+    __networking start $name
+    __rctl_limits $name
+    jexec ioc-${name} `__get_jail_prop get exec_start $name` \
+     >> /iocage/log/${name}-console.log 2>&1
+}
+
+__stop_jail () {
+    local name="$1"
+    local exec_prestop="`__get_jail_prop get exec_prestop $name`"
+    local exec_stop="`__get_jail_prop get exec_stop $name`"
+    local exec_poststop="`__get_jail_prop get exec_poststop $name`"
+
+    echo "  Stopping jail $1"
+
+    echo "$exec_prestop" | sh
+    jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
+    __networking stop $name
+    jail -r ioc-${name}
+    echo "$exec_poststop" | sh
+
+    umount -afvF /iocage/jails/${name}/fstab > /dev/null 2>&1
+    umount /iocage/jails/${name}/root/dev/fd > /dev/null 2>&1
+    umount /iocage/jails/${name}/root/dev    > /dev/null 2>&1
+    umount /iocage/jails/${name}/root/proc   > /dev/null 2>&1
+}
+
+__list_jails () {
+    local jails=`__find_jail ALL`
+    local switch=$2
+
+    printf "%-36s  %s  %s  %s\n" "UUID" "BOOT"\
+           "STATE" "TAG"
+    for jail in $jails ; do
+        uuid=`zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail`
+        boot=`zfs get -H -o value org.freebsd.iocage:boot $jail`
+        tag=`zfs get -H -o value org.freebsd.iocage:tag $jail`
+        state=`jls | grep $uuid | awk '{print$1}'`
+        template=`zfs get -H -o value org.freebsd.iocage:template $jail`
+
+        if [ -z $state ] ; then
+            state=down
+        else
+            state=up
+        fi
+
+        if [ -z ${switch} ] ; then
+            switch=zero
+        fi
+
+        if [ $switch == "-t" ] ; then
+            if [ $template == "yes" ] ; then
+                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
+                "$boot" "$state" "$tag"
+            fi
+        elif [ $switch != "-t" ] ; then
+            if [ $template != "yes" ] ; then
+                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
+                "$boot" "$state" "$tag"
+            fi
+        fi
+    done
+}
+
+__print_disk () {
+    local jails=`__find_jail ALL`
+
+    printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA"
+
+    for jail in $jails ; do
+        uuid=`zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail`
+        crt=`zfs get -H -o value compressratio $jail`
+        res=`zfs get -H -o value reservation $jail`
+        qta=`zfs get -H -o value quota $jail`
+        use=`zfs get -H -o value used $jail`
+        ava=`zfs get -H -o value available $jail`
+
+        printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "$uuid" "$crt" "$res" "$qta" \
+               "$use" "$ava"
+    done
+}
+
+__find_mypool () {
+    pools=`zpool list -H -o name`
+
+    for i in $pools ; do
+        mypool=`zpool get comment $pool | grep -v NAME | awk '{print $3}'`
+        if [ $mypool == "iocage" ] ; then
+            export pool=$i
+        else
+            echo -n "  please select a pool for iocage jails [$i]: "
+            read answer
+
+            if [ -z "$answer" ] ; then
+            answer=$i
+            fi
+
+            zpool set comment=iocage $answer
+            exit 0
+        fi
+    done
+}
+
+__networking () {
+    action=$1
+    local jid=`jls | grep $2 | awk '{ print $1 }'`
+    local nics=`__get_jail_prop get interfaces $2 \
+               |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }'`
+
+    if [ $action == "start" ] ; then
+        for i in $nics ; do
+            local nic=`echo $i | cut -f 1 -d:`
+            local bridge=`echo $i | cut -f 2 -d:`
+            epair_a=`ifconfig epair create`
+            epair_b=`echo $epair_a | sed s/a\$/b/`
+            ifconfig ${epair_a} name ${nic}:${jid}
+            ifconfig ${nic}:${jid} description "associated with jail: $2"
+            ifconfig $epair_b vnet ioc-${2}
+            jexec ioc-${2} ifconfig $epair_b name $nic
+            ifconfig $bridge addm ${nic}:${jid} up
+        done
+    elif [ $action == "stop" ] ; then
+        for if in $nics ; do
+            local nic=`echo $if | cut -f 1 -d:`
+            ifconfig ${nic}:${jid} destroy
+        done
+    fi
+}
+
+
+__take_template () {
+
+
+
+}
+
+__rctl_limits () {
+    local name="$1"
+    local rlimits="`__get_jail_prop get rlimits $name`"
+
+    if [ $rlimits == "on" ] ; then
+        echo "  Applying resource limits.."
+        for prop in $CONF_RCTL ; do
+            value="`__get_jail_prop get $prop $name`"
+            limit=`echo $value | cut -f1 -d:`
+            action=`echo $value | cut -f2 -d:`
+
+            if [ $limit == "off" ] ; then
+                continue
+            else
+                rctl -a jail:ioc-${name}:${prop}:${action}=${limit}
+            fi
+
+        done
+        echo "  Listing applied resource limits:"
+        rctl | grep $name
+    fi
+
+}
+
+__rctl_uncap () {
+    local name="$1"
+
+    echo "  Releasing resource limits.."
+    rctl -r jail:ioc-${name}
+    echo "  Listing active rules for jail:"
+    rctl | grep $name
+}
+
+
+__rctl_used () {
+    local name="$1"
+
+    echo "Consumed resources:"
+    echo "-------------------"
+    rctl -hu jail:ioc-${name}
+}
+
+
+__console () {
+    local login_flags=`zfs get -H -o value org.freebsd.iocage:login_flags \
+                       $pool/iocage/jails/$1`
+
+    jexec ioc-${1} login $login_flags
+}
+
+
+__snapshot () {
+    local date=`date "+%F_%T"`
+    local dataset=`__find_jail $@`
+    
+    zfs snapshot -r ${dataset}@${date}
+}
+
+
+__snapremove () {
+    local dataset=`__find_jail $2`
+    snapshot=$1
+
+    #echo "$snapshot $dataset"
+
+    if [ ! -z $snapshot ] || [ ! -z $dataset ] ; then
+        zfs destroy -r ${dataset}@${snapshot}
+    else
+        echo "  ERROR: Snapshot not found"
+    fi
+}
+
+__snaplist () {
+    local dataset=`__find_jail $@`
+
+    zfs list -Hrt snapshot -d1 $dataset \
+    | awk '{print $1}' | cut -f 2 -d \@
+
+}
+
+__rollback () {
+
+
+}
+
+
+__promote () {
+
+
+}
+
+
+if [ -z "$1" ] ; then
+    __usage
+fi
+
+__find_mypool
+__parse_cmd "$@"
