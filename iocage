@@ -266,8 +266,6 @@ __parse_cmd () {
                 ;;
             help)       __usage
                 ;;
-            *)          __usage
-                ;;
         esac
         shift
     done
@@ -835,6 +833,7 @@ __promote () {
 
 if [ -z "$1" ] ; then
     __usage
+    exit 0
 fi
 
 __find_mypool
