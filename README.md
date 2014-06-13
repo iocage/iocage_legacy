@@ -6,23 +6,23 @@ FreeBSD jail manager
 iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.
 
 usage:
-  iocage fetch [release=RELEASE]
-  iocage create [-c | property=value]
-  iocage clone UUID
-  iocage list [-t]
-  iocage start UUID
-  iocage stop UUID
-  iocage console UUID
-  iocage df
-  iocage get [property | all ] UUID
-  iocage set property=value UUID
+-  iocage fetch [release=RELEASE]
+-  iocage create [-c | property=value]
+-  iocage clone UUID
+-  iocage list [-t]
+-  iocage start UUID
+-  iocage stop UUID
+-  iocage console UUID
+-  iocage df
+-  iocage get [property | all ] UUID
+-  iocage set property=value UUID
   iocage cap UUID
-  iocage uncap UUID
-  iocage inuse UUID
-  iocage snapshot UUID
-  iocage snaplist UUID
-  iocage snapremove snapshotname UUID
-  iocage version | --version
+-  iocage uncap UUID
+-  iocage inuse UUID
+-  iocage snapshot UUID
+-  iocage snaplist UUID
+-  iocage snapremove snapshotname UUID
+-  iocage version | --version
 
 REQUIREMENTS
 - FreeBSD 10.0-RELEASE amd64
