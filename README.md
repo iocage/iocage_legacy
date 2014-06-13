@@ -37,16 +37,16 @@ OTHER CONSIDERATIONS
 - create bridge0 and bridge1 interfaces 
 
 QUICK HOWTO
-1. add bridge configuration to /etc/rc.conf on the host node
+- 1. add bridge configuration to /etc/rc.conf on the host node
    cloned_interfaces="bridge0 bridge1"
-2. run "iocage fetch" - this will fetch the current release and prepare the
+- 2. run "iocage fetch" - this will fetch the current release and prepare the
    base jail environment. Optionally release can be overridden by issuing 
    "iocage fetch release=9.2-RELEASE" if you intend to run other releases.
-3. execute "iocage create" - this will set up a jail from scratch. If needed
+- 3. execute "iocage create" - this will set up a jail from scratch. If needed
    The -c option will create a thin jail (ZFS clone) example: "iocage create -c"
    the tag=any_name can be used to tag a jail at creation.
-4. issue "iocage list"
-5. start the jail with "iocage start uuid"
+- 4. issue "iocage list"
+- 5. start the jail with "iocage start uuid"
 
 HINTS
 - Use iocage set/get to modify properties
