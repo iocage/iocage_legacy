@@ -16,7 +16,7 @@ usage:
 -  iocage df
 -  iocage get [property | all ] UUID
 -  iocage set property=value UUID
-  iocage cap UUID
+-  iocage cap UUID
 -  iocage uncap UUID
 -  iocage inuse UUID
 -  iocage snapshot UUID
@@ -47,6 +47,13 @@ QUICK HOWTO
    the tag=any_name can be used to tag a jail at creation.
 - 4. issue "iocage list"
 - 5. start the jail with "iocage start uuid"
+- 6. drop into jail with "iocage console uuid"
+
+OPTIONAL
+- turn on resource caps with "iocage set rlimits=on uuid"
+- reload limits on-the-fly "iocage cap uuid"
+- list resource usage "iocage inuse uuid"
+- release limits "iocage uncap uuid"
 
 HINTS
 - Use iocage set/get to modify properties
