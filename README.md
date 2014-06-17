@@ -12,6 +12,8 @@ usage:
 -  iocage list [-t]
 -  iocage start UUID
 -  iocage stop UUID
+-  iocage rcboot
+-  iocage rcshutdown
 -  iocage console UUID
 -  iocage df
 -  iocage get [property | all ] UUID
@@ -22,7 +24,9 @@ usage:
 -  iocage snapshot UUID
 -  iocage snaplist UUID
 -  iocage snapremove snapshotname UUID
+-  iocage defaults
 -  iocage version | --version
+-  iocage help
 
 REQUIREMENTS
 - FreeBSD 10.0-RELEASE amd64
