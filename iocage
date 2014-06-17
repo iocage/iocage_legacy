@@ -26,6 +26,7 @@
 
 unset LC_ALL
 unset LANG
+
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
@@ -249,6 +250,10 @@ __parse_cmd () {
             start)      __start_jail $2
                 ;;
             stop)       __stop_jail $2
+                ;;
+            rcboot)     __rc_jails boot
+                ;;
+            rcshutdown) __rc_jails shutdown
                 ;;
             df)         __print_disk
                 ;;
@@ -513,6 +518,8 @@ __usage () {
     echo "  iocage list [-t]"
     echo "  iocage start UUID"
     echo "  iocage stop UUID"
+    echo "  iocage rcboot"
+    echo "  iocage rcshutdown"
     echo "  iocage console UUID"
     echo "  iocage df"
     echo "  iocage get [property | all ] UUID"
@@ -523,7 +530,9 @@ __usage () {
     echo "  iocage snapshot UUID"
     echo "  iocage snaplist UUID"
     echo "  iocage snapremove snapshotname UUID"
-
+    echo "  iocage defaults"
+    echo "  iocage version | --version"
+    echo "  iocage help"
 }
 
 __get_jail_name () {
@@ -566,6 +575,8 @@ __start_jail () {
         echo "  host's hostid: $hostid"
         exit 1
     fi
+
+    echo "* Starting jail $name"
 
     jail -c vnet \
     name="ioc-`__get_jail_prop get host_hostuuid $name`" \
@@ -616,7 +627,7 @@ __stop_jail () {
     local exec_stop="`__get_jail_prop get exec_stop $name`"
     local exec_poststop="`__get_jail_prop get exec_poststop $name`"
 
-    echo "  Stopping jail $1"
+    echo "* Stopping jail $1"
 
     echo "$exec_prestop" | sh
     jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
@@ -628,6 +639,51 @@ __stop_jail () {
     umount /iocage/jails/${name}/root/dev/fd > /dev/null 2>&1
     umount /iocage/jails/${name}/root/dev    > /dev/null 2>&1
     umount /iocage/jails/${name}/root/proc   > /dev/null 2>&1
+}
+
+__rc_jails () {
+    local action=$1
+    local jails=`__find_jail ALL`
+    local boot_list="/tmp/iocage.$$"
+
+    for jail in $jails ; do
+        local name=`zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail`
+        local boot=`zfs get -H -o value org.freebsd.iocage:boot $jail`
+        local priority=`zfs get -H -o value org.freebsd.iocage:priority $jail`
+
+        if [ "$boot" == "on" ] ; then
+            echo "${priority},${name}" >> $boot_list
+        fi
+    done
+    
+    local boot_order=`sort -n $boot_list`
+    local shutdown_order=`sort -rn $boot_list`
+
+    if [ "$action" == "boot" ] ; then
+
+        for i in $boot_order ; do 
+            local jail="`echo $i | cut -f2 -d,`"
+            local state=`jls | grep $jail | wc -l`
+
+            if [ "$state" -lt "1" ] ; then
+                __start_jail $jail
+            fi
+        done
+
+    elif [ "$action" == "shutdown" ] ; then
+
+        for i in $shutdown_order ; do
+            local jail="`echo $i | cut -f2 -d,`"
+            local state=`jls | grep $jail | wc -l`
+
+            if [ "$state" -eq "1" ] ; then
+                __stop_jail $jail
+            fi
+        done
+
+    fi
+
+    rm $boot_list
 }
 
 __list_jails () {
@@ -757,8 +813,8 @@ __rctl_limits () {
             fi
 
         done
-        echo "  Listing applied resource limits:"
-        rctl | grep $name
+        #echo "  Listing applied resource limits:"
+        #rctl | grep $name
     fi
 
 }
