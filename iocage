@@ -438,6 +438,8 @@ __destroy_jail () {
         exit 1
     fi
 
+    local origin="`zfs get -H -o value origin $dataset`"
+
     echo " "
     echo "  WARNING: this will destroy jail $name"
     echo "  Dataset: $dataset"
@@ -448,6 +450,12 @@ __destroy_jail () {
     if [ "$answer" == "Y" ] && [ "$state" -lt "1" ] ; then
         echo "  Destroying: $name"
         zfs destroy -fr $dataset
+
+        if [ "$origin" != "-" ] ; then
+            echo "  Destroying clone origin: $origin"
+            zfs destroy -r $origin
+        fi
+
     elif [ "$state" -eq "1" ] ; then
         echo "  ERROR: Jail is up and running ..exiting"
         exit 1
