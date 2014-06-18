@@ -237,6 +237,8 @@ __parse_cmd () {
             create)     __export_props $@
                         __create_jail $@
                 ;;
+            destroy)    __destroy_jail $2
+                ;;
             clone)      __export_props $@
                         __clone_jail $2
                 ;;
@@ -420,6 +422,38 @@ __clone_jail () {
     touch /iocage/jails/$uuid/fstab
 }
 
+__destroy_jail () {
+    local name=$1
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local state=`jls|grep $name | wc -l`
+    local dataset="`__find_jail $name`"
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: jail not found"
+        exit 1
+    fi
+
+    echo " "
+    echo "  WARNING: this will destroy jail $name"
+    echo "  Dataset: $dataset"
+    echo " "
+    echo -n "  Are you sure ? Y[n]: "
+    read answer
+
+    if [ "$answer" == "Y" ] && [ "$state" -lt "1" ] ; then
+        echo "  Destroying: $name"
+        zfs destroy -fr $dataset
+    elif [ "$state" -eq "1" ] ; then
+        echo "  ERROR: Jail is up and running ..exiting"
+        exit 1
+    fi
+}
+
 __configure_jail () {
     local CONF="$CONF_NET
                 $CONF_JAIL
@@ -515,6 +549,7 @@ __usage () {
     echo "  iocage fetch [release=RELEASE]"
     echo "  iocage create [-c | property=value]"
     echo "  iocage clone UUID"
+    echo "  iocage destroy UUID"
     echo "  iocage list [-t]"
     echo "  iocage start UUID"
     echo "  iocage stop UUID"
@@ -555,13 +590,6 @@ __find_jail () {
             echo $jail
         fi
     done
-}
-
-__jail_state () {
-    #if [   ] ; then 
-
-
-
 }
 
 __start_jail () {
