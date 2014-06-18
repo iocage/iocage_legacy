@@ -9,6 +9,7 @@ usage:
 -  iocage fetch [release=RELEASE]
 -  iocage create [-c | property=value]
 -  iocage clone UUID
+-  iocage destroy UUID
 -  iocage list [-t]
 -  iocage start UUID
 -  iocage stop UUID
