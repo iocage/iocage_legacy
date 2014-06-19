@@ -232,6 +232,8 @@ __parse_cmd () {
                 ;;
             console)    __console $2
                 ;;
+            chroot)     __chroot $2
+                ;;
             defaults)   __print_defaults
                 ;;
             create)     __export_props $@
@@ -253,6 +255,8 @@ __parse_cmd () {
                 ;;
             stop)       __stop_jail $2
                 ;;
+            restart)    __restart_jail $2
+                ;;
             rcboot)     __rc_jails boot
                 ;;
             rcshutdown) __rc_jails shutdown
@@ -268,6 +272,8 @@ __parse_cmd () {
             uncap)      __rctl_uncap $2
                 ;;
             cap)        __rctl_limits $2
+                ;;
+            limits)     __rctl_list $2
                 ;;
             inuse)      __rctl_used $2
                 ;;
@@ -398,13 +404,17 @@ __create_jail () {
     fi
 
     __configure_jail $pool/iocage/jails/$uuid
+
     touch /iocage/jails/$uuid/fstab
 
-    echo 'cron_flags="$cron_flags -J 15"' >> \
-    /iocage/jails/${uuid}/root/etc/rc.conf
+    cronfix=`grep cron_flags /iocage/jails/${uuid}/root/etc/rc.conf | wc -l`
 
     echo "hostname=${uuid}" >> /iocage/jails/${uuid}/root/etc/rc.conf
 
+    if [ $cronfix -lt "1" ] ; then
+        echo 'cron_flags="$cron_flags -J 15"' >> \
+        /iocage/jails/${uuid}/root/etc/rc.conf
+    fi
 }
 
 __clone_jail () {
@@ -564,10 +574,12 @@ __usage () {
     echo "  iocage rcboot"
     echo "  iocage rcshutdown"
     echo "  iocage console UUID"
+    echo "  iocage chroot UUID"
     echo "  iocage df"
     echo "  iocage get [property | all ] UUID"
     echo "  iocage set property=value UUID"
     echo "  iocage cap UUID"
+    echo "  iocage limts [UUID]"
     echo "  iocage uncap UUID"
     echo "  iocage inuse UUID"
     echo "  iocage snapshot UUID"
@@ -604,6 +616,12 @@ __start_jail () {
     local name=`__get_jail_name "$@"`
     local jail_hostid="`__get_jail_prop get hostid $name`"
     local jail_path="`__get_jail_prop get mountpoint $name`"
+    local dataset=`__find_jail $name`
+    local template="`__get_jail_prop get template $name`"
+
+    if [ $template == "yes" ] ; then
+        return
+    fi
 
     if [ "$jail_hostid" != "$hostid" ] ; then
         echo "ERROR: hostid mismatch, start failed!"
@@ -655,6 +673,8 @@ __start_jail () {
     __rctl_limits $name
     jexec ioc-${name} `__get_jail_prop get exec_start $name` \
      >> /iocage/log/${name}-console.log 2>&1
+
+    zfs set org.freebsd.iocage:last_started=`date "+%F_%T"` $dataset
 }
 
 __stop_jail () {
@@ -677,6 +697,27 @@ __stop_jail () {
     umount /iocage/jails/${name}/root/proc   > /dev/null 2>&1
 }
 
+# Soft restart
+__restart_jail () {
+    local name="$1"
+    local exec_stop="`__get_jail_prop get exec_stop $name`"
+    local exec_start="`__get_jail_prop get exec_start $name`"
+    local jid="`jls | grep $name | awk '{ print $1 }'`"
+    local dataset=`__find_jail $name`
+
+    echo "* Performing soft restart for jail: $1"
+    jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
+
+    if [ $? -ne "1" ] ; then
+        pkill -j $jid
+        jexec ioc-${name} $exec_start >> /iocage/log/${name}-console.log 2>&1
+        zfs set org.freebsd.iocage:last_started=`date "+%F_%T"` $dataset
+    else
+        echo "  ERROR: soft restart failed.."
+        exit 1
+    fi
+}
+
 __rc_jails () {
     local action=$1
     local jails=`__find_jail ALL`
@@ -692,8 +733,13 @@ __rc_jails () {
         fi
     done
     
-    local boot_order=`sort -n $boot_list`
-    local shutdown_order=`sort -rn $boot_list`
+    if [ -e $boot_list ] ; then
+        local boot_order=`sort -n $boot_list`
+        local shutdown_order=`sort -rn $boot_list`
+    else
+        echo "  ERROR: None of the jails have boot on"
+        exit 1
+    fi
 
     if [ "$action" == "boot" ] ; then
 
@@ -824,13 +870,6 @@ __networking () {
     fi
 }
 
-
-__take_template () {
-
-
-
-}
-
 __rctl_limits () {
     local name="$1"
     local rlimits="`__get_jail_prop get rlimits $name`"
@@ -849,10 +888,19 @@ __rctl_limits () {
             fi
 
         done
-        #echo "  Listing applied resource limits:"
-        #rctl | grep $name
     fi
+}
 
+__rctl_list () {
+    local name="$1"
+
+    if [ -z "$name" ] ; then
+        echo "* All active limits:"
+        rctl | grep jail
+    else
+        echo "* Active limits for jail: $name"
+        rctl | grep $name
+    fi
 }
 
 __rctl_uncap () {
@@ -879,6 +927,12 @@ __console () {
                        $pool/iocage/jails/$1`
 
     jexec ioc-${1} login $login_flags
+}
+
+__chroot () {
+    local name="$1"
+
+    chroot /iocage/jails/${name}/root
 }
 
 
