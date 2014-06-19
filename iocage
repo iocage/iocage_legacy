@@ -911,8 +911,12 @@ __rctl_list () {
         echo "* All active limits:"
         rctl | grep jail
     else
+        local jid="`jls | grep $name | awk '{ print $1 }'`"
         echo "* Active limits for jail: $name"
         rctl | grep $name
+        if [ ! -z "$jid" ] ; then
+            echo "* CPU affinity: `cpuset -g -j $jid | cut -f2 -d:`"
+        fi
     fi
 }
 
