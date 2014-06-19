@@ -16,6 +16,7 @@ usage:
 -  iocage rcboot
 -  iocage rcshutdown
 -  iocage console UUID
+-  iocage chroot UUID
 -  iocage df
 -  iocage get [property | all ] UUID
 -  iocage set property=value UUID

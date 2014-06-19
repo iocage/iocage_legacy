@@ -135,8 +135,7 @@ ftphost="ftp.freebsd.org"
 ftpfiles="base.txz doc.txz lib32.txz"
 
 
-CONF_RCTL="cpuset
-           memoryuse
+CONF_RCTL="memoryuse
            memorylocked
            vmemoryuse
            maxproc
@@ -206,6 +205,7 @@ CONF_CUSTOM="tag
              last_started
              type
              hostid
+             cpuset
              release"
 
 CONF_ZFS="compression
@@ -618,6 +618,7 @@ __start_jail () {
     local jail_path="`__get_jail_prop get mountpoint $name`"
     local dataset=`__find_jail $name`
     local template="`__get_jail_prop get template $name`"
+    local cpuset="`__get_jail_prop get cpuset $name`"
 
     if [ $template == "yes" ] ; then
         return
@@ -671,6 +672,13 @@ __start_jail () {
 
     __networking start $name
     __rctl_limits $name
+
+    if [ $cpuset != "off" ] ; then
+        echo "  Appliyng CPU affinity"
+        local jid="`jls | grep $name | awk '{ print $1 }'`"
+        cpuset -l $cpuset -j $jid
+    fi
+
     jexec ioc-${name} `__get_jail_prop get exec_start $name` \
      >> /iocage/log/${name}-console.log 2>&1
 
@@ -682,6 +690,7 @@ __stop_jail () {
     local exec_prestop="`__get_jail_prop get exec_prestop $name`"
     local exec_stop="`__get_jail_prop get exec_stop $name`"
     local exec_poststop="`__get_jail_prop get exec_poststop $name`"
+    local rlimits="`rctl | grep $name| wc -l`"
 
     echo "* Stopping jail $1"
 
@@ -695,6 +704,10 @@ __stop_jail () {
     umount /iocage/jails/${name}/root/dev/fd > /dev/null 2>&1
     umount /iocage/jails/${name}/root/dev    > /dev/null 2>&1
     umount /iocage/jails/${name}/root/proc   > /dev/null 2>&1
+
+    if [ $rlimits -gt "0" ] ; then
+        rctl -r jail:ioc-${name}
+    fi
 }
 
 # Soft restart
