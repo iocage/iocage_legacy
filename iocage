@@ -659,6 +659,7 @@ __find_jail () {
 
 __start_jail () {
     local name=`__get_jail_name "$@"`
+    local tag="`__get_jail_prop get tag $name`"
     local jail_hostid="`__get_jail_prop get hostid $name`"
     local jail_path="`__get_jail_prop get mountpoint $name`"
     local dataset=`__find_jail $name`
@@ -702,6 +703,7 @@ __start_jail () {
     fi
 
     echo "* Starting jail $name"
+    echo "                (tag $tag)"
 
     jail -c vnet \
     name="ioc-`__get_jail_prop get host_hostuuid $name`" \
@@ -744,7 +746,7 @@ __start_jail () {
     __rctl_limits $name
 
     if [ $cpuset != "off" ] ; then
-        echo "  Appliyng CPU affinity"
+        echo "  Appliyng CPU affinity.."
         local jid="`jls | grep $name | awk '{ print $1 }'`"
         cpuset -l $cpuset -j $jid
     fi
@@ -758,6 +760,7 @@ __start_jail () {
 
 __stop_jail () {
     local name="$1"
+    local tag="`__get_jail_prop get tag $name`"
     local exec_prestop="`__get_jail_prop get exec_prestop $name`"
     local exec_stop="`__get_jail_prop get exec_stop $name`"
     local exec_poststop="`__get_jail_prop get exec_poststop $name`"
@@ -769,7 +772,8 @@ __stop_jail () {
         exit 1
     fi
 
-    echo "* Stopping jail $1"
+    echo "* Stopping jail $name"
+    echo "                (tag $tag)"
 
     echo "$exec_prestop" | sh
     jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
