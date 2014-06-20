@@ -666,7 +666,7 @@ __start_jail () {
     local cpuset="`__get_jail_prop get cpuset $name`"
     local procfs="`__get_jail_prop get mount_procfs $name`"
     local state=`jls | grep $name | wc -l`
-    local nics=`__get_jail_prop get interfaces $2 \
+    local nics=`__get_jail_prop get interfaces $name \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }'`
 
     if [ "$state" -eq "1" ] ; then

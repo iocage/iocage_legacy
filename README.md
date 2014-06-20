@@ -13,6 +13,7 @@ usage:
 -  iocage list [-t]
 -  iocage start UUID
 -  iocage stop UUID
+-  iocage restart UUID
 -  iocage rcboot
 -  iocage rcshutdown
 -  iocage console UUID
