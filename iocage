@@ -762,6 +762,12 @@ __stop_jail () {
     local exec_stop="`__get_jail_prop get exec_stop $name`"
     local exec_poststop="`__get_jail_prop get exec_poststop $name`"
     local rlimits="`rctl | grep $name| wc -l`"
+    local state=`jls | grep $name | wc -l`
+
+    if [  "$state" -lt "1" ] ; then
+        echo "* ${name}: is already down"
+        exit 1
+    fi
 
     echo "* Stopping jail $1"
 
@@ -963,13 +969,19 @@ __rctl_limits () {
         echo "  Applying resource limits.."
         for prop in $CONF_RCTL ; do
             value="`__get_jail_prop get $prop $name`"
-            limit=`echo $value | cut -f1 -d:`
-            action=`echo $value | cut -f2 -d:`
-
+            limit=`echo $value | awk 'BEGIN { FS = ":" } ; { print $1 }'`
+            action=`echo $value | awk 'BEGIN { FS = ":" } ; { print $2 }'`
+            
             if [ $limit == "off" ] ; then
                 continue
             else
-                rctl -a jail:ioc-${name}:${prop}:${action}=${limit}
+                if [ -z "$limit" ] || [ -z "$action" ] ; then
+                    echo -n "  ERROR: incorrect resource limit: $limit action: " 
+                    echo "$action for property: $prop"
+                    echo "  HINT : check man page for syntax."
+                else
+                    rctl -a jail:ioc-${name}:${prop}:${action}=${limit}
+                fi
             fi
 
         done
