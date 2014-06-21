@@ -434,9 +434,9 @@ __create_jail () {
 
     touch /iocage/jails/$uuid/fstab
 
-    cronfix=`grep cron_flags /iocage/jails/${uuid}/root/etc/rc.conf | wc -l`
-
     echo "hostname=${uuid}" >> /iocage/jails/${uuid}/root/etc/rc.conf
+
+    cronfix=`grep cron_flags /iocage/jails/${uuid}/root/etc/rc.conf | wc -l`
 
     if [ $cronfix -lt "1" ] ; then
         echo 'cron_flags="$cron_flags -J 15"' >> \
