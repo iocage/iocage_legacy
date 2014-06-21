@@ -624,7 +624,7 @@ __usage () {
     echo "  iocage get [property | all ] UUID"
     echo "  iocage set property=value UUID"
     echo "  iocage cap UUID"
-    echo "  iocage limts [UUID]"
+    echo "  iocage limits [UUID]"
     echo "  iocage uncap UUID"
     echo "  iocage inuse UUID"
     echo "  iocage snapshot UUID"
