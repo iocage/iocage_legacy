@@ -445,17 +445,26 @@ __create_jail () {
 }
 
 __clone_jail () {
-    dataset=`__find_jail $@`
+    local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
+    snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+    dataset=`__find_jail $name`
     fs_list=`zfs list -rH -o name $dataset`
 
-    zfs snapshot -r ${dataset}@${uuid}
-    for fs in $fs_list ; do
-        cfs=`echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g`
-        zfs clone $fs@$uuid $cfs
-    done
+    if [ -z "$snapshot" ] ; then
+        zfs snapshot -r ${dataset}@${uuid}
+        for fs in $fs_list ; do
+            cfs=`echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g`
+            zfs clone $fs@$uuid $cfs
+        done
+    else
+        for fs in $fs_list ; do
+            cfs=`echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g`
+            zfs clone $fs@$snapshot $cfs
+        done
+    fi
 
     __configure_jail $pool/iocage/jails/$uuid
-    mv /iocage/jails/$uuid/fstab /iocage/jails/$uuid/fstab.$1
+    mv /iocage/jails/$uuid/fstab /iocage/jails/$uuid/fstab.$name
     touch /iocage/jails/$uuid/fstab
 }
 
@@ -610,7 +619,7 @@ __usage () {
     echo "usage:"
     echo "  iocage fetch [release=RELEASE]"
     echo "  iocage create [-c | property=value]"
-    echo "  iocage clone UUID"
+    echo "  iocage clone UUID | UUID@snapshot [property=value]"
     echo "  iocage destroy UUID"
     echo "  iocage list [-t]"
     echo "  iocage start UUID"

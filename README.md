@@ -8,7 +8,7 @@ iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.
 usage:
 -  iocage fetch [release=RELEASE]
 -  iocage create [-c | property=value]
--  iocage clone UUID
+-  iocage clone UUID | UUID@snapshot [property=value]
 -  iocage destroy UUID
 -  iocage list [-t]
 -  iocage start UUID
