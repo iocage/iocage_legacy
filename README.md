@@ -22,6 +22,7 @@ usage:
 -  iocage get [property | all ] UUID
 -  iocage set property=value UUID
 -  iocage cap UUID
+-  iocage limts [UUID]
 -  iocage uncap UUID
 -  iocage inuse UUID
 -  iocage snapshot UUID
