@@ -68,3 +68,10 @@ OPTIONAL
 HINTS
 - Use iocage set/get to modify properties
 - To understand what most properties do read jail(8)
+- Consider addint the following to /etc/sysctl.conf on the host:
+net.inet.ip.forwarding=1
+net.link.bridge.pfil_onlyip=0
+net.link.bridge.pfil_bridge=0
+net.link.bridge.pfil_member=0
+
+- read https://github.com/pannon/iocage/wiki/Pre-flight-checklist
