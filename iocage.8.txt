@@ -13,15 +13,18 @@ SYNOPSIS
   iocage rcshutdown
   iocage console UUID
   iocage chroot UUID
+  iocage df
   iocage get [property | all ] UUID
   iocage set property=value UUID
   iocage cap UUID
   iocage limits [UUID]
   iocage uncap UUID
   iocage inuse UUID
-  iocage snapshot UUID
+  iocage snapshot UUID | UUID@snapshotname
   iocage snaplist UUID
-  iocage snapremove snapshotname UUID
+  iocage snapremove UUID@snapshotname
+  iocage rollback UUID@snapshotname
+  iocage promote UUID
   iocage defaults
   iocage version | --version
   iocage help
@@ -177,17 +180,29 @@ SUBCOMMANDS
     
     Display consumed resources for jail.
 
-  snapshot UUID
+  snapshot UUID | UUID@snapshotname
 
-    Create a ZFS snapshot for jail.
+    Create a ZFS snapshot for jail. If no snapshot name is specified defaults
+    to auto snapshot name based on current date and time.
 
   snaplist UUID
 
     List all snapshots belonging to jail.
 
-  snapremove snapshotname UUID
+  snapremove UUID@snapshotname
 
-    Destroy snapshot.
+    Destroy snapshot named snapshotname.
+
+  rollback UUID@snapshotname
+
+    Rollback to an existing snapshot named snapshotname. Any intermediate
+    snapshots will be deleted as well. For more info on this please read
+    zfs(8).
+
+  promote UUID
+
+    Promote a cloned jail to a fully independent copy. For more details please
+    read zfs(8).
 
   defaults
 

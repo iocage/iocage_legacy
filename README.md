@@ -25,9 +25,11 @@ usage:
 -  iocage limts [UUID]
 -  iocage uncap UUID
 -  iocage inuse UUID
--  iocage snapshot UUID
+-  iocage snapshot UUID | UUID@snapshotname
 -  iocage snaplist UUID
--  iocage snapremove snapshotname UUID
+-  iocage snapremove UUID@snapshotname
+-  iocage rollback UUID@snapshotname
+-  iocage promote UUID
 -  iocage defaults
 -  iocage version | --version
 -  iocage help

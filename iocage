@@ -31,7 +31,7 @@ PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.0 (2014/06/10)"
+    echo "iocage 1.0 (2014/06/23)"
     exit 0
 fi
 
@@ -134,7 +134,7 @@ sync_tgt_zpool="none"
 ftphost="ftp.freebsd.org"
 ftpfiles="base.txz doc.txz lib32.txz"
 
-
+# Resource limits
 CONF_RCTL="memoryuse
            memorylocked
            vmemoryuse
@@ -156,11 +156,13 @@ CONF_RCTL="memoryuse
            shmsize
            wallclock"
 
+# Networking configuration
 CONF_NET="interfaces
           host_hostname
           hostname
           exec_fib"
 
+# Native jail properties
 CONF_JAIL="devfs_ruleset
            mount_devfs
            exec_start
@@ -195,6 +197,7 @@ CONF_JAIL="devfs_ruleset
            allow_socket_af
            host_hostuuid"
 
+# Custom properties
 CONF_CUSTOM="tag
              template
              rlimits
@@ -208,6 +211,7 @@ CONF_CUSTOM="tag
              cpuset
              release"
 
+# Native ZFS properties
 CONF_ZFS="compression
           origin
           quota
@@ -218,10 +222,12 @@ CONF_ZFS="compression
           dedup
           reservation"
 
+# ZFS sync (not used yet)
 CONF_SYNC="sync_stat
            sync_target
            sync_tgt_zpool"
 
+# ftp properties
 CONF_FTP="ftphost ftpdir"
 
 # Process command line options-------------------------
@@ -285,7 +291,13 @@ __parse_cmd () {
             snaplist)   __snaplist $2
                         exit 0
                 ;;
-            snapremove) __snapremove $2 $3
+            snapremove) __snapremove $2
+                        exit 0
+                ;;
+            promote)    __promote $2
+                        exit 0
+                ;;
+            rollback)   __rollback $2
                         exit 0
                 ;;
             uncap)      __rctl_uncap $2
@@ -300,7 +312,7 @@ __parse_cmd () {
             inuse)      __rctl_used $2
                         exit 0
                 ;;
-            help)       __usage
+            help)       __help
                         exit 0
                 ;;
                 *)      __usage
@@ -433,6 +445,7 @@ __create_jail () {
     __configure_jail $pool/iocage/jails/$uuid
 
     touch /iocage/jails/$uuid/fstab
+    touch /iocage/jails/${uuid}/root/etc/rc.conf
 
     echo "hostname=${uuid}" >> /iocage/jails/${uuid}/root/etc/rc.conf
 
@@ -444,11 +457,12 @@ __create_jail () {
     fi
 }
 
+# Cloning jails ----------------------------------------------------------
 __clone_jail () {
     local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
-    snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
-    dataset=`__find_jail $name`
-    fs_list=`zfs list -rH -o name $dataset`
+    local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+    local dataset=`__find_jail $name`
+    local fs_list=`zfs list -rH -o name $dataset`
 
     if [ -z "$snapshot" ] ; then
         zfs snapshot -r ${dataset}@${uuid}
@@ -466,8 +480,16 @@ __clone_jail () {
     __configure_jail $pool/iocage/jails/$uuid
     mv /iocage/jails/$uuid/fstab /iocage/jails/$uuid/fstab.$name
     touch /iocage/jails/$uuid/fstab
+
+    cat /iocage/jails/${uuid}/root/etc/rc.conf | \
+    sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
+    > /iocage/jails/${uuid}/rc.conf
+
+    mv /iocage/jails/${uuid}/rc.conf \
+    /iocage/jails/${uuid}/root/etc/rc.conf
 }
 
+# Destroy jails --------------------------------------------------------------
 __destroy_jail () {
     local name=$1
 
@@ -508,6 +530,7 @@ __destroy_jail () {
     fi
 }
 
+# Configure properties -------------------------------------------------
 __configure_jail () {
     local CONF="$CONF_NET
                 $CONF_JAIL
@@ -534,6 +557,7 @@ __configure_jail () {
     done
 }
 
+# Export every property specified on command line ----------------------
 __export_props () {
     for i in $@ ; do
         if [ `echo $i | grep -e ".*=.*"` ] ; then
@@ -542,6 +566,7 @@ __export_props () {
     done
 }
 
+# Set properties ------------------------------------------------------
 __set_jail_prop () {
     local name=`__get_jail_name "$@"`
     local property="$2"
@@ -576,6 +601,7 @@ __set_jail_prop () {
     fi
 }
 
+# Get properties -----------------------------------------------------
 __get_jail_prop () {
     local name=`__get_jail_name "$@"`
     local property=$2
@@ -636,9 +662,11 @@ __usage () {
     echo "  iocage limits [UUID]"
     echo "  iocage uncap UUID"
     echo "  iocage inuse UUID"
-    echo "  iocage snapshot UUID"
+    echo "  iocage snapshot UUID | UUID@snapshotname"
     echo "  iocage snaplist UUID"
-    echo "  iocage snapremove snapshotname UUID"
+    echo "  iocage snapremove UUID@snapshotname"
+    echo "  iocage rollback UUID@snapshotname"
+    echo "  iocage promote UUID"
     echo "  iocage defaults"
     echo "  iocage version | --version"
     echo "  iocage help"
@@ -660,7 +688,7 @@ __find_jail () {
     for jail in $jails ; do
         if [ $1 == "ALL" ] ; then
             echo $jail
-        elif [ `echo $jail |grep -E ${1}` ] ; then
+        elif [ `echo $jail |grep -E "^$pool/iocage/jails/${1}$"` ] ; then
             echo $jail
         fi
     done
@@ -1051,23 +1079,35 @@ __chroot () {
 
 
 __snapshot () {
+    local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
+    local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+    local dataset=`__find_jail $name`
     local date=`date "+%F_%T"`
-    local dataset=`__find_jail $@`
-    
-    zfs snapshot -r ${dataset}@${date}
+   
+    if [ ! -z $snapshot ] ; then
+        zfs snapshot -r ${dataset}@${snapshot}
+    else 
+        zfs snapshot -r ${dataset}@ioc-${date}
+    fi
 }
 
 
 __snapremove () {
-    local dataset=`__find_jail $2`
-    snapshot=$1
+    local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
+    local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+    local dataset=`__find_jail $name`
 
-    #echo "$snapshot $dataset"
+    if [ -z $dataset ] ; then
+        echo "  ERROR: dataset not found"
+        exit 1
+    fi
 
-    if [ ! -z $snapshot ] || [ ! -z $dataset ] ; then
+    if [ ! -z $snapshot ] ; then
+        echo "* removing snapshot: ${snapshot}"
         zfs destroy -r ${dataset}@${snapshot}
     else
-        echo "  ERROR: Snapshot not found"
+        echo "  ERROR: snapshot not found"
+        exit 1
     fi
 }
 
@@ -1080,21 +1120,704 @@ __snaplist () {
 }
 
 __rollback () {
+    local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
+    local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+    local dataset=`__find_jail $name`
+    local fs_list=`zfs list -rH -o name $dataset`
 
-
+    if [ ! -z "$snapshot" ] ; then
+        for fs in $fs_list ; do
+            echo "* Rolling back to ${fs}@${snapshot}"
+            zfs rollback -r ${fs}@${snapshot}
+        done
+    fi
 }
 
 
 __promote () {
+    local name="$1"
+    local dataset=`__find_jail $name`
+    local fs_list=`zfs list -rH -o name $dataset`
 
+    if [ -z $dataset ] ; then
+        echo "  ERROR: dataset not found"
+        exit 1
+    fi
 
+    for fs in $fs_list ; do
+        local origin="`zfs get -H -o value origin $fs`"
+
+        if [ "$origin" != "-" ] ; then
+            echo "* promoting filesystem: $fs"
+            zfs promote $fs
+            continue
+        else
+            echo "  INFO: filesystem $fs is not a clone"
+        fi
+    done
+}
+
+__help () {
+cat << EOT
+NAME
+  iocage - jail manager amalgamating ZFS, VNET and resource limits
+SYNOPSIS
+  iocage fetch
+  iocage create [-c] [release=RELEASE]
+  iocage clone UUID | UUID@snapshot [property=value]
+  iocage destroy UUID
+  iocage list [-t]
+  iocage start UUID
+  iocage stop UUID
+  iocage restart UUID
+  iocage rcboot
+  iocage rcshutdown
+  iocage console UUID
+  iocage chroot UUID
+  iocage df
+  iocage get [property | all ] UUID
+  iocage set property=value UUID
+  iocage cap UUID
+  iocage limits [UUID]
+  iocage uncap UUID
+  iocage inuse UUID
+  iocage snapshot UUID | UUID@snapshotname
+  iocage snaplist UUID
+  iocage snapremove UUID@snapshotname
+  iocage rollback UUID@snapshotname
+  iocage promote UUID
+  iocage defaults
+  iocage version | --version
+  iocage help
+DESCRIPTION
+  iocage is a system administration tool for jails designed to simplify
+  jail management tasks. It abstracts away the management of ZFS backed jails running VNET
+  networking with optional support for resource limits.
+  
+  NOTE: only VNET
+  enabled jails are supported! The older shared IP based jails are
+  intentionally not supported for various reasons - mostly VNET enabled jails
+  provide better isolation.
+
+  Each jail has a unique ID (UUID) automatically generated at creation time.
+  Using UUID's as jail names means that a jail can be replicated in a
+  distributed environment with greater flexibility. This also eliminates
+  potential naming clashes on large scale deployments.
+
+  To ease jail identification a TAG field is included in list mode which can
+  be set to any string (hostname, label, note, etc.). By default the TAG field
+  contains the creation date and time stamp.
+
+  Properties are stored inside ZFS custom fields. This eliminates the need for
+  any configuration files and jails can be easily moved with ZFS send and
+  receive preserving all of their properties automatically.
+
+  iocage relies on ZFS, VIMAGE (VNET) and has the following minimal
+  requirements:
+    o   FreeBSD 10.0-RELEASE amd64
+    o   bridge interfaces (bridge0,bridge1) add:
+
+        cloned_interfaces="bridge0 bridge1" to /etc/rc.conf
+    o  Kernel compiled with:
+
+        options         VIMAGE
+        options         RACCT
+        options         RCTL
+SUBCOMMANDS
+  fetch [release=RELEASE]
+
+    fetch has to be executed as the first command on a pristine system. By
+    default fetch will download the host node's RELEASE for deployment. If
+    other releases are required this can be changed with supplying the
+    required release property.
+
+    Example: iocage fetch release=9.2-RELEASE
+
+  create [-c] [release=RELEASE] [property=value] [property=value] ...
+
+    By default create will deploy a new jail based on the host operating
+    system's release. This can be changed by specifying the release option.
+    If the -c switch is specified the jail will be cloned from the release.
+    Default is to create a fully independent jail set.
+
+    Example: iocage create tag=www01
+
+  clone UUID | UUID@snapshot [property=value]
+
+    Clone jail identified by UUID (ZFS clone). All properties will be reset on
+    the clone, defaults can be overridden by specifying properties on the fly.
+    Custom point-in-time snapshots can be used as a source for cloning in the
+    form of UUID@snapshot.
+
+    Examples:
+
+    Clone the current state of the jail:
+    iocage clone UUID tag=www02
+
+    Clone a jail from a custom snapshot:
+    iocage clone UUID@snapshotname tag=www02
+
+  destroy UUID
+
+    Destroy jail. This is irreversible, use with caution. If the jail is
+    running destroy action will fail.
+
+  list [-t]
+
+    List all jails, if -t is specified list only templates.
+
+  df
+
+    List disk space related information. Available fields:
+    
+    CRT - compression ratio
+    RES - reserved space
+    QTA - disk quota
+    USE - used space
+    AVA - available space
+
+  start UUID
+
+    Start jail identified by UUID.
+
+  stop UUID
+
+    Stop jail identified by UUID.
+
+  restart UUID
+
+    Soft restart jail. Soft method will restart the jail without destroying
+    the jail's networking and the jail itself. All processes are gracefully 
+    restarted inside the jail. Useful for quick and graceful restarts.
+
+  rcboot
+
+    Start all jails with "boot" property set to "on". Intended for boot time
+    execution. Jails will be started in an ordered fashion based on their
+    "priority" property.
+
+  rcshutdown
+
+    Stop all jails with "boot" property set to "on". Intended for full host shutdown.
+    Jails will be stopped in an ordered fashion based on their "priority"
+    property.
+
+  console UUID
+
+    Console access, drop into jail.
+
+  chroot UUID
+
+    Chroot into jail, without actually starting the jail itself. Useful for
+    initial setup (set root password, configure networking).
+
+  get [property | all ] UUID
+
+    Get named property or if all is specified dump all properties known to
+    iocage.
+
+    To display whether resource limits are enforced for jail:
+
+    iocage get rlimits UUID
+
+  set property=value UUID
+
+    Set a property to value.
+
+  cap UUID
+    
+    Reapply resource limits on jail while it is running.
+
+  limits [UUID]
+
+    Display active resource limits for a jail or all jails. With no UUID supplied
+    display all limits active for all jail.
+
+  uncap UUID
+
+    Release all resource limits, disable limits on the fly.
+
+  inuse UUID
+    
+    Display consumed resources for jail.
+
+  snapshot UUID | UUID@snapshotname
+
+    Create a ZFS snapshot for jail. If no snapshot name is specified defaults
+    to auto snapshot name based on current date and time.
+
+  snaplist UUID
+
+    List all snapshots belonging to jail.
+
+  snapremove UUID@snapshotname
+
+    Destroy snapshot named snapshotname.
+
+  rollback UUID@snapshotname
+
+    Rollback to an existing snapshot named snapshotname. Any intermediate
+    snapshots will be deleted as well. For more info on this please read
+    zfs(8).
+
+  promote UUID
+
+    Promote a cloned jail to a fully independent copy. For more details please
+    read zfs(8).
+
+  defaults
+
+    Display all defaults set in iocage itself.
+
+  version | --version
+
+    List version number.
+
+  help
+
+    List quick help.
+PROPERTIES
+  For more information on properties please check the relevant man page which
+  is noted next to each property.
+
+  interfaces
+    
+    By default there are two interfaces specified with their bridge
+    association. Up to four interfaces are supported. Interface configurations
+    are separated by commas.
+
+    Default: vnet0:bridge0,vnet1:bridge1
+
+  host_hostname
+
+    Default: UUID. See jail(8) for more details.
+
+  exec_fib
+
+    Default: 0. jail(8)
+
+  devfs_ruleset
+
+    Default: 4. jail(8)
+
+  mount_devfs
+
+    Default: 1. jail(8)
+
+  exec_start
+
+    Default: /bin/sh /etc/rc. jail(8)
+
+  exec_stop
+
+    Default: /bin/sh /etc/rc.shutdown. jail(8)
+
+  exec_prestart
+
+    Default: /usr/bin/true. jail(8)
+
+  exec_prestop
+
+    Default: /usr/bin/true. jail(8)
+
+  exec_poststop
+
+    Default: /usr/bin/true. jail(8)
+
+  exec_poststart
+
+    Default: /usr/bin/true. jail(8)
+
+  exec_clean
+
+    Default: 1. jail(8)
+
+  exec_timeout
+
+    Default: 60. jail(8)
+
+  stop_timeout
+
+    Default: 30. jail(8)
+
+  exec_jail_user
+
+    Default: root. jail(8)
+
+  exec_system_jail_user
+
+    Default: 0. jail(8)
+
+  exec_system_user
+
+    Default: root. jail(8)
+
+  mount_fdescfs
+
+    Default: 1. jail(8)
+
+  enforce_statfs
+
+    Default: 2. jail(8)
+
+  children_max
+
+    Default: 0. jail(8)
+
+  login_flags
+
+    Default: -f root. jail(8)
+
+  securelevel
+
+    Default: 3. jail(8)
+
+  allow_set_hostname
+
+    Default: 1. jail(8)
+
+  allow_sysvipc
+
+    Default: 0. jail(8)
+
+  allow_raw_sockets
+
+    Default: 0. jail(8)
+
+  allow_chflags
+
+    Default: 0. jail(8)
+
+  allow_mount
+
+    Default: 0. jail(8)
+
+  allow_mount_devfs
+
+    Default: 0. jail(8)
+
+  allow_mount_nullfs
+
+    Default: 0. jail(8)
+
+  allow_mount_procfs
+
+    Default: 0. jail(8)
+
+  allow_mount_tmpfs
+
+    Default: 0. jail(8)
+
+  allow_mount_zfs
+
+    Default: 0. jail(8)
+
+  allow_quotas
+
+    Default: 0. jail(8)
+
+  allow_socket_af
+
+    Default: 0. jail(8)
+
+  host_hostuuid
+
+    Default: UUID. jail(8)
+
+  tag
+
+    Custom string for aliasing jails.
+
+    Default: date@time
+
+  template
+
+    This property controls whether the jail is a template. Templates are not
+    started by iocage. Set to yes if you intend to convert jail into template.
+    (See EXAMPLES section)
+    
+    Default: no
+
+  boot
+
+    If set to on jail will be auto-started at boot time.
+
+    Default: off
+
+  notes
+
+    Custom notes.
+
+    Default: none
+
+  owner
+
+    The owner of the jail, can be any string.
+
+    Default: root.
+
+  priority
+
+    Start priority at boot time, smaller value means higher priority.
+
+    Default: 99.
+
+  last_started
+
+    Last successful start time.
+
+  type
+
+    Currently only jail is supported - this is for future use.
+
+    Default: jail
+
+  hostid
+
+    The UUID of the host node. Jail won't start if this property differs from the actual UUID
+    of the host node. This is to safeguard jails from being started on
+    different nodes in case they are periodically replicated across nodes.
+
+    Default: UUID od the host (/etc/hostid)
+
+  release
+
+    The RELEASE used at creation time.
+
+  compression
+
+    Default: lz4. zfs(8)
+
+  origin
+
+    This is only set for clones. zfs(8)
+
+  quota
+
+    Quota for jail.
+
+    Default: 15G. zfs(8)
+
+  mountpoint
+
+    Path for the jail's root filesystem.
+
+    Default: set to jail's root. zfs(8)
+
+  compressratio
+
+    Compression ratio. zfs(8)
+
+  available
+
+    Available space in jail's dataset. zfs(8)
+
+  used
+
+    Used space by jail. zfs(8)
+
+  dedup
+
+    Deduplication for jail.
+
+    Default: off. zfs(8)
+
+  reservation
+
+    Reserved space for jail.
+
+    Default: none. zfs(8)
+
+  sync_target
+
+    This is for future use, currently not supported.
+
+  sync_tgt_zpool
+
+    This is for future use, currently not supported.
+
+  rlimits
+    
+    If on resource limits will be enforced.
+
+    Default: off
+
+  cpuset
+
+    CPU affinity and limits. Please consult cpuset(1) for details.
+
+    Default: off
+RESOURCE LIMITS
+  Resource limits (except cpuset and rlimits) use the following value 
+  field formatting in the property:
+  limit:action - to better understand what this means please read rctl(8)
+  before enabling any limits.
+
+  The following resource limits are supported:
+
+  cpuset
+    Default: off. cpuset(1) for more details.
+
+  memoryuse
+
+    Default: 8G:log. rctl(8)
+
+  memorylocked
+
+    Default: off. rctl(8)
+
+  vmemoryuse
+
+    Default: off. rctl(8)
+
+  maxproc
+
+    Default: off. rctl(8)
+
+  cputime
+
+    Default: off. rctl(8)
+
+  pcpu
+
+    Default: off. rctl(8)
+
+  datasize
+
+    Default: off. rctl(8)
+
+  stacksize
+
+    Default: off. rctl(8)
+
+  coredumpsize
+
+    Default: off. rctl(8)
+
+  openfiles
+
+    Default: off. rctl(8)
+
+  pseudoterminals
+
+    Default: off. rctl(8)
+
+  swapuse
+
+    Default: off. rctl(8)
+
+  nthr
+
+    Default: off. rctl(8)
+
+  msgqqueued
+
+    Default: off. rctl(8)
+
+  msgqsize
+    Default: off. rctl(8)
+
+  nmsgq
+
+    Default: off. rctl(8)
+
+  nsemop
+
+    Default: off. rctl(8)
+
+  nshm
+
+    Default: off. rctl(8)
+
+  shmsize
+
+    Default: off. rctl(8)
+
+  wallclock
+
+    Default: off. rctl(8)
+
+EXAMPLES
+  Set up iocage from scratch:
+
+    iocage fetch
+
+  Create first jail:
+
+    iocage create tag=myjail
+
+  List jails:
+
+    iocage list
+
+  Start jail:
+
+    iocage start UUID
+
+  Turn on resource limits and apply them:
+  
+    iocage set rlimits=on UUID
+    iocage cap UUID
+
+  Display resource usage:
+
+    iocage inuse UUID
+
+  Convert jail into template:
+
+    iocage set template=yes UUID
+
+  List templates:
+
+    iocage list -t
+
+  Clone jail from template:
+
+    iocage clone UUID-of-template tag=myjail
+HINTS
+  iocage marks a ZFS pool in the pool's comment field and identifies the
+  active pool for use based on this string.
+
+  Don't forget to add the node's physical NIC into one of the bridges if you
+  need outside connection. Also read bridge(4) how traffic is handled if you
+  are not familiar with this concept (in a nutshell: bridge behaves like a
+  network switch).
+
+  PF firewall is not supported inside VNET jails as of July 2014. PF can be
+  enabled for the host however. IPFW is fully supported.
+
+  Property validation is not handled by iocage (to keep it simple) so please
+  make sure your custom values are supported before configuring any
+  properties.
+
+  The actual jail name in the jls(8) output is set to ioc-UUID. This is a
+  required workaround as jails will refuse to start with jail(8) when name
+  starts with a "0".
+
+  To prevent dmesg leak inside jails apply the following sysctl:
+
+    security.bsd.unprivileged_read_msgbuf=0
+SEE ALSO
+  jail(8), ifconfig(8), epair(4), bridge(4), jexec(8), zfs(8), zpool(8),
+  rctl(8), cpuset(1)
+BUGS
+  Nothing is perfect, please kindly report them.
+AUTHORS
+  Peter Toth <peter.toth198@gmail.com>
+EOT
 }
 
 
-if [ -z "$1" ] || [ "$1" == "help" ] ; then
+if [ -z "$1" ] ; then
     __usage
     exit 0
 fi
+
+if [ "$1" == "help" ] ; then
+    __help
+    exit 0
+fi
+
 
 if [ "`whoami`" != "root" ] ; then
     echo "* Only root can manage jails!"
