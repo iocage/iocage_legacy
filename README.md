@@ -30,6 +30,8 @@ usage:
 -  iocage snapremove UUID@snapshotname
 -  iocage rollback UUID@snapshotname
 -  iocage promote UUID
+-  iocage runtime UUID
+-  iocage update UUID
 -  iocage defaults
 -  iocage version | --version
 -  iocage help
@@ -68,7 +70,7 @@ OPTIONAL
 HINTS
 - Use iocage set/get to modify properties
 - To understand what most properties do read jail(8)
-- Consider addint the following to /etc/sysctl.conf on the host:
+- Consider adding the following to /etc/sysctl.conf on the host:
 net.inet.ip.forwarding=1
 net.link.bridge.pfil_onlyip=0
 net.link.bridge.pfil_bridge=0

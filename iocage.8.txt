@@ -25,6 +25,8 @@ SYNOPSIS
   iocage snapremove UUID@snapshotname
   iocage rollback UUID@snapshotname
   iocage promote UUID
+  iocage runtime UUID
+  iocage update UUID
   iocage defaults
   iocage version | --version
   iocage help
@@ -203,6 +205,15 @@ SUBCOMMANDS
 
     Promote a cloned jail to a fully independent copy. For more details please
     read zfs(8).
+
+  runtime UUID
+
+    Show runtime configuration of a jail. Useful for debugging.
+
+  update UUID
+
+    Update jail to latest patch level. A back-out snapshot is created to allow
+    safe update/restore.
 
   defaults
 
@@ -495,7 +506,6 @@ RESOURCE LIMITS
   The following resource limits are supported:
 
   cpuset
-
     Default: off. cpuset(1) for more details.
 
   memoryuse
@@ -555,7 +565,6 @@ RESOURCE LIMITS
     Default: off. rctl(8)
 
   msgqsize
-
     Default: off. rctl(8)
 
   nmsgq
@@ -638,9 +647,20 @@ HINTS
   To prevent dmesg leak inside jails apply the following sysctl:
 
     security.bsd.unprivileged_read_msgbuf=0
+
+  Consider applying these sysctl's as well:
+
+    net.inet.ip.forwarding=1
+    net.link.bridge.pfil_onlyip=0
+    net.link.bridge.pfil_bridge=0
+    net.link.bridge.pfil_member=0
+
+  More info can be found here:
+
+    https://github.com/pannon/iocage/wiki/Pre-flight-checklist
 SEE ALSO
   jail(8), ifconfig(8), epair(4), bridge(4), jexec(8), zfs(8), zpool(8),
-  rctl(8), cpuset(1)
+  rctl(8), cpuset(1), freebsd-update(8), sysctl(8)
 BUGS
   Nothing is perfect, please kindly report them.
 AUTHORS

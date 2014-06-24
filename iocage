@@ -31,7 +31,7 @@ PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.0 (2014/06/23)"
+    echo "iocage 1.1 (2014/06/24)"
     exit 0
 fi
 
@@ -312,6 +312,12 @@ __parse_cmd () {
             inuse)      __rctl_used $2
                         exit 0
                 ;;
+            runtime)    __runtime $2
+                        exit 0
+                ;;
+            update)     __update $2
+                        exit 0
+                ;;
             help)       __help
                         exit 0
                 ;;
@@ -409,11 +415,23 @@ __fetch_release () {
     for file in `echo $ftpfiles` ; do
         if [ -e "$file" ] ; then
             echo "Exctracting: $file"
-            tar -C /iocage/releases/$release/root -xf $file 
+            tar -C /iocage/releases/$release/root -xf $file
         fi
     done
 
-    mkdir /iocage/log
+    if [ $release == "10.0-RELEASE" ] ; then
+        __freebsd-update-fix
+        cat /usr/local/sbin/ioc-freebsd-update \
+        > /iocage/releases/$release/root/usr/sbin/freebsd-update
+
+        echo "* Updating base.."
+        /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root fetch
+        /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root install
+    fi
+
+    if [ ! -d /iocage/log ] ; then 
+        mkdir /iocage/log
+    fi
 }
 
 # This creates jails----------------------------------------------------
@@ -667,6 +685,8 @@ __usage () {
     echo "  iocage snapremove UUID@snapshotname"
     echo "  iocage rollback UUID@snapshotname"
     echo "  iocage promote UUID"
+    echo "  iocage runtime UUID"
+    echo "  iocage update UUID"
     echo "  iocage defaults"
     echo "  iocage version | --version"
     echo "  iocage help"
@@ -784,7 +804,7 @@ __start_jail () {
 
     if [ $cpuset != "off" ] ; then
         echo "  Appliyng CPU affinity.."
-        local jid="`jls | grep $name | awk '{ print $1 }'`"
+        local jid="`jls -j ioc-${name} jid`"
         cpuset -l $cpuset -j $jid
     fi
 
@@ -833,7 +853,7 @@ __restart_jail () {
     local name="$1"
     local exec_stop="`__get_jail_prop get exec_stop $name`"
     local exec_start="`__get_jail_prop get exec_start $name`"
-    local jid="`jls | grep $name | awk '{ print $1 }'`"
+    local jid="`jls -j ioc-${name} jid`"
     local dataset=`__find_jail $name`
 
     echo "* Performing soft restart for jail: $1"
@@ -977,8 +997,9 @@ __find_mypool () {
 
 __networking () {
     action=$1
-    local jid=`jls | grep $2 | awk '{ print $1 }'`
-    local nics=`__get_jail_prop get interfaces $2 \
+    local name=$2
+    local jid="`jls -j ioc-$name jid`"
+    local nics=`__get_jail_prop get interfaces $name \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }'`
 
     if [ $action == "start" ] ; then
@@ -988,7 +1009,7 @@ __networking () {
             epair_a=`ifconfig epair create`
             epair_b=`echo $epair_a | sed s/a\$/b/`
             ifconfig ${epair_a} name ${nic}:${jid}
-            ifconfig ${nic}:${jid} description "associated with jail: $2"
+            ifconfig ${nic}:${jid} description "associated with jail: $name"
             ifconfig $epair_b vnet ioc-${2}
             jexec ioc-${2} ifconfig $epair_b name $nic
             ifconfig $bridge addm ${nic}:${jid} up
@@ -1036,7 +1057,7 @@ __rctl_list () {
         echo "* All active limits:"
         rctl | grep jail
     else
-        local jid="`jls | grep $name | awk '{ print $1 }'`"
+        local jid="`jls -j ioc-${name} jid`"
         echo "* Active limits for jail: $name"
         rctl -h | grep $name
         if [ ! -z "$jid" ] ; then
@@ -1157,6 +1178,52 @@ __promote () {
     done
 }
 
+__runtime () {
+    local name=$1
+    local state="`jls -n -j ioc-${name} | wc -l`"
+
+    if [ "$state" -eq "1" ] ; then
+        local params="`jls -nj ioc-${name}`"
+        for i in $params ; do
+            echo "  $i"
+        done
+    else
+        echo " ERROR: jail $name is not up.."
+    fi
+
+    exit
+}
+
+__update () {
+    local name=$1
+    local mountpoint="`__get_jail_prop get mountpoint $name`"
+    local date=`date "+%F_%T"`
+
+    __freebsd-update-fix
+
+    cat /usr/local/sbin/ioc-freebsd-update \
+    > ${mountpoint}/root/usr/sbin/freebsd-update
+
+    echo "* creating back-out snapshot.."
+    __snapshot ${name}@ioc-update_${date}
+
+    echo "* Updating jail.."
+    /usr/local/sbin/ioc-freebsd-update -b ${mountpoint}/root fetch
+    /usr/local/sbin/ioc-freebsd-update -b ${mountpoint}/root install
+
+    echo " "
+    echo "* Once finished don't forget to remove the snapshot!"
+}
+
+# This is a required workaround to allow proper jail updates
+__freebsd-update-fix () {
+    cat /usr/sbin/freebsd-update | sed s/uname\ -r/freebsd-version/g \
+    > /usr/local/sbin/ioc-freebsd-update
+
+    chmod +x /usr/local/sbin/ioc-freebsd-update
+
+}
+
 __help () {
 cat << EOT
 NAME
@@ -1186,6 +1253,8 @@ SYNOPSIS
   iocage snapremove UUID@snapshotname
   iocage rollback UUID@snapshotname
   iocage promote UUID
+  iocage runtime UUID
+  iocage update UUID
   iocage defaults
   iocage version | --version
   iocage help
@@ -1364,6 +1433,15 @@ SUBCOMMANDS
 
     Promote a cloned jail to a fully independent copy. For more details please
     read zfs(8).
+
+  runtime UUID
+
+    Show runtime configuration of a jail. Useful for debugging.
+
+  update UUID
+
+    Update jail to latest patch level. A back-out snapshot is created to allow
+    safe update/restore.
 
   defaults
 
@@ -1797,9 +1875,20 @@ HINTS
   To prevent dmesg leak inside jails apply the following sysctl:
 
     security.bsd.unprivileged_read_msgbuf=0
+
+  Consider applying these sysctl's as well:
+
+    net.inet.ip.forwarding=1
+    net.link.bridge.pfil_onlyip=0
+    net.link.bridge.pfil_bridge=0
+    net.link.bridge.pfil_member=0
+
+  More info can be found here:
+
+    https://github.com/pannon/iocage/wiki/Pre-flight-checklist
 SEE ALSO
   jail(8), ifconfig(8), epair(4), bridge(4), jexec(8), zfs(8), zpool(8),
-  rctl(8), cpuset(1)
+  rctl(8), cpuset(1), freebsd-update(8), sysctl(8)
 BUGS
   Nothing is perfect, please kindly report them.
 AUTHORS
