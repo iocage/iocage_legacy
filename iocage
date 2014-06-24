@@ -432,6 +432,8 @@ __fetch_release () {
     if [ ! -d /iocage/log ] ; then 
         mkdir /iocage/log
     fi
+
+    rm -f /usr/local/sbin/ioc-freebsd-update
 }
 
 # This creates jails----------------------------------------------------
@@ -1213,6 +1215,8 @@ __update () {
 
     echo " "
     echo "* Once finished don't forget to remove the snapshot!"
+
+    rm -f /usr/local/sbin/ioc-freebsd-update
 }
 
 # This is a required workaround to allow proper jail updates
