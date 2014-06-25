@@ -31,7 +31,7 @@ PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.1 (2014/06/24)"
+    echo "iocage 1.2 (2014/06/25)"
     exit 0
 fi
 
@@ -316,6 +316,9 @@ __parse_cmd () {
                         exit 0
                 ;;
             update)     __update $2
+                        exit 0
+                ;;
+            record)     __record $2 $3
                         exit 0
                 ;;
             help)       __help
@@ -689,6 +692,7 @@ __usage () {
     echo "  iocage promote UUID"
     echo "  iocage runtime UUID"
     echo "  iocage update UUID"
+    echo "  iocage record start|stop UUID"
     echo "  iocage defaults"
     echo "  iocage version | --version"
     echo "  iocage help"
@@ -844,6 +848,10 @@ __stop_jail () {
     umount /iocage/jails/${name}/root/dev/fd > /dev/null 2>&1
     umount /iocage/jails/${name}/root/dev    > /dev/null 2>&1
     umount /iocage/jails/${name}/root/proc   > /dev/null 2>&1
+
+    if [ -d /iocage/jails/${name}/recorded ] ; then
+        umount -ft unionfs /iocage/jails/${name}/root > /dev/null 2>&1
+    fi
 
     if [ $rlimits -gt "0" ] ; then
         rctl -r jail:ioc-${name}
@@ -1228,6 +1236,38 @@ __freebsd-update-fix () {
 
 }
 
+__record () {
+    local name=$2
+    local action=$1
+
+    if [ -z $action ] ; then
+        echo "  ERROR: missing action or UUID"
+        exit 1
+    fi
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing action or UUID"
+        exit 1
+    fi
+
+    local mountpoint="`__get_jail_prop get mountpoint $name`"
+    local union_mount="`mount -t unionfs | grep $name | wc -l`"
+
+    if [ ! -d ${mountpoint}/recorded ] ; then 
+        mkdir ${mountpoint}/recorded
+    fi
+   
+    if [ $action == "start" ] ; then
+        echo "* Recording to: ${mountpoint}/recorded"
+        if [ $union_mount -lt 1 ] ; then
+            mount -t unionfs -o noatime ${mountpoint}/recorded ${mountpoint}/root
+        fi
+    elif [ $action == "stop" ] ; then
+        umount -ft unionfs /iocage/jails/${name}/root > /dev/null 2>&1
+        echo "* Stopped recording to: ${mountpoint}/recorded"
+    fi
+}
+
 __help () {
 cat << EOT
 NAME
@@ -1259,6 +1299,7 @@ SYNOPSIS
   iocage promote UUID
   iocage runtime UUID
   iocage update UUID
+  iocage record start|stop UUID
   iocage defaults
   iocage version | --version
   iocage help
@@ -1446,6 +1487,12 @@ SUBCOMMANDS
 
     Update jail to latest patch level. A back-out snapshot is created to allow
     safe update/restore.
+
+  record start|stop UUID
+
+    The record function will record every changed file in a directory called
+    /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
+    mount.
 
   defaults
 
@@ -1856,6 +1903,14 @@ EXAMPLES
   Clone jail from template:
 
     iocage clone UUID-of-template tag=myjail
+
+  Record all changeing files in a jail
+
+    iocage record start UUID
+
+  Stop recording
+
+    iocage record stop UUID
 HINTS
   iocage marks a ZFS pool in the pool's comment field and identifies the
   active pool for use based on this string.

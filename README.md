@@ -32,6 +32,7 @@ usage:
 -  iocage promote UUID
 -  iocage runtime UUID
 -  iocage update UUID
+-  iocage record start|stop UUID
 -  iocage defaults
 -  iocage version | --version
 -  iocage help

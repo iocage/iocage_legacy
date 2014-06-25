@@ -27,6 +27,7 @@ SYNOPSIS
   iocage promote UUID
   iocage runtime UUID
   iocage update UUID
+  iocage record start|stop UUID
   iocage defaults
   iocage version | --version
   iocage help
@@ -214,6 +215,12 @@ SUBCOMMANDS
 
     Update jail to latest patch level. A back-out snapshot is created to allow
     safe update/restore.
+
+  record start|stop UUID
+
+    The record function will record every changed file in a directory called
+    /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
+    mount.
 
   defaults
 
@@ -624,6 +631,14 @@ EXAMPLES
   Clone jail from template:
 
     iocage clone UUID-of-template tag=myjail
+
+  Record all changeing files in a jail
+
+    iocage record start UUID
+
+  Stop recording
+
+    iocage record stop UUID
 HINTS
   iocage marks a ZFS pool in the pool's comment field and identifies the
   active pool for use based on this string.
