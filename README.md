@@ -5,6 +5,8 @@ FreeBSD jail manager
 
 iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.
 
+Read wiki here: https://github.com/pannon/iocage/wiki
+
 FEATURES:
 - rapid thin provisioning (within seconds!)
 - templating
@@ -91,4 +93,4 @@ net.link.bridge.pfil_onlyip=0
 net.link.bridge.pfil_bridge=0
 net.link.bridge.pfil_member=0
 
-- read https://github.com/pannon/iocage/wiki/Pre-flight-checklist
+- read https://github.com/pannon/iocage/wiki
