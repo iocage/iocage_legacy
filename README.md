@@ -89,9 +89,7 @@ iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.
 - Use iocage set/get to modify properties
 - To understand what most properties do read jail(8)
 - Consider adding the following to `/etc/sysctl.conf` on the host:
-`net.inet.ip.forwarding=1`
-`net.link.bridge.pfil_onlyip=0`
-`net.link.bridge.pfil_bridge=0`
-`net.link.bridge.pfil_member=0`
-
-- read https://github.com/pannon/iocage/wiki
+- `net.inet.ip.forwarding=1`
+- `net.link.bridge.pfil_onlyip=0`
+- `net.link.bridge.pfil_bridge=0`
+- `net.link.bridge.pfil_member=0`
