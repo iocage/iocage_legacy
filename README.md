@@ -5,8 +5,8 @@ iocage
 
 iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.
 
-**[Read WIKI](https://github.com/pannon/iocage/wiki)**
-**[Check FAQ](https://github.com/pannon/iocage/wiki/FAQ)**
+- **[Read WIKI](https://github.com/pannon/iocage/wiki)**
+- **[Check FAQ](https://github.com/pannon/iocage/wiki/FAQ)**
 
 **FEATURES:**
 - rapid thin provisioning (within seconds!)
