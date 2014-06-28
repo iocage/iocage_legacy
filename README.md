@@ -57,9 +57,10 @@ iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.
 **REQUIREMENTS**
 - FreeBSD 10.0-RELEASE amd64
 - Kernel compiled with:
-    options         VIMAGE # VNET/Vimage support
-    options         RACCT  # Resource containers
-    options         RCTL   # same as above
+
+        options         VIMAGE # VNET/Vimage support
+        options         RACCT  # Resource containers
+        options         RCTL   # same as above
 
 **OTHER CONSIDERATIONS**
 - for resource limiting please read rctl(8)
