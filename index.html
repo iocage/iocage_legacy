@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Iocage by pannon</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Iocage</h1>
+          <h2>FreeBSD jail manager</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/pannon/iocage/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/pannon/iocage/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/pannon/iocage" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h1>
+<a name="iocage" class="anchor" href="#iocage"><span class="octicon octicon-link"></span></a>iocage</h1>
+
+<p><strong>FreeBSD jail manager</strong></p>
+
+<p>iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.</p>
+
+<ul>
+<li><strong><a href="https://github.com/pannon/iocage/wiki">Read WIKI</a></strong></li>
+<li><strong><a href="https://github.com/pannon/iocage/wiki/FAQ">Check FAQ</a></strong></li>
+</ul><p><strong>FEATURES:</strong></p>
+
+<ul>
+<li>rapid thin provisioning (within seconds!)</li>
+<li>templating</li>
+<li>ease of use</li>
+<li>zero configuration files</li>
+<li>virtual networking stacks (vnet)</li>
+<li>fully writable clones</li>
+<li>resource limits (CPU, MEMORY, etc.)</li>
+<li>filesystem quotas and reservations</li>
+<li>transparent snapshot management</li>
+<li>binary updates</li>
+<li>change recording with unionfs</li>
+<li>and many more!</li>
+</ul><p><strong>USAGE:</strong></p>
+
+<ul>
+<li> iocage fetch [release=RELEASE]</li>
+<li> iocage create [-c | property=value]</li>
+<li> iocage clone UUID | UUID@snapshot [property=value]</li>
+<li> iocage destroy UUID</li>
+<li> iocage list [-t]</li>
+<li> iocage start UUID</li>
+<li> iocage stop UUID</li>
+<li> iocage restart UUID</li>
+<li> iocage rcboot</li>
+<li> iocage rcshutdown</li>
+<li> iocage console UUID</li>
+<li> iocage chroot UUID</li>
+<li> iocage df</li>
+<li> iocage get [property | all ] UUID</li>
+<li> iocage set property=value UUID</li>
+<li> iocage cap UUID</li>
+<li> iocage limts [UUID]</li>
+<li> iocage uncap UUID</li>
+<li> iocage inuse UUID</li>
+<li> iocage snapshot UUID | UUID@snapshotname</li>
+<li> iocage snaplist UUID</li>
+<li> iocage snapremove UUID@snapshotname</li>
+<li> iocage rollback UUID@snapshotname</li>
+<li> iocage promote UUID</li>
+<li> iocage runtime UUID</li>
+<li> iocage update UUID</li>
+<li> iocage record start|stop UUID</li>
+<li> iocage defaults</li>
+<li> iocage version | --version</li>
+<li> iocage help</li>
+</ul><p><strong>REQUIREMENTS</strong></p>
+
+<ul>
+<li>FreeBSD 10.0-RELEASE amd64</li>
+<li>
+<p>Kernel compiled with:</p>
+
+<pre><code>options         VIMAGE # VNET/Vimage support
+options         RACCT  # Resource containers
+options         RCTL   # same as above
+</code></pre>
+</li>
+</ul><p><strong>OTHER CONSIDERATIONS</strong></p>
+
+<ul>
+<li>for resource limiting please read rctl(8)</li>
+<li>for the explanations on jail properties read jail(8)</li>
+<li>create bridge0 and bridge1 interfaces </li>
+</ul><p><strong>QUICK HOWTO</strong></p>
+
+<ul>
+<li>1. add bridge configuration to <code>/etc/rc.conf</code> on the host node
+<code>cloned_interfaces="bridge0 bridge1"</code>
+</li>
+<li>2. run <code>iocage fetch</code> - this will fetch the current release and prepare the
+base jail environment. Optionally release can be overridden by issuing 
+<code>iocage fetch release=9.2-RELEASE</code> if you intend to run other releases.</li>
+<li>3. execute <code>iocage create</code> - this will set up a jail from scratch. If needed
+The -c option will create a thin jail (ZFS clone) example: <code>iocage create -c</code>
+the <code>tag=any_name</code> can be used to tag a jail at creation.</li>
+<li>4. issue <code>iocage list</code>
+</li>
+<li>5. start the jail with <code>iocage start uuid</code>
+</li>
+<li>6. drop into jail with <code>iocage console uuid</code>
+</li>
+</ul><p><strong>OPTIONAL</strong></p>
+
+<ul>
+<li>turn on resource caps with <code>iocage set rlimits=on uuid</code>
+</li>
+<li>reload limits on-the-fly <code>iocage cap uuid</code>
+</li>
+<li>list resource usage <code>iocage inuse uuid</code>
+</li>
+<li>release limits <code>iocage uncap uuid</code>
+</li>
+</ul><p><strong>HINTS</strong></p>
+
+<ul>
+<li>Use iocage set/get to modify properties</li>
+<li>To understand what most properties do read jail(8)</li>
+<li>
+<p>Consider adding the following to <code>/etc/sysctl.conf</code> on the host:</p>
+
+<pre><code>net.inet.ip.forwarding=1       # Enable IP forwarding between interfaces
+net.link.bridge.pfil_onlyip=0  # Only pass IP packets when pfil is enabled
+net.link.bridge.pfil_bridge=0  # Packet filter on the bridge interface
+net.link.bridge.pfil_member=0  # Packet filter on the member interface
+</code></pre>
+</li>
+</ul>
+        </section>
+
+        <footer>
+          Iocage is maintained by <a href="https://github.com/pannon">pannon</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>
