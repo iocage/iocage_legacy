@@ -1,4 +1,4 @@
-[I|O|C] iocage
+[i|o|c] iocage
 ==============
 
 **FreeBSD jail manager**
