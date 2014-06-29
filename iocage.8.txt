@@ -2,7 +2,7 @@ NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
   iocage fetch
-  iocage create [-c] [release=RELEASE]
+  iocage create [-c|-e] [release=RELEASE] [property=value]
   iocage clone UUID | UUID@snapshot [property=value]
   iocage destroy UUID
   iocage list [-t]
@@ -28,6 +28,9 @@ SYNOPSIS
   iocage runtime UUID
   iocage update UUID
   iocage record start|stop UUID
+  iocage package UUID
+  iocage export UUID
+  iocage import UUID [property=value]
   iocage defaults
   iocage version | --version
   iocage help
@@ -36,10 +39,8 @@ DESCRIPTION
   jail management tasks. It abstracts away the management of ZFS backed jails running VNET
   networking with optional support for resource limits.
   
-  NOTE: only VNET
-  enabled jails are supported! The older shared IP based jails are
-  intentionally not supported for various reasons - mostly VNET enabled jails
-  provide better isolation.
+  The older shared IP based jails are supported as well. VNET enabled jails
+  provide better isolation though.
 
   Each jail has a unique ID (UUID) automatically generated at creation time.
   Using UUID's as jail names means that a jail can be replicated in a
@@ -54,8 +55,9 @@ DESCRIPTION
   any configuration files and jails can be easily moved with ZFS send and
   receive preserving all of their properties automatically.
 
-  iocage relies on ZFS, VIMAGE (VNET) and has the following minimal
-  requirements:
+  iocage relies on ZFS, VIMAGE/VNET (this is optional).
+  To leverage all the whistles and bells iocage has to offer
+  consider the following optional kernel options and system reqiurements:
     o   FreeBSD 10.0-RELEASE amd64
     o   bridge interfaces (bridge0,bridge1) add:
 
@@ -65,6 +67,7 @@ DESCRIPTION
         options         VIMAGE
         options         RACCT
         options         RCTL
+
 SUBCOMMANDS
   fetch [release=RELEASE]
 
@@ -75,12 +78,13 @@ SUBCOMMANDS
 
     Example: iocage fetch release=9.2-RELEASE
 
-  create [-c] [release=RELEASE] [property=value] [property=value] ...
+  create [-c|-e] [release=RELEASE] [property=value] [property=value] ...
 
     By default create will deploy a new jail based on the host operating
     system's release. This can be changed by specifying the release option.
     If the -c switch is specified the jail will be cloned from the release.
-    Default is to create a fully independent jail set.
+    Default is to create a fully independent jail set. The -e switch will
+    create an empty jail.
 
     Example: iocage create tag=www01
 
@@ -220,7 +224,25 @@ SUBCOMMANDS
 
     The record function will record every changed file in a directory called
     /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
-    mount.
+    mount. Useful for differential package creation.
+
+  package UUID
+
+    Package recorded jail session into /iocage/packages. Creates SHA256
+    checksum and prunes empty directories, files and some residual files like
+    utx.* and .history. Before packaging any jails make sure no unwanted files
+    contaminated or leaked into the recorded session.
+
+  export UUID
+
+    Completely export jail. Archive is created in /iocage/images with SHA256
+    checksum. Jail must be in stopped state.
+
+  import UUID [property=value]
+
+    Import full jail images or differential packages. Images need to be
+    present in /iocage/images and packages in /iocage/packages along with
+    along with checksum files.
 
   defaults
 
@@ -237,6 +259,54 @@ PROPERTIES
   For more information on properties please check the relevant man page which
   is noted next to each property.
 
+  vnet
+
+    This controls whether to start the jail with VNET or shared IP
+    configuration. Default is on - start VNET jail. If you don't need a fully
+    virtualized per jail network stack set it to off.
+
+    Default: on
+
+  ip4_addr
+
+    The IPv4 address for non VNET jail. Only takes effect when vnet=off. 
+
+    Format is: interface|ip-address/netmask
+
+    If an interface is given before
+    the IP address, an alias for the address will be added to that
+    interface, as it is with the interface parameter.  If a netmask
+    in either dotted-quad or CIDR form is given after IP address, it
+    will be used when adding the IP alias.
+
+    Default: none. jail(8)
+
+  ip4_saddrsel
+
+    Only takes effect when vnet=off.
+    A boolean option to change the formerly mentioned behaviour and
+    disable IPv4 source address selection for the prison in favour of
+    the primary IPv4 address of the jail.  Source address selection
+    is enabled by default for all jails and the ip4.nosaddrsel
+    settting of a parent jail is not inherited for any child jails.
+
+    Default: 1. jail(8)
+
+  ip4
+
+    Only takes effect when vnet=off.
+    Control the availability of IPv4 addresses.  Possible values are
+    "inherit" to allow unrestricted access to all system addresses,
+    "new" to restrict addresses via ip4.addr above, and "disable" to
+    stop the jail from using IPv4 entirely.  Setting the ip4.addr
+    parameter implies a value of "new".
+
+    Default: new. jail(8)
+
+  ip6.addr, ip6.saddrsel, ip6
+    A set of IPv6 options for the prison, the counterparts to
+    ip4.addr, ip4.saddrsel and ip4 above.
+    
   interfaces
     
     By default there are two interfaces specified with their bridge

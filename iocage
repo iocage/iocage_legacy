@@ -31,7 +31,7 @@ PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.2 (2014/06/25)"
+    echo "iocage 1.3 (2014/06/29)"
     exit 0
 fi
 
@@ -39,10 +39,17 @@ fi
 uuid=`uuidgen`
 
 # Network defaults for jails
+vnet="on"
 interfaces="vnet0:bridge0,vnet1:bridge1"
 host_hostname=$uuid
 exec_fib=0
 hostname=$uuid
+ip4_addr="none"
+ip4_saddrsel="1"
+ip4="new"
+ip6_addr="none"
+ip6_saddrsel="1"
+ip6="new"
 
 # Standard jail properties
 devfs_ruleset="4"
@@ -158,8 +165,15 @@ CONF_RCTL="memoryuse
 
 # Networking configuration
 CONF_NET="interfaces
+          vnet
           host_hostname
           hostname
+          ip4_addr
+          ip4_saddrsel
+          ip4
+          ip6_addr
+          ip6_saddrsel
+          ip6
           exec_fib"
 
 # Native jail properties
@@ -257,7 +271,8 @@ __parse_cmd () {
                         __clone_jail $2
                         exit 0
                 ;;
-            fetch)      __fetch_release
+            fetch)      __export_props $@
+                        __fetch_release
                         exit 0
                 ;;
             get)        __get_jail_prop $@
@@ -319,6 +334,16 @@ __parse_cmd () {
                         exit 0
                 ;;
             record)     __record $2 $3
+                        exit 0
+                ;;
+            package)    __package $2
+                        exit 0
+                ;;
+            export)     __export $2
+                        exit 0
+                ;;
+            import)     __export_props $@
+                        __import $2
                         exit 0
                 ;;
             help)       __help
@@ -457,6 +482,8 @@ __create_jail () {
             #echo "cloning $fs into $cfs"
             zfs clone $fs@$uuid $cfs
         done
+    elif [ "${2}" = "-e" ] ; then
+        zfs create -p $pool/iocage/jails/$uuid/root
     else
         zfs snapshot -r $pool/iocage/releases/$release@$uuid
         zfs send     -R $pool/iocage/releases/$release@$uuid | \
@@ -466,18 +493,21 @@ __create_jail () {
     fi
 
     __configure_jail $pool/iocage/jails/$uuid
-
     touch /iocage/jails/$uuid/fstab
-    touch /iocage/jails/${uuid}/root/etc/rc.conf
 
-    echo "hostname=${uuid}" >> /iocage/jails/${uuid}/root/etc/rc.conf
+    if [ "${2}" != "-e" ] ; then
+        touch /iocage/jails/${uuid}/root/etc/rc.conf
+        echo "hostname=${uuid}" >> /iocage/jails/${uuid}/root/etc/rc.conf
+        cronfix=`grep cron_flags /iocage/jails/${uuid}/root/etc/rc.conf | wc -l`
 
-    cronfix=`grep cron_flags /iocage/jails/${uuid}/root/etc/rc.conf | wc -l`
-
-    if [ $cronfix -lt "1" ] ; then
-        echo 'cron_flags="$cron_flags -J 15"' >> \
-        /iocage/jails/${uuid}/root/etc/rc.conf
+        if [ $cronfix -lt "1" ] ; then
+            echo 'cron_flags="$cron_flags -J 15"' >> \
+            /iocage/jails/${uuid}/root/etc/rc.conf
+        fi
+    elif [ "${2}" = "-e" ] ; then
+        echo $uuid
     fi
+
 }
 
 # Cloning jails ----------------------------------------------------------
@@ -667,7 +697,7 @@ __get_jail_prop () {
 __usage () {
     echo "usage:"
     echo "  iocage fetch [release=RELEASE]"
-    echo "  iocage create [-c | property=value]"
+    echo "  iocage create [-c|-e] [release=RELEASE] [property=value]"
     echo "  iocage clone UUID | UUID@snapshot [property=value]"
     echo "  iocage destroy UUID"
     echo "  iocage list [-t]"
@@ -693,6 +723,9 @@ __usage () {
     echo "  iocage runtime UUID"
     echo "  iocage update UUID"
     echo "  iocage record start|stop UUID"
+    echo "  iocage package UUID"
+    echo "  iocage export UUID"
+    echo "  iocage import UUID [property=value]"
     echo "  iocage defaults"
     echo "  iocage version | --version"
     echo "  iocage help"
@@ -730,6 +763,7 @@ __start_jail () {
     local cpuset="`__get_jail_prop get cpuset $name`"
     local procfs="`__get_jail_prop get mount_procfs $name`"
     local state=`jls | grep $name | wc -l`
+    local vnet="`__get_jail_prop get vnet $name`"
     local nics=`__get_jail_prop get interfaces $name \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }'`
 
@@ -765,8 +799,36 @@ __start_jail () {
         mount -t procfs proc /iocage/jails/${name}/root/proc
     fi
 
-    echo "* Starting jail $name"
-    echo "                (tag $tag)"
+    echo "* Starting $name ($tag)"
+
+    if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
+        __vnet_start $name
+        __networking start $name
+    else
+        __legacy_start $name
+    fi
+
+    cd ${jail_path}/root/dev && ln -s ../var/run/log log
+
+    __rctl_limits $name
+
+    if [ $cpuset != "off" ] ; then
+        echo "  Appliyng CPU affinity.."
+        local jid="`jls -j ioc-${name} jid`"
+        cpuset -l $cpuset -j $jid
+    fi
+
+    jexec ioc-${name} `__get_jail_prop get exec_start $name` \
+     >> /iocage/log/${name}-console.log 2>&1
+
+    zfs set org.freebsd.iocage:last_started=`date "+%F_%T"` $dataset
+
+}
+
+# Start a VNET jail
+__vnet_start () {
+    local name=$1
+    local jail_path="`__get_jail_prop get mountpoint $name`"
 
     jail -c vnet \
     name="ioc-`__get_jail_prop get host_hostuuid $name`" \
@@ -802,23 +864,63 @@ __start_jail () {
     allow.dying \
     exec.consolelog="/iocage/log/${name}-console.log" \
     persist
+}
 
-    cd ${jail_path}/root/dev && ln -s ../var/run/log log
+# Start a shared IP jail
+__legacy_start () {
+    local name=$1
+    local jail_path="`__get_jail_prop get mountpoint $name`"
+    local ip4_addr="`__get_jail_prop get ip4_addr $name`"
+    local ip6_addr="`__get_jail_prop get ip6_addr $name`"
 
-    __networking start $name
-    __rctl_limits $name
-
-    if [ $cpuset != "off" ] ; then
-        echo "  Appliyng CPU affinity.."
-        local jid="`jls -j ioc-${name} jid`"
-        cpuset -l $cpuset -j $jid
+    if [ $ip4_addr == "none" ] ; then
+        ip4_addr=""
     fi
 
-    jexec ioc-${name} `__get_jail_prop get exec_start $name` \
-     >> /iocage/log/${name}-console.log 2>&1
+    if [ $ip6_addr == "none" ] ; then
+        ip6_addr=""
+    fi
 
-    zfs set org.freebsd.iocage:last_started=`date "+%F_%T"` $dataset
-
+    jail -c \
+    ip4.addr="$ip4_addr" \
+    ip4.saddrsel="`__get_jail_prop get ip4_saddrsel $name`" \
+    ip4="`__get_jail_prop get ip4 $name`" \
+    ip6.addr="$ip6_addr" \
+    ip6.saddrsel="`__get_jail_prop get ip6_saddrsel $name`" \
+    ip6="`__get_jail_prop get ip6 $name`" \
+    name="ioc-`__get_jail_prop get host_hostuuid $name`" \
+    host.hostname=`__get_jail_prop get hostname $name` \
+    path="${jail_path}/root" \
+    securelevel=`__get_jail_prop get securelevel $name` \
+    host.hostuuid=`__get_jail_prop get host_hostuuid $name` \
+    devfs_ruleset=`__get_jail_prop get devfs_ruleset $name` \
+    enforce_statfs=`__get_jail_prop get enforce_statfs $name` \
+    children.max=`__get_jail_prop get children_max $name` \
+    allow.set_hostname=`__get_jail_prop get allow_set_hostname $name` \
+    allow.sysvipc=`__get_jail_prop get allow_sysvipc $name` \
+    allow.raw_sockets=`__get_jail_prop get allow_raw_sockets $name` \
+    allow.chflags=`__get_jail_prop get allow_chflags $name` \
+    allow.mount=`__get_jail_prop get allow_mount $name` \
+    allow.mount.devfs=`__get_jail_prop get allow_mount_devfs $name` \
+    allow.mount.nullfs=`__get_jail_prop get allow_mount_nullfs $name` \
+    allow.mount.procfs=`__get_jail_prop get allow_mount_procfs $name` \
+    allow.mount.tmpfs=`__get_jail_prop get allow_mount_tmpfs $name` \
+    allow.mount.zfs=`__get_jail_prop get allow_mount_zfs $name` \
+    allow.quotas=`__get_jail_prop get allow_quotas $name` \
+    allow.socket_af=`__get_jail_prop get allow_socket_af $name` \
+    exec.prestart="`__get_jail_prop get exec_prestart $name`" \
+    exec.poststart="`__get_jail_prop get exec_poststart $name`" \
+    exec.prestop="`__get_jail_prop get exec_prestop $name`" \
+    exec.stop="`__get_jail_prop get exec_stop $name`" \
+    exec.clean=`__get_jail_prop get exec_clean $name` \
+    exec.timeout=`__get_jail_prop get exec_timeout $name` \
+    stop.timeout=`__get_jail_prop get stop_timeout $name` \
+    mount.fstab=/iocage/jails/$name/fstab \
+    mount.devfs=`__get_jail_prop get mount_devfs $name ` \
+    mount.fdescfs=`__get_jail_prop get mount_fdescfs $name` \
+    allow.dying \
+    exec.consolelog="/iocage/log/${name}-console.log" \
+    persist
 }
 
 __stop_jail () {
@@ -828,6 +930,7 @@ __stop_jail () {
     local exec_stop="`__get_jail_prop get exec_stop $name`"
     local exec_poststop="`__get_jail_prop get exec_poststop $name`"
     local rlimits="`rctl | grep $name| wc -l`"
+    local vnet="`__get_jail_prop get vnet $name`"
     local state=`jls | grep $name | wc -l`
 
     if [  "$state" -lt "1" ] ; then
@@ -835,12 +938,17 @@ __stop_jail () {
         exit 1
     fi
 
-    echo "* Stopping jail $name"
-    echo "                (tag $tag)"
+    echo "* Stopping $name ($tag)"
 
     echo "$exec_prestop" | sh
     jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
-    __networking stop $name
+
+    if [ $vnet == "on" ] ; then
+        __networking stop $name
+    else
+
+    fi
+
     jail -r ioc-${name}
     echo "$exec_poststop" | sh
 
@@ -865,8 +973,9 @@ __restart_jail () {
     local exec_start="`__get_jail_prop get exec_start $name`"
     local jid="`jls -j ioc-${name} jid`"
     local dataset=`__find_jail $name`
+    local tag="`__get_jail_prop get tag $name`"
 
-    echo "* Performing soft restart for jail: $1"
+    echo "* Soft restarting $name ($tag)"
     jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
 
     if [ $? -ne "1" ] ; then
@@ -1256,15 +1365,144 @@ __record () {
     if [ ! -d ${mountpoint}/recorded ] ; then 
         mkdir ${mountpoint}/recorded
     fi
+
    
     if [ $action == "start" ] ; then
         echo "* Recording to: ${mountpoint}/recorded"
+
         if [ $union_mount -lt 1 ] ; then
-            mount -t unionfs -o noatime ${mountpoint}/recorded ${mountpoint}/root
+            mount -t unionfs -o noatime,copymode=transparent ${mountpoint}/recorded ${mountpoint}/root
         fi
+
     elif [ $action == "stop" ] ; then
         umount -ft unionfs /iocage/jails/${name}/root > /dev/null 2>&1
         echo "* Stopped recording to: ${mountpoint}/recorded"
+    fi
+
+    find ${mountpoint}/recorded -type d -empty -exec rm -rf {} \; \
+    > /dev/null 2>&1
+    find ${mountpoint}/recorded -type f -size 0 -exec rm -f {} \; \
+    > /dev/null 2>&1
+    find ${mountpoint}/recorded -name "utx.*" -exec rm -f {} \; \
+    > /dev/null 2>&1
+    find ${mountpoint}/recorded -name .history -exec rm -f {} \; \
+    > /dev/null 2>&1
+
+
+}
+
+__package () {
+    # create package from recorded changes 
+    # sha256 too
+    local name=$1
+
+    __check_name $name
+
+    local mountpoint="`__get_jail_prop get mountpoint $name`"
+
+    if [ ! -d ${mountpoint}/recorded ] ; then
+        echo "  ERROR: nothing to package, missing recorded directory!"
+        echo "  HINT: have you recorded the jail?"
+        exit 1
+    fi
+
+    if [ ! -d "/iocage/packages" ] ; then
+        mkdir /iocage/packages
+    fi
+
+    echo "* Creating package..."
+    tar -cvJf /iocage/packages/$name.tar.xz -C ${mountpoint}/recorded . && \
+    sha256 -q /iocage/packages/$name.tar.xz > /iocage/packages/$name.sha256
+    echo "* Package saved to: /iocage/packages/$name.tar.xz"
+    echo "* Checksum created: /iocage/packages/$name.sha256"
+}
+
+__import () {
+    local name=$1
+
+    if [ -e /iocage/packages/$name.tar.xz ] ; then
+        echo "* Found /iocage/packages/$name.tar.xz"
+        echo "* Importing package $name"
+
+        if [ ! -e /iocage/packages/$name.sha256 ] ; then
+            echo "  ERROR: missing checksum file!"
+            exit 1
+        fi
+
+        local new_cksum="`sha256 -q /iocage/packages/$name.tar.xz`"
+        local old_cksum="`cat /iocage/packages/$name.sha256`"
+        local uuid="`__create_jail create | grep uuid | cut -f2 -d=`"
+        local mountpoint="`__get_jail_prop get mountpoint $uuid`"
+
+        if [ $new_cksum != $old_cksum ] ; then
+            echo "  ERROR: checksum mismatch ..exiting"
+            exit 1
+        else
+            tar -xvJf /iocage/packages/$name.tar.xz -C $mountpoint/root
+        fi
+
+    elif [ -e /iocage/images/$name.tar.xz ] ; then
+        echo "* Found /iocage/images/$name.tar.xz"
+        echo "* Importing image $name"
+
+        if [ ! -e /iocage/images/$name.sha256 ] ; then
+            echo "  ERROR: missing checksum file!"
+            exit 1
+        fi
+
+        local new_cksum="`sha256 -q /iocage/images/$name.tar.xz`"
+        local old_cksum="`cat /iocage/images/$name.sha256`"
+        local uuid="`__create_jail create -e|tail -1`"
+        local mountpoint="`__get_jail_prop get mountpoint $uuid`"
+
+        if [ $new_cksum != $old_cksum ] ; then
+            echo "  ERROR: checksum mismatch ..exiting"
+            exit 1
+        else
+            tar -xvJf /iocage/images/$name.tar.xz -C $mountpoint/root
+        fi
+
+    else
+        echo "  ERROR: package or image $name not found!"
+        exit 1
+    fi
+
+}
+
+__export () {
+    # Export full jail
+    # sha256
+    local name=$1
+    local state=`jls|grep $name | wc -l`
+
+    __check_name $name
+
+    if [ "$state" -gt "0" ] ; then
+        echo "  ERROR: $name is running!"
+        echo "  Stop jail before exporting!"
+        exit 1
+    fi
+
+    local mountpoint="`__get_jail_prop get mountpoint $name`"
+
+    if [ ! -d "/iocage/images" ] ; then
+        mkdir /iocage/images
+    fi
+
+    echo "* Exporting $name .."
+    tar -cvJf /iocage/images/$name.tar.xz -C ${mountpoint}/root . && \
+    sha256 -q /iocage/images/$name.tar.xz > /iocage/images/$name.sha256
+    echo "* Image saved to: /iocage/images/$name.tar.xz"
+    echo "* Checksum created: /iocage/images/$name.sha256"
+
+}
+
+__check_name () {
+    local name=$1
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
     fi
 }
 
@@ -1274,7 +1512,7 @@ NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
   iocage fetch
-  iocage create [-c] [release=RELEASE]
+  iocage create [-c|-e] [release=RELEASE] [property=value]
   iocage clone UUID | UUID@snapshot [property=value]
   iocage destroy UUID
   iocage list [-t]
@@ -1300,6 +1538,9 @@ SYNOPSIS
   iocage runtime UUID
   iocage update UUID
   iocage record start|stop UUID
+  iocage package UUID
+  iocage export UUID
+  iocage import UUID [property=value]
   iocage defaults
   iocage version | --version
   iocage help
@@ -1308,10 +1549,8 @@ DESCRIPTION
   jail management tasks. It abstracts away the management of ZFS backed jails running VNET
   networking with optional support for resource limits.
   
-  NOTE: only VNET
-  enabled jails are supported! The older shared IP based jails are
-  intentionally not supported for various reasons - mostly VNET enabled jails
-  provide better isolation.
+  The older shared IP based jails are supported as well. VNET enabled jails
+  provide better isolation though.
 
   Each jail has a unique ID (UUID) automatically generated at creation time.
   Using UUID's as jail names means that a jail can be replicated in a
@@ -1326,8 +1565,9 @@ DESCRIPTION
   any configuration files and jails can be easily moved with ZFS send and
   receive preserving all of their properties automatically.
 
-  iocage relies on ZFS, VIMAGE (VNET) and has the following minimal
-  requirements:
+  iocage relies on ZFS, VIMAGE/VNET (this is optional).
+  To leverage all the whistles and bells iocage has to offer
+  consider the following optional kernel options and system reqiurements:
     o   FreeBSD 10.0-RELEASE amd64
     o   bridge interfaces (bridge0,bridge1) add:
 
@@ -1337,6 +1577,7 @@ DESCRIPTION
         options         VIMAGE
         options         RACCT
         options         RCTL
+
 SUBCOMMANDS
   fetch [release=RELEASE]
 
@@ -1347,12 +1588,13 @@ SUBCOMMANDS
 
     Example: iocage fetch release=9.2-RELEASE
 
-  create [-c] [release=RELEASE] [property=value] [property=value] ...
+  create [-c|-e] [release=RELEASE] [property=value] [property=value] ...
 
     By default create will deploy a new jail based on the host operating
     system's release. This can be changed by specifying the release option.
     If the -c switch is specified the jail will be cloned from the release.
-    Default is to create a fully independent jail set.
+    Default is to create a fully independent jail set. The -e switch will
+    create an empty jail.
 
     Example: iocage create tag=www01
 
@@ -1492,7 +1734,25 @@ SUBCOMMANDS
 
     The record function will record every changed file in a directory called
     /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
-    mount.
+    mount. Useful for differential package creation.
+
+  package UUID
+
+    Package recorded jail session into /iocage/packages. Creates SHA256
+    checksum and prunes empty directories, files and some residual files like
+    utx.* and .history. Before packaging any jails make sure no unwanted files
+    contaminated or leaked into the recorded session.
+
+  export UUID
+
+    Completely export jail. Archive is created in /iocage/images with SHA256
+    checksum. Jail must be in stopped state.
+
+  import UUID [property=value]
+
+    Import full jail images or differential packages. Images need to be
+    present in /iocage/images and packages in /iocage/packages along with
+    along with checksum files.
 
   defaults
 
@@ -1509,6 +1769,54 @@ PROPERTIES
   For more information on properties please check the relevant man page which
   is noted next to each property.
 
+  vnet
+
+    This controls whether to start the jail with VNET or shared IP
+    configuration. Default is on - start VNET jail. If you don't need a fully
+    virtualized per jail network stack set it to off.
+
+    Default: on
+
+  ip4_addr
+
+    The IPv4 address for non VNET jail. Only takes effect when vnet=off. 
+
+    Format is: interface|ip-address/netmask
+
+    If an interface is given before
+    the IP address, an alias for the address will be added to that
+    interface, as it is with the interface parameter.  If a netmask
+    in either dotted-quad or CIDR form is given after IP address, it
+    will be used when adding the IP alias.
+
+    Default: none. jail(8)
+
+  ip4_saddrsel
+
+    Only takes effect when vnet=off.
+    A boolean option to change the formerly mentioned behaviour and
+    disable IPv4 source address selection for the prison in favour of
+    the primary IPv4 address of the jail.  Source address selection
+    is enabled by default for all jails and the ip4.nosaddrsel
+    settting of a parent jail is not inherited for any child jails.
+
+    Default: 1. jail(8)
+
+  ip4
+
+    Only takes effect when vnet=off.
+    Control the availability of IPv4 addresses.  Possible values are
+    "inherit" to allow unrestricted access to all system addresses,
+    "new" to restrict addresses via ip4.addr above, and "disable" to
+    stop the jail from using IPv4 entirely.  Setting the ip4.addr
+    parameter implies a value of "new".
+
+    Default: new. jail(8)
+
+  ip6.addr, ip6.saddrsel, ip6
+    A set of IPv6 options for the prison, the counterparts to
+    ip4.addr, ip4.saddrsel and ip4 above.
+    
   interfaces
     
     By default there are two interfaces specified with their bridge
