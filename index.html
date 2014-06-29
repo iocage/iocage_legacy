@@ -38,6 +38,8 @@
 
 <p>iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.</p>
 
+<p>Starting with version 1.3 both VNET and non-VNET jails are supported!</p>
+
 <ul>
 <li><strong><a href="https://github.com/pannon/iocage/wiki">Read WIKI</a></strong></li>
 <li><strong><a href="https://github.com/pannon/iocage/wiki/FAQ">Check FAQ</a></strong></li>
@@ -49,6 +51,7 @@
 <li>ease of use</li>
 <li>zero configuration files</li>
 <li>virtual networking stacks (vnet)</li>
+<li>shared IP based jails (non vnet)</li>
 <li>fully writable clones</li>
 <li>resource limits (CPU, MEMORY, etc.)</li>
 <li>filesystem quotas and reservations</li>
@@ -60,7 +63,7 @@
 
 <ul>
 <li> iocage fetch [release=RELEASE]</li>
-<li> iocage create [-c | property=value]</li>
+<li> iocage create [-c|-e] [release=RELEASE] [property=value]</li>
 <li> iocage clone UUID | UUID@snapshot [property=value]</li>
 <li> iocage destroy UUID</li>
 <li> iocage list [-t]</li>
@@ -86,6 +89,9 @@
 <li> iocage runtime UUID</li>
 <li> iocage update UUID</li>
 <li> iocage record start|stop UUID</li>
+<li> iocage package UUID</li>
+<li> iocage export UUID</li>
+<li> iocage import UUID [property=value]</li>
 <li> iocage defaults</li>
 <li> iocage version | --version</li>
 <li> iocage help</li>
@@ -96,7 +102,10 @@
 <li>
 <p>Kernel compiled with:</p>
 
-<pre><code>options         VIMAGE # VNET/Vimage support
+<pre><code># This is optional and only needed if you need VNET and resource
+# limits
+
+options         VIMAGE # VNET/Vimage support
 options         RACCT  # Resource containers
 options         RCTL   # same as above
 </code></pre>
