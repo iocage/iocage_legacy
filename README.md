@@ -26,7 +26,7 @@ Starting with version 1.3 both VNET and non-VNET jails are supported!
 - and many more!
 
 **USAGE:**
--  iocage fetch [release=RELEASE]
+-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org] 
 -  iocage create [-c|-e] [release=RELEASE] [property=value]
 -  iocage clone UUID | UUID@snapshot [property=value]
 -  iocage destroy UUID
