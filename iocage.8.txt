@@ -47,6 +47,9 @@ DESCRIPTION
   distributed environment with greater flexibility. This also eliminates
   potential naming clashes on large scale deployments.
 
+  You can use shortened UUIDs, e.g. for adae47cb-01a8-11e4-aa78-3c970ea3222f
+  use adae47cb or just adae.
+
   To ease jail identification a TAG field is included in list mode which can
   be set to any string (hostname, label, note, etc.). By default the TAG field
   contains the creation date and time stamp.

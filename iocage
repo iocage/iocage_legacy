@@ -31,7 +31,7 @@ PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.3 (2014/06/29)"
+    echo "iocage 1.3.2 (2014/07/02)"
     exit 0
 fi
 
@@ -248,109 +248,109 @@ CONF_FTP="ftphost ftpdir"
 __parse_cmd () {
     while [ $# -gt 0 ] ; do
         case "$1" in
-            list)       __list_jails $@
-                        exit 0
+            list)       __list_jails $2
+                        exit
                 ;;
             console)    __console $2
-                        exit 0
+                        exit
                 ;;
             chroot)     __chroot $2
-                        exit 0
+                        exit
                 ;;
             defaults)   __print_defaults
-                        exit 0
+                        exit
                 ;;
             create)     __export_props $@
                         __create_jail $@
-                        exit 0
+                        exit
                 ;;
             destroy)    __destroy_jail $2
-                        exit 0
+                        exit
                 ;;
             clone)      __export_props $@
                         __clone_jail $2
-                        exit 0
+                        exit
                 ;;
             fetch)      __export_props $@
                         __fetch_release
-                        exit 0
+                        exit
                 ;;
-            get)        __get_jail_prop $@
-                        exit 0
+            get)        __get_jail_prop $2 $3
+                        exit
                 ;;
             set)        __export_props "$@"
-                        __set_jail_prop "$@"
-                        exit 0
+                        __set_jail_prop $2 $3
+                        exit
                 ;;
             start)      __start_jail $2
-                        exit 0
+                        exit
                 ;;
             stop)       __stop_jail $2
-                        exit 0
+                        exit
                 ;;
             restart)    __restart_jail $2
-                        exit 0
+                        exit
                 ;;
             rcboot)     __rc_jails boot
-                        exit 0
+                        exit
                 ;;
             rcshutdown) __rc_jails shutdown
-                        exit 0
+                        exit
                 ;;
             df)         __print_disk
-                        exit 0
+                        exit
                 ;;
             snapshot)   __snapshot $2
-                        exit 0
+                        exit
                 ;;
             snaplist)   __snaplist $2
-                        exit 0
+                        exit
                 ;;
             snapremove) __snapremove $2
-                        exit 0
+                        exit
                 ;;
             promote)    __promote $2
-                        exit 0
+                        exit
                 ;;
             rollback)   __rollback $2
-                        exit 0
+                        exit
                 ;;
             uncap)      __rctl_uncap $2
-                        exit 0
+                        exit
                 ;;
             cap)        __rctl_limits $2
-                        exit 0
+                        exit
                 ;;
             limits)     __rctl_list $2
-                        exit 0
+                        exit
                 ;;
             inuse)      __rctl_used $2
-                        exit 0
+                        exit
                 ;;
             runtime)    __runtime $2
-                        exit 0
+                        exit
                 ;;
             update)     __update $2
-                        exit 0
+                        exit
                 ;;
             record)     __record $2 $3
-                        exit 0
+                        exit
                 ;;
             package)    __package $2
-                        exit 0
+                        exit
                 ;;
             export)     __export $2
-                        exit 0
+                        exit
                 ;;
             import)     __export_props $@
                         __import $2
-                        exit 0
+                        exit
                 ;;
             help)       __help
-                        exit 0
+                        exit
                 ;;
                 *)      __usage
-                        exit 0
+                        exit
                 ;;
         esac
         shift
@@ -514,7 +514,24 @@ __create_jail () {
 __clone_jail () {
     local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
     local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
     local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
     local fs_list=`zfs list -rH -o name $dataset`
 
     if [ -z "$snapshot" ] ; then
@@ -555,7 +572,12 @@ __destroy_jail () {
     local dataset="`__find_jail $name`"
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: jail not found"
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
@@ -621,11 +643,34 @@ __export_props () {
 
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
-    local name=`__get_jail_name "$@"`
-    local property="$2"
+    local name=$2
+    local property="$1"
+
+    if [ -z $name ] || [ -z $property ] ; then
+        echo "  ERROR: missing property or UUID"
+        exit 1
+    fi
+
     local dataset=`__find_jail $name`
-    local pname="`echo $property|cut -f 1 -d'='`"
-    local pval="`echo $property|cut -f 2 -d'='`"
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local pname="`echo $property|awk 'BEGIN { FS = "=" } ; { print $1 }'`"
+    local pval="`echo $property|awk 'BEGIN { FS = "=" } ; { print $2 }'`"
+
+    if [ -z $pname ] || [ -z $pval ] ; then 
+        echo "  ERROR: set failed, incorrect property syntax!"
+        exit 1
+    fi 
+
     local found="0"
 
     local CONF="$CONF_NET
@@ -656,9 +701,31 @@ __set_jail_prop () {
 
 # Get properties -----------------------------------------------------
 __get_jail_prop () {
-    local name=`__get_jail_name "$@"`
-    local property=$2
+    local name="$2"
+    local property=$1
+
+    if [ -z $property ] ; then
+        echo "  ERROR: get failed, incorrect property syntax!"
+        exit 1
+    fi
+
+    if [ -z $name ] ; then
+        echo "  ERROR: mising UUID!"
+        exit 1
+    fi
+
     local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: jail $name not found!"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
     local found="0"
 
     local CONF="$CONF_NET
@@ -729,6 +796,11 @@ __usage () {
     echo "  iocage defaults"
     echo "  iocage version | --version"
     echo "  iocage help"
+    echo " "
+    echo "  Hint:  you can use shortened UUIDs!"
+    echo " "
+    echo "  e.g. for  adae47cb-01a8-11e4-aa78-3c970ea3222f"
+    echo "       use  adae47cb or just adae"
 }
 
 __get_jail_name () {
@@ -741,34 +813,71 @@ __get_jail_name () {
 
 # Find and return the jail's top level ZFS dataset
 __find_jail () {
+    local name=$1
+    local jlist="/tmp/iocage-jail-list.$$"
     local jails=`zfs list -rH -o name $pool/iocage/jails \
                 | grep -E "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$"`
 
-    for jail in $jails ; do
-        if [ $1 == "ALL" ] ; then
+    if [ "${name}" == "ALL" ] ; then
+        for jail in $jails ; do
             echo $jail
-        elif [ `echo $jail |grep -E "^$pool/iocage/jails/${1}$"` ] ; then
-            echo $jail
+        done
+    else
+        for jail in $jails ; do
+            found=`echo $jail |grep -iE "^$pool/iocage/jails/$name"|wc -l`
+            if [ "$found" -eq 1 ] ; then
+                echo $jail >> $jlist
+            fi
+        done
+
+        if [ ! -e $jlist ] ; then
+            exit 0
         fi
-    done
+
+        if [ `cat $jlist|wc -l` -eq 1 ] ; then
+            cat $jlist
+        elif [ `cat $jlist|wc -l` -gt 1 ] ; then
+            echo "multiple"
+        fi
+    fi
+
+    rm  -f $jlist
 }
 
 __start_jail () {
-    local name=`__get_jail_name "$@"`
-    local tag="`__get_jail_prop get tag $name`"
-    local jail_hostid="`__get_jail_prop get hostid $name`"
-    local jail_path="`__get_jail_prop get mountpoint $name`"
+    local name=$1
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
     local dataset=`__find_jail $name`
-    local template="`__get_jail_prop get template $name`"
-    local cpuset="`__get_jail_prop get cpuset $name`"
-    local procfs="`__get_jail_prop get mount_procfs $name`"
-    local state=`jls | grep $name | wc -l`
-    local vnet="`__get_jail_prop get vnet $name`"
-    local nics=`__get_jail_prop get interfaces $name \
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+    local tag="`__get_jail_prop tag $fulluuid`"
+    local jail_hostid="`__get_jail_prop hostid $fulluuid`"
+    local jail_path="`__get_jail_prop mountpoint $fulluuid`"
+    local template="`__get_jail_prop template $fulluuid`"
+    local cpuset="`__get_jail_prop cpuset $fulluuid`"
+    local procfs="`__get_jail_prop mount_procfs $fulluuid`"
+    local state=`jls | grep $fulluuid | wc -l`
+    local vnet="`__get_jail_prop vnet $fulluuid`"
+    local nics=`__get_jail_prop interfaces $fulluuid \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }'`
 
     if [ "$state" -eq "1" ] ; then
-        echo "* ${name}: is already up"
+        echo "* ${fulluuid}: is already up"
         exit 1
     fi
 
@@ -778,7 +887,7 @@ __start_jail () {
 
         if [ -z $nic ] || [ -z $bridge ] ; then
             echo "  ERROR  : incorrect interfaces property format"
-            echo "  HINT   : check with \"iocage get interfaces $name\""
+            echo "  HINT   : check with \"iocage get interfaces $fulluuid\""
             echo "  Example: vnet0:bridge0"
             exit 1
         fi
@@ -796,30 +905,30 @@ __start_jail () {
     fi
 
     if [ "$procfs" == "1" ] ; then
-        mount -t procfs proc /iocage/jails/${name}/root/proc
+        mount -t procfs proc /iocage/jails/${fulluuid}/root/proc
     fi
 
-    echo "* Starting $name ($tag)"
+    echo "* Starting $fulluuid ($tag)"
 
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
-        __vnet_start $name
-        __networking start $name
+        __vnet_start $fulluuid
+        __networking start $fulluuid
     else
-        __legacy_start $name
+        __legacy_start $fulluuid
     fi
 
     cd ${jail_path}/root/dev && ln -s ../var/run/log log
 
-    __rctl_limits $name
+    __rctl_limits $fulluuid
 
     if [ $cpuset != "off" ] ; then
         echo "  Appliyng CPU affinity.."
-        local jid="`jls -j ioc-${name} jid`"
+        local jid="`jls -j ioc-${fulluuid} jid`"
         cpuset -l $cpuset -j $jid
     fi
 
-    jexec ioc-${name} `__get_jail_prop get exec_start $name` \
-     >> /iocage/log/${name}-console.log 2>&1
+    jexec ioc-${fulluuid} `__get_jail_prop exec_start $fulluuid` \
+     >> /iocage/log/${fulluuid}-console.log 2>&1
 
     zfs set org.freebsd.iocage:last_started=`date "+%F_%T"` $dataset
 
@@ -828,39 +937,39 @@ __start_jail () {
 # Start a VNET jail
 __vnet_start () {
     local name=$1
-    local jail_path="`__get_jail_prop get mountpoint $name`"
+    local jail_path="`__get_jail_prop mountpoint $name`"
 
     jail -c vnet \
-    name="ioc-`__get_jail_prop get host_hostuuid $name`" \
-    host.hostname=`__get_jail_prop get hostname $name` \
+    name="ioc-`__get_jail_prop host_hostuuid $name`" \
+    host.hostname=`__get_jail_prop hostname $name` \
     path="${jail_path}/root" \
-    securelevel=`__get_jail_prop get securelevel $name` \
-    host.hostuuid=`__get_jail_prop get host_hostuuid $name` \
-    devfs_ruleset=`__get_jail_prop get devfs_ruleset $name` \
-    enforce_statfs=`__get_jail_prop get enforce_statfs $name` \
-    children.max=`__get_jail_prop get children_max $name` \
-    allow.set_hostname=`__get_jail_prop get allow_set_hostname $name` \
-    allow.sysvipc=`__get_jail_prop get allow_sysvipc $name` \
-    allow.raw_sockets=`__get_jail_prop get allow_raw_sockets $name` \
-    allow.chflags=`__get_jail_prop get allow_chflags $name` \
-    allow.mount=`__get_jail_prop get allow_mount $name` \
-    allow.mount.devfs=`__get_jail_prop get allow_mount_devfs $name` \
-    allow.mount.nullfs=`__get_jail_prop get allow_mount_nullfs $name` \
-    allow.mount.procfs=`__get_jail_prop get allow_mount_procfs $name` \
-    allow.mount.tmpfs=`__get_jail_prop get allow_mount_tmpfs $name` \
-    allow.mount.zfs=`__get_jail_prop get allow_mount_zfs $name` \
-    allow.quotas=`__get_jail_prop get allow_quotas $name` \
-    allow.socket_af=`__get_jail_prop get allow_socket_af $name` \
-    exec.prestart="`__get_jail_prop get exec_prestart $name`" \
-    exec.poststart="`__get_jail_prop get exec_poststart $name`" \
-    exec.prestop="`__get_jail_prop get exec_prestop $name`" \
-    exec.stop="`__get_jail_prop get exec_stop $name`" \
-    exec.clean=`__get_jail_prop get exec_clean $name` \
-    exec.timeout=`__get_jail_prop get exec_timeout $name` \
-    stop.timeout=`__get_jail_prop get stop_timeout $name` \
+    securelevel=`__get_jail_prop securelevel $name` \
+    host.hostuuid=`__get_jail_prop host_hostuuid $name` \
+    devfs_ruleset=`__get_jail_prop devfs_ruleset $name` \
+    enforce_statfs=`__get_jail_prop enforce_statfs $name` \
+    children.max=`__get_jail_prop children_max $name` \
+    allow.set_hostname=`__get_jail_prop allow_set_hostname $name` \
+    allow.sysvipc=`__get_jail_prop allow_sysvipc $name` \
+    allow.raw_sockets=`__get_jail_prop allow_raw_sockets $name` \
+    allow.chflags=`__get_jail_prop allow_chflags $name` \
+    allow.mount=`__get_jail_prop allow_mount $name` \
+    allow.mount.devfs=`__get_jail_prop allow_mount_devfs $name` \
+    allow.mount.nullfs=`__get_jail_prop allow_mount_nullfs $name` \
+    allow.mount.procfs=`__get_jail_prop allow_mount_procfs $name` \
+    allow.mount.tmpfs=`__get_jail_prop allow_mount_tmpfs $name` \
+    allow.mount.zfs=`__get_jail_prop allow_mount_zfs $name` \
+    allow.quotas=`__get_jail_prop allow_quotas $name` \
+    allow.socket_af=`__get_jail_prop allow_socket_af $name` \
+    exec.prestart="`__get_jail_prop exec_prestart $name`" \
+    exec.poststart="`__get_jail_prop exec_poststart $name`" \
+    exec.prestop="`__get_jail_prop exec_prestop $name`" \
+    exec.stop="`__get_jail_prop exec_stop $name`" \
+    exec.clean=`__get_jail_prop exec_clean $name` \
+    exec.timeout=`__get_jail_prop exec_timeout $name` \
+    stop.timeout=`__get_jail_prop stop_timeout $name` \
     mount.fstab=/iocage/jails/$name/fstab \
-    mount.devfs=`__get_jail_prop get mount_devfs $name ` \
-    mount.fdescfs=`__get_jail_prop get mount_fdescfs $name` \
+    mount.devfs=`__get_jail_prop mount_devfs $name ` \
+    mount.fdescfs=`__get_jail_prop mount_fdescfs $name` \
     allow.dying \
     exec.consolelog="/iocage/log/${name}-console.log" \
     persist
@@ -869,9 +978,9 @@ __vnet_start () {
 # Start a shared IP jail
 __legacy_start () {
     local name=$1
-    local jail_path="`__get_jail_prop get mountpoint $name`"
-    local ip4_addr="`__get_jail_prop get ip4_addr $name`"
-    local ip6_addr="`__get_jail_prop get ip6_addr $name`"
+    local jail_path="`__get_jail_prop mountpoint $name`"
+    local ip4_addr="`__get_jail_prop ip4_addr $name`"
+    local ip6_addr="`__get_jail_prop ip6_addr $name`"
 
     if [ $ip4_addr == "none" ] ; then
         ip4_addr=""
@@ -883,41 +992,41 @@ __legacy_start () {
 
     jail -c \
     ip4.addr="$ip4_addr" \
-    ip4.saddrsel="`__get_jail_prop get ip4_saddrsel $name`" \
-    ip4="`__get_jail_prop get ip4 $name`" \
+    ip4.saddrsel="`__get_jail_prop ip4_saddrsel $name`" \
+    ip4="`__get_jail_prop ip4 $name`" \
     ip6.addr="$ip6_addr" \
-    ip6.saddrsel="`__get_jail_prop get ip6_saddrsel $name`" \
-    ip6="`__get_jail_prop get ip6 $name`" \
-    name="ioc-`__get_jail_prop get host_hostuuid $name`" \
-    host.hostname=`__get_jail_prop get hostname $name` \
+    ip6.saddrsel="`__get_jail_prop ip6_saddrsel $name`" \
+    ip6="`__get_jail_prop ip6 $name`" \
+    name="ioc-`__get_jail_prop host_hostuuid $name`" \
+    host.hostname=`__get_jail_prop hostname $name` \
     path="${jail_path}/root" \
-    securelevel=`__get_jail_prop get securelevel $name` \
-    host.hostuuid=`__get_jail_prop get host_hostuuid $name` \
-    devfs_ruleset=`__get_jail_prop get devfs_ruleset $name` \
-    enforce_statfs=`__get_jail_prop get enforce_statfs $name` \
-    children.max=`__get_jail_prop get children_max $name` \
-    allow.set_hostname=`__get_jail_prop get allow_set_hostname $name` \
-    allow.sysvipc=`__get_jail_prop get allow_sysvipc $name` \
-    allow.raw_sockets=`__get_jail_prop get allow_raw_sockets $name` \
-    allow.chflags=`__get_jail_prop get allow_chflags $name` \
-    allow.mount=`__get_jail_prop get allow_mount $name` \
-    allow.mount.devfs=`__get_jail_prop get allow_mount_devfs $name` \
-    allow.mount.nullfs=`__get_jail_prop get allow_mount_nullfs $name` \
-    allow.mount.procfs=`__get_jail_prop get allow_mount_procfs $name` \
-    allow.mount.tmpfs=`__get_jail_prop get allow_mount_tmpfs $name` \
-    allow.mount.zfs=`__get_jail_prop get allow_mount_zfs $name` \
-    allow.quotas=`__get_jail_prop get allow_quotas $name` \
-    allow.socket_af=`__get_jail_prop get allow_socket_af $name` \
-    exec.prestart="`__get_jail_prop get exec_prestart $name`" \
-    exec.poststart="`__get_jail_prop get exec_poststart $name`" \
-    exec.prestop="`__get_jail_prop get exec_prestop $name`" \
-    exec.stop="`__get_jail_prop get exec_stop $name`" \
-    exec.clean=`__get_jail_prop get exec_clean $name` \
-    exec.timeout=`__get_jail_prop get exec_timeout $name` \
-    stop.timeout=`__get_jail_prop get stop_timeout $name` \
+    securelevel=`__get_jail_prop securelevel $name` \
+    host.hostuuid=`__get_jail_prop host_hostuuid $name` \
+    devfs_ruleset=`__get_jail_prop devfs_ruleset $name` \
+    enforce_statfs=`__get_jail_prop enforce_statfs $name` \
+    children.max=`__get_jail_prop children_max $name` \
+    allow.set_hostname=`__get_jail_prop allow_set_hostname $name` \
+    allow.sysvipc=`__get_jail_prop allow_sysvipc $name` \
+    allow.raw_sockets=`__get_jail_prop allow_raw_sockets $name` \
+    allow.chflags=`__get_jail_prop allow_chflags $name` \
+    allow.mount=`__get_jail_prop allow_mount $name` \
+    allow.mount.devfs=`__get_jail_prop allow_mount_devfs $name` \
+    allow.mount.nullfs=`__get_jail_prop allow_mount_nullfs $name` \
+    allow.mount.procfs=`__get_jail_prop allow_mount_procfs $name` \
+    allow.mount.tmpfs=`__get_jail_prop allow_mount_tmpfs $name` \
+    allow.mount.zfs=`__get_jail_prop allow_mount_zfs $name` \
+    allow.quotas=`__get_jail_prop allow_quotas $name` \
+    allow.socket_af=`__get_jail_prop allow_socket_af $name` \
+    exec.prestart="`__get_jail_prop exec_prestart $name`" \
+    exec.poststart="`__get_jail_prop exec_poststart $name`" \
+    exec.prestop="`__get_jail_prop exec_prestop $name`" \
+    exec.stop="`__get_jail_prop exec_stop $name`" \
+    exec.clean=`__get_jail_prop exec_clean $name` \
+    exec.timeout=`__get_jail_prop exec_timeout $name` \
+    stop.timeout=`__get_jail_prop stop_timeout $name` \
     mount.fstab=/iocage/jails/$name/fstab \
-    mount.devfs=`__get_jail_prop get mount_devfs $name ` \
-    mount.fdescfs=`__get_jail_prop get mount_fdescfs $name` \
+    mount.devfs=`__get_jail_prop mount_devfs $name ` \
+    mount.fdescfs=`__get_jail_prop mount_fdescfs $name` \
     allow.dying \
     exec.consolelog="/iocage/log/${name}-console.log" \
     persist
@@ -925,62 +1034,100 @@ __legacy_start () {
 
 __stop_jail () {
     local name="$1"
-    local tag="`__get_jail_prop get tag $name`"
-    local exec_prestop="`__get_jail_prop get exec_prestop $name`"
-    local exec_stop="`__get_jail_prop get exec_stop $name`"
-    local exec_poststop="`__get_jail_prop get exec_poststop $name`"
-    local rlimits="`rctl | grep $name| wc -l`"
-    local vnet="`__get_jail_prop get vnet $name`"
-    local state=`jls | grep $name | wc -l`
 
-    if [  "$state" -lt "1" ] ; then
-        echo "* ${name}: is already down"
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    echo "* Stopping $name ($tag)"
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    local tag="`__get_jail_prop tag $fulluuid`"
+    local exec_prestop="`__get_jail_prop exec_prestop $fulluuid`"
+    local exec_stop="`__get_jail_prop exec_stop $fulluuid`"
+    local exec_poststop="`__get_jail_prop exec_poststop $fulluuid`"
+    local rlimits="`rctl | grep $fulluuid| wc -l`"
+    local vnet="`__get_jail_prop vnet $fulluuid`"
+    local state=`jls | grep $fulluuid | wc -l`
+
+    if [  "$state" -lt "1" ] ; then
+        echo "* ${fulluuid}: is already down"
+        exit 1
+    fi
+
+    echo "* Stopping $fulluuid ($tag)"
 
     echo "$exec_prestop" | sh
-    jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
+    jexec ioc-${fulluuid} $exec_stop >> /iocage/log/${fulluuid}-console.log 2>&1
 
     if [ $vnet == "on" ] ; then
-        __networking stop $name
+        __networking stop $fulluuid
     else
 
     fi
 
-    jail -r ioc-${name}
+    jail -r ioc-${fulluuid}
     echo "$exec_poststop" | sh
 
-    umount -afvF /iocage/jails/${name}/fstab > /dev/null 2>&1
-    umount /iocage/jails/${name}/root/dev/fd > /dev/null 2>&1
-    umount /iocage/jails/${name}/root/dev    > /dev/null 2>&1
-    umount /iocage/jails/${name}/root/proc   > /dev/null 2>&1
+    umount -afvF /iocage/jails/${fulluuid}/fstab > /dev/null 2>&1
+    umount /iocage/jails/${fulluuid}/root/dev/fd > /dev/null 2>&1
+    umount /iocage/jails/${fulluuid}/root/dev    > /dev/null 2>&1
+    umount /iocage/jails/${fulluuid}/root/proc   > /dev/null 2>&1
 
-    if [ -d /iocage/jails/${name}/recorded ] ; then
-        umount -ft unionfs /iocage/jails/${name}/root > /dev/null 2>&1
+    if [ -d /iocage/jails/${fulluuid}/recorded ] ; then
+        umount -ft unionfs /iocage/jails/${fulluuid}/root > /dev/null 2>&1
     fi
 
     if [ $rlimits -gt "0" ] ; then
-        rctl -r jail:ioc-${name}
+        rctl -r jail:ioc-${fulluuid}
     fi
 }
 
 # Soft restart
 __restart_jail () {
     local name="$1"
-    local exec_stop="`__get_jail_prop get exec_stop $name`"
-    local exec_start="`__get_jail_prop get exec_start $name`"
-    local jid="`jls -j ioc-${name} jid`"
-    local dataset=`__find_jail $name`
-    local tag="`__get_jail_prop get tag $name`"
 
-    echo "* Soft restarting $name ($tag)"
-    jexec ioc-${name} $exec_stop >> /iocage/log/${name}-console.log 2>&1
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+    local exec_stop="`__get_jail_prop exec_stop $fulluuid`"
+    local exec_start="`__get_jail_prop exec_start $fulluuid`"
+    local jid="`jls -j ioc-${fulluuid} jid`"
+    local tag="`__get_jail_prop tag $fulluuid`"
+
+    ccho "* Soft restarting $fulluuid ($tag)"
+    jexec ioc-${fulluuid} $exec_stop >> /iocage/log/${fulluuid}-console.log 2>&1
 
     if [ $? -ne "1" ] ; then
         pkill -j $jid
-        jexec ioc-${name} $exec_start >> /iocage/log/${name}-console.log 2>&1
+        jexec ioc-${fulluuid} $exec_start >> /iocage/log/${fulluuid}-console.log 2>&1
         zfs set org.freebsd.iocage:last_started=`date "+%F_%T"` $dataset
     else
         echo "  ERROR: soft restart failed.."
@@ -1012,6 +1159,7 @@ __rc_jails () {
     fi
 
     if [ "$action" == "boot" ] ; then
+        echo "* [I|O|C] booting jails... "
 
         for i in $boot_order ; do 
             local jail="`echo $i | cut -f2 -d,`"
@@ -1023,6 +1171,7 @@ __rc_jails () {
         done
 
     elif [ "$action" == "shutdown" ] ; then
+        echo "* [I|O|C] shutting down jails... "
 
         for i in $shutdown_order ; do
             local jail="`echo $i | cut -f2 -d,`"
@@ -1040,7 +1189,7 @@ __rc_jails () {
 
 __list_jails () {
     local jails=`__find_jail ALL`
-    local switch=$2
+    local switch=$1
 
     printf "%-36s  %s  %s  %s\n" "UUID" "BOOT"\
            "STATE" "TAG"
@@ -1118,7 +1267,7 @@ __networking () {
     action=$1
     local name=$2
     local jid="`jls -j ioc-$name jid`"
-    local nics=`__get_jail_prop get interfaces $name \
+    local nics=`__get_jail_prop interfaces $name \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }'`
 
     if [ $action == "start" ] ; then
@@ -1144,12 +1293,32 @@ __networking () {
 
 __rctl_limits () {
     local name="$1"
-    local rlimits="`__get_jail_prop get rlimits $name`"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    local rlimits="`__get_jail_prop rlimits $fulluuid`"
 
     if [ $rlimits == "on" ] ; then
         echo "  Applying resource limits.."
         for prop in $CONF_RCTL ; do
-            value="`__get_jail_prop get $prop $name`"
+            value="`__get_jail_prop $prop $fulluuid`"
             limit=`echo $value | awk 'BEGIN { FS = ":" } ; { print $1 }'`
             action=`echo $value | awk 'BEGIN { FS = ":" } ; { print $2 }'`
             
@@ -1161,7 +1330,7 @@ __rctl_limits () {
                     echo "$action for property: $prop"
                     echo "  HINT : check man page for syntax."
                 else
-                    rctl -a jail:ioc-${name}:${prop}:${action}=${limit}
+                    rctl -a jail:ioc-${fulluuid}:${prop}:${action}=${limit}
                 fi
             fi
 
@@ -1176,9 +1345,10 @@ __rctl_list () {
         echo "* All active limits:"
         rctl | grep jail
     else
-        local jid="`jls -j ioc-${name} jid`"
-        echo "* Active limits for jail: $name"
-        rctl -h | grep $name
+        local fulluuid="`__check_name $name`"
+        local jid="`jls -j ioc-${fulluuid} jid`"
+        echo "* Active limits for jail: $fulluuid"
+        rctl -h | grep $fulluuid
         if [ ! -z "$jid" ] ; then
             echo "* CPU affinity: `cpuset -g -j $jid | cut -f2 -d:`"
         fi
@@ -1188,40 +1358,118 @@ __rctl_list () {
 __rctl_uncap () {
     local name="$1"
 
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
     echo "  Releasing resource limits.."
-    rctl -r jail:ioc-${name}
+    rctl -r jail:ioc-${fulluuid}
     echo "  Listing active rules for jail:"
-    rctl | grep $name
+    rctl | grep $fulluuid
 }
 
 
 __rctl_used () {
     local name="$1"
 
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
     echo "Consumed resources:"
     echo "-------------------"
-    rctl -hu jail:ioc-${name}
+    rctl -hu jail:ioc-${fulluuid}
 }
 
 
 __console () {
-    local login_flags=`zfs get -H -o value org.freebsd.iocage:login_flags \
-                       $pool/iocage/jails/$1`
+    local name=$1
 
-    jexec ioc-${1} login $login_flags
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    local login_flags=`zfs get -H -o value org.freebsd.iocage:login_flags \
+                       $pool/iocage/jails/$fulluuid`
+
+    jexec ioc-${fulluuid} login $login_flags
 }
 
 __chroot () {
     local name="$1"
 
-    chroot /iocage/jails/${name}/root
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    chroot /iocage/jails/${fulluuid}/root
 }
 
 
 __snapshot () {
     local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
     local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
     local dataset=`__find_jail $name`
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
     local date=`date "+%F_%T"`
    
     if [ ! -z $snapshot ] ; then
@@ -1235,7 +1483,18 @@ __snapshot () {
 __snapremove () {
     local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
     local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
     local dataset=`__find_jail $name`
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
 
     if [ -z $dataset ] ; then
         echo "  ERROR: dataset not found"
@@ -1252,7 +1511,26 @@ __snapremove () {
 }
 
 __snaplist () {
-    local dataset=`__find_jail $@`
+    local name=$1
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+        
+    local dataset=`__find_jail $name`
+ 
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+    
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+        
+    local fulluuid="`__check_name $name`"
 
     zfs list -Hrt snapshot -d1 $dataset \
     | awk '{print $1}' | cut -f 2 -d \@
@@ -1263,6 +1541,12 @@ __rollback () {
     local name="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }'`"
     local snapshot="`echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }'`"
     local dataset=`__find_jail $name`
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
     local fs_list=`zfs list -rH -o name $dataset`
 
     if [ ! -z "$snapshot" ] ; then
@@ -1276,7 +1560,24 @@ __rollback () {
 
 __promote () {
     local name="$1"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
     local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
     local fs_list=`zfs list -rH -o name $dataset`
 
     if [ -z $dataset ] ; then
@@ -1299,23 +1600,61 @@ __promote () {
 
 __runtime () {
     local name=$1
-    local state="`jls -n -j ioc-${name} | wc -l`"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    local state="`jls -n -j ioc-${fulluuid} | wc -l`"
 
     if [ "$state" -eq "1" ] ; then
-        local params="`jls -nj ioc-${name}`"
+        local params="`jls -nj ioc-${fulluuid}`"
         for i in $params ; do
             echo "  $i"
         done
     else
-        echo " ERROR: jail $name is not up.."
+        echo " ERROR: jail $fulluuid is not up.."
     fi
-
-    exit
 }
 
 __update () {
     local name=$1
-    local mountpoint="`__get_jail_prop get mountpoint $name`"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+    
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    local mountpoint="`__get_jail_prop mountpoint $fulluuid`"
     local date=`date "+%F_%T"`
 
     __freebsd-update-fix
@@ -1324,7 +1663,7 @@ __update () {
     > ${mountpoint}/root/usr/sbin/freebsd-update
 
     echo "* creating back-out snapshot.."
-    __snapshot ${name}@ioc-update_${date}
+    __snapshot ${fulluuid}@ioc-update_${date}
 
     echo "* Updating jail.."
     /usr/local/sbin/ioc-freebsd-update -b ${mountpoint}/root fetch
@@ -1359,8 +1698,22 @@ __record () {
         exit 1
     fi
 
-    local mountpoint="`__get_jail_prop get mountpoint $name`"
-    local union_mount="`mount -t unionfs | grep $name | wc -l`"
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    local mountpoint="`__get_jail_prop mountpoint $fulluuid`"
+    local union_mount="`mount -t unionfs | grep $fulluuid | wc -l`"
 
     if [ ! -d ${mountpoint}/recorded ] ; then 
         mkdir ${mountpoint}/recorded
@@ -1371,24 +1724,23 @@ __record () {
         echo "* Recording to: ${mountpoint}/recorded"
 
         if [ $union_mount -lt 1 ] ; then
-            mount -t unionfs -o noatime,copymode=transparent ${mountpoint}/recorded ${mountpoint}/root
+            mount -t unionfs -o noatime,copymode=transparent \
+            ${mountpoint}/recorded/ ${mountpoint}/root
         fi
 
     elif [ $action == "stop" ] ; then
-        umount -ft unionfs /iocage/jails/${name}/root > /dev/null 2>&1
+        umount -ft unionfs /iocage/jails/${fulluuid}/root > /dev/null 2>&1
         echo "* Stopped recording to: ${mountpoint}/recorded"
-    fi
 
-    find ${mountpoint}/recorded -type d -empty -exec rm -rf {} \; \
-    > /dev/null 2>&1
-    find ${mountpoint}/recorded -type f -size 0 -exec rm -f {} \; \
-    > /dev/null 2>&1
-    find ${mountpoint}/recorded -name "utx.*" -exec rm -f {} \; \
-    > /dev/null 2>&1
-    find ${mountpoint}/recorded -name .history -exec rm -f {} \; \
-    > /dev/null 2>&1
-
-
+        find ${mountpoint}/recorded/ -type d -empty -exec rm -rf {} \; \
+        > /dev/null 2>&1
+        find ${mountpoint}/recorded/ -type f -size 0 -exec rm -f {} \; \
+        > /dev/null 2>&1
+        find ${mountpoint}/recorded/ -name "utx.*" -exec rm -f {} \; \
+        > /dev/null 2>&1
+        find ${mountpoint}/recorded/ -name .history -exec rm -f {} \; \
+        > /dev/null 2>&1
+    fi 
 }
 
 __package () {
@@ -1396,9 +1748,26 @@ __package () {
     # sha256 too
     local name=$1
 
-    __check_name $name
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
 
-    local mountpoint="`__get_jail_prop get mountpoint $name`"
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="`__check_name $name`"
+
+    local mountpoint="`__get_jail_prop mountpoint $fulluuid`"
 
     if [ ! -d ${mountpoint}/recorded ] ; then
         echo "  ERROR: nothing to package, missing recorded directory!"
@@ -1411,14 +1780,19 @@ __package () {
     fi
 
     echo "* Creating package..."
-    tar -cvJf /iocage/packages/$name.tar.xz -C ${mountpoint}/recorded . && \
-    sha256 -q /iocage/packages/$name.tar.xz > /iocage/packages/$name.sha256
-    echo "* Package saved to: /iocage/packages/$name.tar.xz"
-    echo "* Checksum created: /iocage/packages/$name.sha256"
+    tar -cvJf /iocage/packages/$fulluuid.tar.xz -C ${mountpoint}/recorded . && \
+    sha256 -q /iocage/packages/$fulluuid.tar.xz > /iocage/packages/$fulluuid.sha256
+    echo "* Package saved to: /iocage/packages/$fulluuid.tar.xz"
+    echo "* Checksum created: /iocage/packages/$fulluuid.sha256"
 }
 
 __import () {
     local name=$1
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
 
     if [ -e /iocage/packages/$name.tar.xz ] ; then
         echo "* Found /iocage/packages/$name.tar.xz"
@@ -1432,7 +1806,7 @@ __import () {
         local new_cksum="`sha256 -q /iocage/packages/$name.tar.xz`"
         local old_cksum="`cat /iocage/packages/$name.sha256`"
         local uuid="`__create_jail create | grep uuid | cut -f2 -d=`"
-        local mountpoint="`__get_jail_prop get mountpoint $uuid`"
+        local mountpoint="`__get_jail_prop mountpoint $uuid`"
 
         if [ $new_cksum != $old_cksum ] ; then
             echo "  ERROR: checksum mismatch ..exiting"
@@ -1453,7 +1827,7 @@ __import () {
         local new_cksum="`sha256 -q /iocage/images/$name.tar.xz`"
         local old_cksum="`cat /iocage/images/$name.sha256`"
         local uuid="`__create_jail create -e|tail -1`"
-        local mountpoint="`__get_jail_prop get mountpoint $uuid`"
+        local mountpoint="`__get_jail_prop mountpoint $uuid`"
 
         if [ $new_cksum != $old_cksum ] ; then
             echo "  ERROR: checksum mismatch ..exiting"
@@ -1473,27 +1847,44 @@ __export () {
     # Export full jail
     # sha256
     local name=$1
-    local state=`jls|grep $name | wc -l`
 
-    __check_name $name
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+        
+    local fulluuid="`__check_name $name`"
+    local state=`jls|grep $fulluuid | wc -l`
 
     if [ "$state" -gt "0" ] ; then
-        echo "  ERROR: $name is running!"
+        echo "  ERROR: $fulluuid is running!"
         echo "  Stop jail before exporting!"
         exit 1
     fi
 
-    local mountpoint="`__get_jail_prop get mountpoint $name`"
+    local mountpoint="`__get_jail_prop mountpoint $fulluuid`"
 
     if [ ! -d "/iocage/images" ] ; then
         mkdir /iocage/images
     fi
 
-    echo "* Exporting $name .."
-    tar -cvJf /iocage/images/$name.tar.xz -C ${mountpoint}/root . && \
-    sha256 -q /iocage/images/$name.tar.xz > /iocage/images/$name.sha256
-    echo "* Image saved to: /iocage/images/$name.tar.xz"
-    echo "* Checksum created: /iocage/images/$name.sha256"
+    echo "* Exporting $fulluuid .."
+    tar -cvJf /iocage/images/$fulluuid.tar.xz -C ${mountpoint}/root . && \
+    sha256 -q /iocage/images/$fulluuid.tar.xz > /iocage/images/$fulluuid.sha256
+    echo "* Image saved to: /iocage/images/$fulluuid.tar.xz"
+    echo "* Checksum created: /iocage/images/$fulluuid.sha256"
 
 }
 
@@ -1501,9 +1892,26 @@ __check_name () {
     local name=$1
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+        echo "ERROR"
         exit 1
     fi
+
+    local dataset=`__find_jail $name`
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: jail $name not found!"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local uuid="`__get_jail_prop host_hostuuid $name`"
+
+    echo "$uuid"
+
 }
 
 __help () {
@@ -1556,6 +1964,9 @@ DESCRIPTION
   Using UUID's as jail names means that a jail can be replicated in a
   distributed environment with greater flexibility. This also eliminates
   potential naming clashes on large scale deployments.
+
+  You can use shortened UUIDs, e.g. for adae47cb-01a8-11e4-aa78-3c970ea3222f
+  use adae47cb or just adae.
 
   To ease jail identification a TAG field is included in list mode which can
   be set to any string (hostname, label, note, etc.). By default the TAG field

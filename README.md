@@ -13,7 +13,7 @@ Starting with version 1.3 both VNET and non-VNET jails are supported!
 **FEATURES:**
 - rapid thin provisioning (within seconds!)
 - templating
-- ease of use
+- ease of use (supports shortened UUIDs)
 - zero configuration files
 - virtual networking stacks (vnet)
 - shared IP based jails (non vnet)
