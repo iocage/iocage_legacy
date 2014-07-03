@@ -20,6 +20,7 @@ Starting with version 1.3 both VNET and non-VNET jails are supported!
 - fully writable clones
 - resource limits (CPU, MEMORY, etc.)
 - filesystem quotas and reservations
+- ZFS jailing inside jails
 - transparent snapshot management
 - binary updates
 - change recording with unionfs
