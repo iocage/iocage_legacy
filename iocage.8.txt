@@ -200,6 +200,11 @@ SUBCOMMANDS
 
     List all snapshots belonging to jail.
 
+        NAME    - snapshot name
+        CREATED - creation time
+        RSIZE   - referenced size
+        USED    - used space
+
   snapremove UUID@snapshotname
 
     Destroy snapshot named snapshotname.
@@ -481,6 +486,13 @@ PROPERTIES
     Default: 1
     Source: jail(8)
 
+  mount_procfs=0 | 1
+
+    Mount a procfs(5) filesystem in the jail's /dev/proc directory.
+
+    Default: 0
+    Source: local
+
   enforce_statfs=2 | 1 | 0
 
     This determines which information processes in a jail are able to
@@ -512,6 +524,28 @@ PROPERTIES
 
     Default: -f root
     Source: login(1)
+
+  jail_zfs=on | off
+    
+    Enables automatic ZFS jailing inside the jail. Assigned ZFS dataset will
+    be fully controlled by the jail.
+    NOTE: Setting this to "on" automatically enables allow_mount=1
+    enforce_statfs=1 and allow_mount_zfs=1! These are dependent options
+    required for ZFS management inside a jail.
+
+    Default: off
+    Source: local
+
+  jail_zfs_dataset=iocage/jails/UUID/root/data | zfs_filesystem
+
+    This is the dataset to be jailed and fully handed over to a jail. Takes
+    the ZFS filesystem name without pool name.
+    NOTE: only valid if jail_zfs=on. By default the mountpoint is set to none,
+    to mount this dataset set its mountpoint inside the jail i.e. "zfs set
+    mountpoint=/data full-dataset-name" and issue "mount -a".
+
+    Default: iocage/jails/UUID/root/data
+    Source: local
 
   securelevel=3 | 2 | 1 | 0 | -1
 

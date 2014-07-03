@@ -31,7 +31,7 @@ PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.3.3 (2014/07/03)"
+    echo "iocage 1.3.5 (2014/07/03)"
     exit 0
 fi
 
@@ -120,6 +120,9 @@ last_started="none"
 type="jail"
 release=`uname -r|cut -f 1,2 -d'-'`
 hostid=`cat /etc/hostid`
+jail_zfs="off"
+jail_zfs_dataset="iocage/jails/${uuid}/root/data"
+mount_procfs="0"
 
 # Native ZFS properties
 compression="lz4"
@@ -223,6 +226,8 @@ CONF_CUSTOM="tag
              type
              hostid
              cpuset
+             jail_zfs
+             jail_zfs_dataset
              release"
 
 # Native ZFS properties
@@ -503,6 +508,10 @@ __create_jail () {
     elif [ "${2}" = "-e" ] ; then
         echo $uuid
     fi
+
+    zfs create ${pool}/$jail_zfs_dataset
+    zfs set mountpoint=none ${pool}/$jail_zfs_dataset
+    zfs set jailed=on ${pool}/$jail_zfs_dataset
 }
 
 # Cloning jails ----------------------------------------------------------
@@ -904,6 +913,16 @@ __start_jail () {
         mount -t procfs proc /iocage/jails/${fulluuid}/root/proc
     fi
 
+    local jzfs="`__get_jail_prop jail_zfs $fulluuid`"
+    local jzfs_dataset="`__get_jail_prop jail_zfs_dataset $fulluuid`"
+
+    if [ $jzfs == "on" ] ; then
+        __set_jail_prop allow_mount=1 $fulluuid
+        __set_jail_prop enforce_statfs=1 $fulluuid
+        __set_jail_prop allow_mount_zfs=1 $fulluuid
+        zfs set jailed=on ${pool}/$jzfs_dataset
+    fi
+
     echo "* Starting $fulluuid ($tag)"
 
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
@@ -925,6 +944,10 @@ __start_jail () {
 
     jexec ioc-${fulluuid} `__get_jail_prop exec_start $fulluuid` \
      >> /iocage/log/${fulluuid}-console.log 2>&1
+
+    if [ $jzfs == "on" ] ; then
+        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
+    fi
 
     zfs set org.freebsd.iocage:last_started=`date "+%F_%T"` $dataset
 
@@ -1527,9 +1550,20 @@ __snaplist () {
     fi
         
     local fulluuid="`__check_name $name`"
+    local snapshots="`zfs list -Hrt snapshot -d1 $dataset | awk '{print $1}'`"
 
-    zfs list -Hrt snapshot -d1 $dataset \
-    | awk '{print $1}' | cut -f 2 -d \@
+    printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
+            "RSIZE" "USED"
+    
+    for i in $snapshots ; do
+        local snapname=`echo $i|cut -f 2 -d \@`
+        local creation="`zfs get -H -o value creation $i`"
+        local used="`zfs get -H -o value used $i`"
+        local referenced="`zfs get -H -o value referenced $i`"
+
+        printf "%-36s  %-21s  %s    %s\n" "$snapname" "$creation"\
+                   "$referenced" "$used"
+    done
 
 }
 
@@ -2130,6 +2164,11 @@ SUBCOMMANDS
 
     List all snapshots belonging to jail.
 
+        NAME    - snapshot name
+        CREATED - creation time
+        RSIZE   - referenced size
+        USED    - used space
+
   snapremove UUID@snapshotname
 
     Destroy snapshot named snapshotname.
@@ -2411,6 +2450,13 @@ PROPERTIES
     Default: 1
     Source: jail(8)
 
+  mount_procfs=0 | 1
+
+    Mount a procfs(5) filesystem in the jail's /dev/proc directory.
+
+    Default: 0
+    Source: local
+
   enforce_statfs=2 | 1 | 0
 
     This determines which information processes in a jail are able to
@@ -2442,6 +2488,28 @@ PROPERTIES
 
     Default: -f root
     Source: login(1)
+
+  jail_zfs=on | off
+    
+    Enables automatic ZFS jailing inside the jail. Assigned ZFS dataset will
+    be fully controlled by the jail.
+    NOTE: Setting this to "on" automatically enables allow_mount=1
+    enforce_statfs=1 and allow_mount_zfs=1! These are dependent options
+    required for ZFS management inside a jail.
+
+    Default: off
+    Source: local
+
+  jail_zfs_dataset=iocage/jails/UUID/root/data | zfs_filesystem
+
+    This is the dataset to be jailed and fully handed over to a jail. Takes
+    the ZFS filesystem name without pool name.
+    NOTE: only valid if jail_zfs=on. By default the mountpoint is set to none,
+    to mount this dataset set its mountpoint inside the jail i.e. "zfs set
+    mountpoint=/data full-dataset-name" and issue "mount -a".
+
+    Default: iocage/jails/UUID/root/data
+    Source: local
 
   securelevel=3 | 2 | 1 | 0 | -1
 
