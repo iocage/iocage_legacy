@@ -31,7 +31,7 @@ PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.3.6 (2014/07/04)"
+    echo "iocage 1.3.7 (2014/07/06)"
     exit 0
 fi
 
@@ -923,13 +923,35 @@ __start_jail () {
         zfs set jailed=on ${pool}/$jzfs_dataset
     fi
 
-    echo "* Starting $fulluuid ($tag)"
-
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
+        echo -n "* Starting $fulluuid ($tag)"
         __vnet_start $fulluuid
+
+        if [ $? -eq 1 ] ; then
+            echo " FAILED"
+            exit 1
+        else
+            echo " OK"
+        fi
+
+        echo -n "  + Configuring VNET"
         __networking start $fulluuid
+
+        if [ $? -eq 1 ] ; then
+            echo "         FAILED"
+        else
+            echo "         OK"
+        fi
+
     else
+        echo -n "* Starting $fulluuid ($tag)"
         __legacy_start $fulluuid
+        if [ $? -eq 1 ] ; then
+            echo " FAILED"
+        else
+            echo " OK"
+            echo "  i Using shared IP (non VNET) mode"
+        fi
     fi
 
     cd ${jail_path}/root/dev && ln -s ../var/run/log log
@@ -937,13 +959,25 @@ __start_jail () {
     __rctl_limits $fulluuid
 
     if [ $cpuset != "off" ] ; then
-        echo "  Appliyng CPU affinity.."
+        echo -n "  + Appliyng CPU affinity"
         local jid="`jls -j ioc-${fulluuid} jid`"
         cpuset -l $cpuset -j $jid
+        if [ $? -eq 1 ] ; then
+            echo "    FAILED"
+        else
+            echo "    OK"
+        fi
     fi
 
+    echo -n "  + Starting services" 
     jexec ioc-${fulluuid} `__get_jail_prop exec_start $fulluuid` \
      >> /iocage/log/${fulluuid}-console.log 2>&1
+
+    if [ $? -eq 1 ] ; then
+        echo "        FAILED"
+    else
+        echo "        OK"
+    fi
 
     if [ $jzfs == "on" ] ; then
         zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
@@ -1092,7 +1126,13 @@ __stop_jail () {
     jexec ioc-${fulluuid} $exec_stop >> /iocage/log/${fulluuid}-console.log 2>&1
 
     if [ $vnet == "on" ] ; then
+        echo -n "  + tearing down VNET"
         __networking stop $fulluuid
+        if [ $? -eq 1 ] ; then
+            echo "        FAILED"
+        else
+            echo "        OK"
+        fi
     else
 
     fi
@@ -1262,24 +1302,29 @@ __print_disk () {
 }
 
 __find_mypool () {
-    pools=`zpool list -H -o name`
+    pools="`zpool list -H -o name`"
+    found="0"
 
     for i in $pools ; do
-        mypool=`zpool get comment $pool | grep -v NAME | awk '{print $3}'`
-        if [ $mypool == "iocage" ] ; then
+        mypool="`zpool get comment $i | grep -v NAME | awk '{print $3}'`"
+
+        if [ "$mypool" == "iocage" ] ; then
             export pool=$i
-        else
-            echo -n "  please select a pool for iocage jails [$i]: "
-            read answer
-
-            if [ -z "$answer" ] ; then
-            answer=$i
-            fi
-
-            zpool set comment=iocage $answer
-            exit 0
+            found=1
+            break
         fi
     done
+
+    if [ $found -ne 1 ] ; then
+        echo -n "  please select a pool for iocage jails [$i]: "
+        read answer
+
+        if [ -z "$answer" ] ; then
+            answer=$i
+        fi
+
+        zpool set comment=iocage $answer
+    fi
 }
 
 __networking () {
@@ -1312,6 +1357,7 @@ __networking () {
 
 __rctl_limits () {
     local name="$1"
+    local failed=0
 
     if [ -z $name ] ; then
         echo "  ERROR: missing UUID"
@@ -1335,7 +1381,7 @@ __rctl_limits () {
     local rlimits="`__get_jail_prop rlimits $fulluuid`"
 
     if [ $rlimits == "on" ] ; then
-        echo "  Applying resource limits.."
+        echo -n "  + Applying resource limits"
         for prop in $CONF_RCTL ; do
             value="`__get_jail_prop $prop $fulluuid`"
             limit=`echo $value | awk 'BEGIN { FS = ":" } ; { print $1 }'`
@@ -1350,10 +1396,16 @@ __rctl_limits () {
                     echo "  HINT : check man page for syntax."
                 else
                     rctl -a jail:ioc-${fulluuid}:${prop}:${action}=${limit}
+                    if [ $? -eq 1 ] ; then
+                        echo "    FAILED to apply ${prop}=${action}:${limit}"
+                        failed=1
+                    fi
                 fi
             fi
-
         done
+        if [ $failed -ne 1 ] ; then
+            echo " OK"
+        fi
     fi
 }
 
@@ -1366,10 +1418,17 @@ __rctl_list () {
     else
         local fulluuid="`__check_name $name`"
         local jid="`jls -j ioc-${fulluuid} jid`"
+        local limits="`rctl -h | grep $fulluuid`"
+
         echo "* Active limits for jail: $fulluuid"
-        rctl -h | grep $fulluuid
+
+        for i in $limits ; do
+            limit=`echo $i | cut -f 3,4 -d:`
+            echo "  - $limit"
+        done
+
         if [ ! -z "$jid" ] ; then
-            echo "* CPU affinity: `cpuset -g -j $jid | cut -f2 -d:`"
+            echo "* CPU set: `cpuset -g -j $jid | cut -f2 -d:`"
         fi
     fi
 }
