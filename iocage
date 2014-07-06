@@ -362,9 +362,6 @@ __parse_cmd () {
             help)       __help
                         exit
                 ;;
-            network)    __networking start $2
-                        exit
-                ;;
                 *)      __usage
                         exit
                 ;;
