@@ -280,15 +280,24 @@ PROPERTIES
 
   ip4_addr="interface|ip-address/netmask"
 
-    The IPv4 address for non VNET jail. Only takes effect when vnet=off. 
+    The IPv4 address for VNET and shared IP jails.
 
     Format is: interface|ip-address/netmask
+    Multiple interfaces:
+    "interface|ip-address/netmask,interface|ip-address/netmask"
 
-    If an interface is given before
+    For shared IP jails if an interface is given before
     the IP address, an alias for the address will be added to that
     interface, as it is with the interface parameter.  If a netmask
     in either dotted-quad or CIDR form is given after IP address, it
     will be used when adding the IP alias.
+
+    For VNET jails the interface will be configured with the IP addresses
+    listed.
+
+    Example: "vnet0|192.168.0.10/24,vnet1|10.1.1.10/24"
+    This would configure interfaces vnet0 and vnet1 in a VNET jail. In this
+    case no network configuration is necessary in the jail's rc.conf file.
 
     Default: none
     Source: jail(8)
@@ -316,6 +325,11 @@ PROPERTIES
 
     Default: new
     Source: jail(8)
+
+  defaultrouter=none | ipaddress
+
+    Setting this property to anything other than none will try to configure a
+    default route inside a VNET jail.
 
   ip6.addr, ip6.saddrsel, ip6
     A set of IPv6 options for the prison, the counterparts to
