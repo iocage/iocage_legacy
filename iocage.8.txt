@@ -90,7 +90,7 @@ SUBCOMMANDS
     Default is to create a fully independent jail set. The -e switch will
     create an empty jail.
 
-    Example: iocage create tag=www01
+    Example: iocage create tag=www01 pkglist=/home/petert/my-pkgs.txt
 
   clone UUID | UUID@snapshot [property=value]
 
@@ -268,6 +268,14 @@ SUBCOMMANDS
 PROPERTIES
   For more information on properties please check the relevant man page which
   is noted next to each property.
+
+  pkglist=none | path-to-file
+
+    A text file containing one package per line. These will be auto installed when
+    a jail is created. Works only in combination with the create subcommand.
+
+    Default: none
+    Source: local
 
   vnet=on | off
 

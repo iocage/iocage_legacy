@@ -122,7 +122,7 @@ Kernel compiled with:
     Default is to create a fully independent jail set. The -e switch will
     create an empty jail.
 
-    Example: iocage create tag=www01
+    Example: iocage create tag=www01 pkglist=/home/petert/my-pkgs.txt
 
 .fam T
 .fi
@@ -429,6 +429,18 @@ Kernel compiled with:
 For more information on properties please check the relevant man page which
 is noted next to each \fIproperty\fP.
 .PP
+pkglist=none | path-to-file
+.PP
+.nf
+.fam C
+    A text file containing one package per line. These will be auto installed when
+    a jail is created. Works only in combination with the create subcommand.
+
+    Default: none
+    Source: local
+
+.fam T
+.fi
 vnet=on | off
 .PP
 .nf
