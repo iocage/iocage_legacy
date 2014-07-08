@@ -3,9 +3,9 @@ iocage
 
 **FreeBSD jail manager**
 
-iocage is a drop in jail manager amalgamating ZFS, RCTL, VNET, and jails.
-
-Starting with version 1.3 both VNET and non-VNET jails are supported!
+iocage is a zero dependency drop in jail/container manager amalgamating some
+of the best features and technologies FreeBSD operating system has to offer.
+It is geared for ease of use with a simple and easy to understand command syntax.
 
 - **[Read WIKI](https://github.com/pannon/iocage/wiki)**
 - **[Check FAQ](https://github.com/pannon/iocage/wiki/FAQ)**
@@ -13,7 +13,8 @@ Starting with version 1.3 both VNET and non-VNET jails are supported!
 **FEATURES:**
 - rapid thin provisioning (within seconds!)
 - templating
-- ease of use (supports shortened UUIDs)
+- automatic package installation
+- ease of use (also supports shortened UUIDs)
 - zero configuration files
 - virtual networking stacks (vnet)
 - shared IP based jails (non vnet)
@@ -23,12 +24,13 @@ Starting with version 1.3 both VNET and non-VNET jails are supported!
 - ZFS jailing inside jails
 - transparent snapshot management
 - binary updates
-- change recording with unionfs
+- differential jail packaging
+- export and import
 - and many more!
 
 **USAGE:**
 -  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org] 
--  iocage create [-c|-e] [release=RELEASE] [property=value]
+-  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]
 -  iocage clone UUID | UUID@snapshot [property=value]
 -  iocage destroy UUID
 -  iocage list [-t]

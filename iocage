@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.4.1 (2014/07/07)"
+    echo "iocage 1.4.2 (2014/07/08)"
     exit 0
 fi
 
@@ -265,47 +265,47 @@ CONF_FTP="ftphost ftpdir"
 __parse_cmd () {
     while [ $# -gt 0 ] ; do
         case "$1" in
-            list)       __list_jails $2
+            list)       __list_jails "$2"
                         exit
                 ;;
-            console)    __console $2
+            console)    __console "$2"
                         exit
                 ;;
-            chroot)     __chroot $2
+            chroot)     __chroot "$2"
                         exit
                 ;;
             defaults)   __print_defaults
                         exit
                 ;;
-            create)     __export_props $@
-                        __create_jail $@
+            create)     __export_props "$@"
+                        __create_jail "$@"
                         exit
                 ;;
-            destroy)    __destroy_jail $2
+            destroy)    __destroy_jail "$2"
                         exit
                 ;;
-            clone)      __export_props $@
-                        __clone_jail $2
+            clone)      __export_props "$@"
+                        __clone_jail "$2"
                         exit
                 ;;
-            fetch)      __export_props $@
+            fetch)      __export_props "$@"
                         __fetch_release
                         exit
                 ;;
-            get)        __get_jail_prop $2 $3
+            get)        __get_jail_prop "$2" "$3"
                         exit
                 ;;
             set)        __export_props "$@"
                         __set_jail_prop "$2" "$3"
                         exit
                 ;;
-            start)      __start_jail $2
+            start)      __start_jail "$2"
                         exit
                 ;;
-            stop)       __stop_jail $2
+            stop)       __stop_jail "$2"
                         exit
                 ;;
-            restart)    __restart_jail $2
+            restart)    __restart_jail "$2"
                         exit
                 ;;
             rcboot)     __rc_jails boot
@@ -317,50 +317,50 @@ __parse_cmd () {
             df)         __print_disk
                         exit
                 ;;
-            snapshot)   __snapshot $2
+            snapshot)   __snapshot "$2"
                         exit
                 ;;
-            snaplist)   __snaplist $2
+            snaplist)   __snaplist "$2"
                         exit
                 ;;
-            snapremove) __snapremove $2
+            snapremove) __snapremove "$2"
                         exit
                 ;;
-            promote)    __promote $2
+            promote)    __promote "$2"
                         exit
                 ;;
-            rollback)   __rollback $2
+            rollback)   __rollback "$2"
                         exit
                 ;;
-            uncap)      __rctl_uncap $2
+            uncap)      __rctl_uncap "$2"
                         exit
                 ;;
-            cap)        __rctl_limits $2
+            cap)        __rctl_limits "$2"
                         exit
                 ;;
-            limits)     __rctl_list $2
+            limits)     __rctl_list "$2"
                         exit
                 ;;
-            inuse)      __rctl_used $2
+            inuse)      __rctl_used "$2"
                         exit
                 ;;
-            runtime)    __runtime $2
+            runtime)    __runtime "$2"
                         exit
                 ;;
-            update)     __update $2
+            update)     __update "$2"
                         exit
                 ;;
-            record)     __record $2 $3
+            record)     __record "$2" "$3"
                         exit
                 ;;
-            package)    __package $2
+            package)    __package "$2"
                         exit
                 ;;
-            export)     __export $2
+            export)     __export "$2"
                         exit
                 ;;
-            import)     __export_props $@
-                        __import $2
+            import)     __export_props "$@"
+                        __import "$2"
                         exit
                 ;;
             help)       __help
@@ -658,9 +658,9 @@ __configure_jail () {
 
 # Export every property specified on command line ----------------------
 __export_props () {
-    for i in $@ ; do
-        if [ $(echo $i | grep -e ".*=.*") ] ; then
-            export $i
+    for i in "$@" ; do
+        if [ "$(echo $i | grep -e ".*=.*")" ] ; then
+            export "$i"
         fi
     done
 }
@@ -789,7 +789,7 @@ __get_jail_prop () {
 __usage () {
     echo "usage:"
     echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]"
-    echo "  iocage create [-c|-e] [release=RELEASE] [property=value]"
+    echo "  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone UUID | UUID@snapshot [property=value]"
     echo "  iocage destroy UUID"
     echo "  iocage list [-t]"
@@ -2147,8 +2147,11 @@ EOT
 # This is mostly for pkg autoinstall
 __resolv_conf () {
 cat << EOT
-nameserver 8.8.8.8
-nameserver 8.8.4.4
+# OpenNIC servers
+nameserver 31.31.78.39
+nameserver 50.116.23.211
+nameserver 151.236.6.6
+nameserver 173.230.156.28
 EOT
 }
 
@@ -2158,7 +2161,7 @@ NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
-  iocage create [-c|-e] [release=RELEASE] [property=value]
+  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID | UUID@snapshot [property=value]
   iocage destroy UUID
   iocage list [-t]
@@ -2193,9 +2196,9 @@ SYNOPSIS
 DESCRIPTION
   iocage is a system administration tool for jails designed to simplify
   jail management tasks. It abstracts away the management of ZFS backed jails running VNET
-  networking with optional support for resource limits.
+  and shared IP networking with optional support for resource limits.
   
-  The older shared IP based jails are supported as well. VNET enabled jails
+  The older shared IP based jails are supported, VNET enabled jails
   provide better isolation though.
 
   Each jail has a unique ID (UUID) automatically generated at creation time.
@@ -3361,6 +3364,8 @@ BUGS
   Nothing is perfect, please kindly report them.
 AUTHORS
   Peter Toth <peter.toth198@gmail.com>
+SPECIAL THANKS
+  Sichendra Bista - for his ever willing attitude and ideas.
 EOT
 }
 

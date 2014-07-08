@@ -2,7 +2,7 @@ NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
-  iocage create [-c|-e] [release=RELEASE] [property=value]
+  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID | UUID@snapshot [property=value]
   iocage destroy UUID
   iocage list [-t]
@@ -37,9 +37,9 @@ SYNOPSIS
 DESCRIPTION
   iocage is a system administration tool for jails designed to simplify
   jail management tasks. It abstracts away the management of ZFS backed jails running VNET
-  networking with optional support for resource limits.
+  and shared IP networking with optional support for resource limits.
   
-  The older shared IP based jails are supported as well. VNET enabled jails
+  The older shared IP based jails are supported, VNET enabled jails
   provide better isolation though.
 
   Each jail has a unique ID (UUID) automatically generated at creation time.
@@ -1205,3 +1205,5 @@ BUGS
   Nothing is perfect, please kindly report them.
 AUTHORS
   Peter Toth <peter.toth198@gmail.com>
+SPECIAL THANKS
+  Sichendra Bista - for his ever willing attitude and ideas.
