@@ -7,8 +7,7 @@ iocage is a zero dependency drop in jail/container manager amalgamating some
 of the best features and technologies FreeBSD operating system has to offer.
 It is geared for ease of use with a simple and easy to understand command syntax.
 
-- **[Read WIKI](https://github.com/pannon/iocage/wiki)**
-- **[Check FAQ](https://github.com/pannon/iocage/wiki/FAQ)**
+- **[DOCUMENTATION](http://iocage.readthedocs.org/en/latest/index.html)**
 
 **FEATURES:**
 - rapid thin provisioning (within seconds!)
