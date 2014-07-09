@@ -53,10 +53,26 @@ Documentation:
 .. toctree::
    :maxdepth: 2
 
+   faq
    pre-flight-checklist
    best-practices
-   automatic-package-installation
+   using-uuids
    configuring-network-interfaces
+   auto-boot
+   automatic-package-installation
+   configure-interfaces
+   shared-ip
+   help-no-internet
+   jail-package
+   clones
+   destroy
+   templates
+   resource-limit
+   snapshots
+   thin-thick
+   updating
+   real-world
+   debian
 
 Indices and tables
 ==================

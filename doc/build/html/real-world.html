@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Real world example with VNET, NAT, PF, IPFW and port forwarding &mdash; iocage 1.4.2 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="iocage 1.4.2 documentation" href="index.html" />
+    <link rel="next" title="Create a Debian squeeze jail (gnu kFreeBSD)" href="debian.html" />
+    <link rel="prev" title="Updating jails" href="updating.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="debian.html" title="Create a Debian squeeze jail (gnu kFreeBSD)"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="updating.html" title="Updating jails"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">iocage 1.4.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="real-world-example-with-vnet-nat-pf-ipfw-and-port-forwarding">
+<h1>Real world example with VNET, NAT, PF, IPFW and port forwarding<a class="headerlink" href="#real-world-example-with-vnet-nat-pf-ipfw-and-port-forwarding" title="Permalink to this headline">¶</a></h1>
+<p>This is a tested real world set up with VNET jails running IPFW and the host running both PF and IPFW. IPFW was set to allow all traffic to simplify this example.</p>
+<p>After making the following changes make sure the host can restart cleanly.</p>
+<p><strong>For IPFW to work inside a jail set the securelevel property to &#8220;2&#8221;:</strong></p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">securelevel=2</span> <span class="pre">UUID</span></tt></p>
+<p><strong>The host</strong></p>
+<p>The host has the following relevant configuration needed to support VNET jails
+(<cite>these are relevant snippets only</cite>):</p>
+<p><tt class="docutils literal"><span class="pre">/etc/sysctl.conf</span></tt></p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span class="n">net</span><span class="o">.</span><span class="n">inet</span><span class="o">.</span><span class="n">ip</span><span class="o">.</span><span class="n">forwarding</span><span class="o">=</span><span class="mi">1</span>
+<span class="n">net</span><span class="o">.</span><span class="n">link</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">pfil_onlyip</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">net</span><span class="o">.</span><span class="n">link</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">pfil_bridge</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">net</span><span class="o">.</span><span class="n">link</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">pfil_member</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">security</span><span class="o">.</span><span class="n">bsd</span><span class="o">.</span><span class="n">unprivileged_read_msgbuf</span><span class="o">=</span><span class="mi">0</span>
+<span class="c"># This is only for routing tables if any</span>
+<span class="c"># (do not create default routing tables for all FIB&#39;s)</span>
+<span class="n">net</span><span class="o">.</span><span class="n">add_addr_allfibs</span><span class="o">=</span><span class="mi">0</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><tt class="docutils literal"><span class="pre">/etc/rc.conf</span></tt>:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span class="n">cloned_interfaces</span><span class="o">=</span><span class="s">&quot;bridge0 bridge1&quot;</span>
+<span class="n">ifconfig_bridge0</span><span class="o">=</span><span class="s">&quot;addm em0 10.1.1.254/24 up&quot;</span>
+
+<span class="n">pf_enable</span><span class="o">=</span><span class="s">&quot;YES&quot;</span>
+<span class="n">pflog_enable</span><span class="o">=</span><span class="s">&quot;YES&quot;</span>
+<span class="n">firewall_enable</span><span class="o">=</span><span class="s">&quot;YES&quot;</span>
+<span class="n">firewall_type</span><span class="o">=</span><span class="s">&quot;open&quot;</span>
+<span class="n">iocage_enable</span><span class="o">=</span><span class="s">&quot;YES&quot;</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><tt class="docutils literal"><span class="pre">/etc/pf.conf</span></tt>:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre># MACROS --------------------------------
+if  = &quot;{&quot; em0 &quot;}&quot;
+int_if = &quot;{&quot; bridge epair vnet &quot;}&quot;
+
+# TABLES --------------------------------
+table &lt;abusive_hosts&gt; persist
+
+# don&#39;t filter on the loopback, VNET and bridge
+set skip on lo
+set skip on vnet
+set skip on bridge
+set skip on epair
+
+set loginterface em0
+
+# TRAFFIC NORMALIZATION ------------------
+scrub on $if all fragment reassemble
+
+# QUEUEING -------------------------------
+
+# TRANSLATION ----------------------------
+nat on em0 inet from ! em0 to any -&gt; em0
+
+# port forward http to jail (varnish)
+rdr on $if inet proto tcp to port 80 -&gt; 10.1.1.10 port 80
+
+# PACKET FILTERING -----------------------
+# setup a default deny policy
+block log all
+block in quick from &lt;abusive_hosts&gt;
+
+# pass all traffic to and from the local network.
+pass out quick on $if from any to any modulate state
+
+# allow SSH and http/https
+pass log on $if proto { tcp udp } from any to any port { ssh http 445 } keep state
+
+# allow ping
+pass in inet proto icmp all icmp-type echoreq
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>The jail</strong></p>
+<p><tt class="docutils literal"><span class="pre">/etc/rc.conf</span></tt>:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span class="n">hostname</span><span class="o">=</span><span class="n">UUID</span>
+<span class="n">cron_flags</span><span class="o">=</span><span class="s">&quot;$cron_flags -J 15&quot;</span>
+
+<span class="c"># Configure vnet0</span>
+<span class="n">ifconfig_vnet0</span><span class="o">=</span><span class="s">&quot;10.1.1.10/24&quot;</span>
+
+<span class="c"># Set default GW to point to bridge0 IP</span>
+<span class="n">defaultrouter</span><span class="o">=</span><span class="s">&quot;10.1.1.256&quot;</span>
+
+<span class="c"># Disable Sendmail by default</span>
+<span class="n">sendmail_enable</span><span class="o">=</span><span class="s">&quot;NONE&quot;</span>
+<span class="n">sendmail_submit_enable</span><span class="o">=</span><span class="s">&quot;NO&quot;</span>
+<span class="n">sendmail_outbound_enable</span><span class="o">=</span><span class="s">&quot;NO&quot;</span>
+<span class="n">sendmail_msp_queue_enable</span><span class="o">=</span><span class="s">&quot;NO&quot;</span>
+
+<span class="c"># Run secure syslog</span>
+<span class="n">syslogd_flags</span><span class="o">=</span><span class="s">&quot;-c -ss&quot;</span>
+
+<span class="c"># Set IPFW to allow all</span>
+<span class="n">firewall_enable</span><span class="o">=</span><span class="s">&quot;YES&quot;</span>
+<span class="n">firewall_type</span><span class="o">=</span><span class="s">&quot;open&quot;</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><tt class="docutils literal"><span class="pre">/etc/resolv.conf</span></tt>:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre>nameserver 8.8.4.4
+nameserver 8.8.8.8
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="updating.html"
+                        title="previous chapter">Updating jails</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="debian.html"
+                        title="next chapter">Create a Debian squeeze jail (gnu kFreeBSD)</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/real-world.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="debian.html" title="Create a Debian squeeze jail (gnu kFreeBSD)"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="updating.html" title="Updating jails"
+             >previous</a> |</li>
+        <li><a href="index.html">iocage 1.4.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Peter Toth.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
