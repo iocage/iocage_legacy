@@ -3,21 +3,65 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to iocage's documentation!
-==================================
+=============================
+iocage - FreeBSD jail manager
+=============================
 
-Contents:
+iocage is a zero dependency drop in jail/container manager amalgamating some
+of the best features and technologies FreeBSD operating system has to offer.
+It is geared for ease of use with a simple and easy to understand command
+syntax.
+
+**FEATURES:**
+
+- rapid thin provisioning (within seconds!)
+
+- templating
+
+- automatic package installation
+
+- ease of use (also supports shortened UUIDs)
+
+- zero configuration files
+
+- virtual networking stacks (vnet)
+
+- shared IP based jails (non vnet)
+
+- fully writable clones
+
+- resource limits (CPU, MEMORY, etc.)
+
+- filesystem quotas and reservations
+
+- ZFS jailing inside jails
+
+- transparent snapshot management
+
+- binary updates
+
+- differential jail packaging
+
+- export and import
+
+- and many more!
+
+
+Documentation:
+--------------
 
 .. toctree::
    :maxdepth: 2
 
+   pre-flight-checklist
    best-practices
    automatic-package-installation
+   configuring-network-interfaces
 
 Indices and tables
 ==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+ 
+ * :ref:`genindex`
+ * :ref:`modindex`
+ * :ref:`search`
 

@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to iocage’s documentation! &mdash; iocage 1.4.2 documentation</title>
+    <title>iocage - FreeBSD jail manager &mdash; iocage 1.4.2 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="iocage 1.4.2 documentation" href="#" />
-    <link rel="next" title="Best practices" href="best-practices.html" /> 
+    <link rel="next" title="Pre-flight checklist" href="pre-flight-checklist.html" /> 
   </head>
   <body>
     <div class="related">
@@ -34,7 +34,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="best-practices.html" title="Best practices"
+          <a href="pre-flight-checklist.html" title="Pre-flight checklist"
              accesskey="N">next</a> |</li>
         <li><a href="#">iocage 1.4.2 documentation</a> &raquo;</li> 
       </ul>
@@ -45,23 +45,52 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="welcome-to-iocage-s-documentation">
-<h1>Welcome to iocage&#8217;s documentation!<a class="headerlink" href="#welcome-to-iocage-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Contents:</p>
+  <div class="section" id="iocage-freebsd-jail-manager">
+<h1>iocage - FreeBSD jail manager<a class="headerlink" href="#iocage-freebsd-jail-manager" title="Permalink to this headline">¶</a></h1>
+<p>iocage is a zero dependency drop in jail/container manager amalgamating some
+of the best features and technologies FreeBSD operating system has to offer.
+It is geared for ease of use with a simple and easy to understand command
+syntax.</p>
+<p><strong>FEATURES:</strong></p>
+<ul class="simple">
+<li>rapid thin provisioning (within seconds!)</li>
+<li>templating</li>
+<li>automatic package installation</li>
+<li>ease of use (also supports shortened UUIDs)</li>
+<li>zero configuration files</li>
+<li>virtual networking stacks (vnet)</li>
+<li>shared IP based jails (non vnet)</li>
+<li>fully writable clones</li>
+<li>resource limits (CPU, MEMORY, etc.)</li>
+<li>filesystem quotas and reservations</li>
+<li>ZFS jailing inside jails</li>
+<li>transparent snapshot management</li>
+<li>binary updates</li>
+<li>differential jail packaging</li>
+<li>export and import</li>
+<li>and many more!</li>
+</ul>
+<div class="section" id="documentation">
+<h2>Documentation:<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="pre-flight-checklist.html">Pre-flight checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="best-practices.html">Best practices</a></li>
 <li class="toctree-l1"><a class="reference internal" href="automatic-package-installation.html">Automatic package installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuring-network-interfaces.html">Configuring Network Interfaces</a></li>
 </ul>
 </div>
-</div>
 <div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
+<h3>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ul class="simple">
 <li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
 <li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
 <li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
 </ul>
+</div></blockquote>
+</div>
+</div>
 </div>
 
 
@@ -72,13 +101,18 @@
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Welcome to iocage&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#">iocage - FreeBSD jail manager</a><ul>
+<li><a class="reference internal" href="#documentation">Documentation:</a><ul>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
   <h4>Next topic</h4>
-  <p class="topless"><a href="best-practices.html"
-                        title="next chapter">Best practices</a></p>
+  <p class="topless"><a href="pre-flight-checklist.html"
+                        title="next chapter">Pre-flight checklist</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/index.txt"
@@ -108,7 +142,7 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="best-practices.html" title="Best practices"
+          <a href="pre-flight-checklist.html" title="Pre-flight checklist"
              >next</a> |</li>
         <li><a href="#">iocage 1.4.2 documentation</a> &raquo;</li> 
       </ul>
