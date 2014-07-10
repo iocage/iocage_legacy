@@ -18,3 +18,5 @@ Destroy any jail with ``iocage destroy UUID``
         Destroying: acfb86bf-0001-11e4-a88a-3c970ea3222f
 
 Please note the capital "**Y**" - issuing a lowercase "y" will do nothing. This is to prevent accidental deletion.
+
+Always double check the jail UUID before destroying any jails!

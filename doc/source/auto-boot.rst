@@ -11,3 +11,7 @@ How to turn on auto boot
 
 * Set the boot property to on for jails you wish to auto-boot ``iocage set
   boot=on UUID``
+
+* If you need to specify a boot order you can do it by setting the priority
+  value ``iocage set priority=20 UUID`` . Lower value means higher boot
+  priority.

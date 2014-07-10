@@ -13,16 +13,18 @@ FAQ
 **What is VNET?**
     VNET is an independent per jail virtual networking stack.
 
-**How do I configure network interfaces in a VNET jail?**
-    Exactly the same way as you would on a normal FreeBSD box.
+**How do I configure network interfaces in a VNET or shared IPjail?**
+    You configure both the same way: ``iocage set
+    ip4_add="interface|IP/netmask" UUID``. For more info please refer to the
+    documentation.
 
 **Do I need to set my default gateway?**
     Only if VNET is enabled. You need to assign an IP address to the **bridge**
-    where the jail interface is attached to. This IP becomes your default
+    where the jail interface is attached to. This IP essentially becomes your default
     gateway for your jail.
  
 **Can I run a firewall inside a jail?**
-    Yes in a VNET jail. **IPFW is supported**. PF is not supported inside the
+    Yes in a VNET jail **IPFW is supported**. PF is not supported inside the
     jail - though you can still enable PF for the host itself. If you plan on
     using **IPFW** inside a jail make sure **securelevel** is set to **2**
 
@@ -34,7 +36,7 @@ FAQ
     package option for jail packaging.
 
 **What is a jail clone?**
-    **Clones** are cloned with **ZFS**, these are fully writable copies of the
+    **Clones** are ZFS clones, these are fully writable copies of the
     source jail.
 
 **Can I limit the CPU and Memory use?**
@@ -44,11 +46,11 @@ FAQ
     Yes, ``iocage inuse UUID``
 
 **Is i386 supported?**
-    it is 2014 now! All recent servers are 64bit capable for years now!
+    It is 2014 - All recent servers are 64bit capable for years now!
 
 **Is NAT supported for the jails?**
-    Yes. This is built into FreeBSD. Treat your server as a core router. Check
-    Howtos section on NAT.
+    Yes. This is built into FreeBSD. Treat your server as a core
+    router/firewall. Check documentation section on NAT.
 
 **Will iocage work on a generic system with no ZFS pools?**
     No. ZFS is a must, if you run a FreeBSD server you should be using ZFS!

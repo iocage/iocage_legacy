@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="iocage 1.4.2 documentation" href="index.html" />
-    <link rel="next" title="Create a Debian squeeze jail (gnu kFreeBSD)" href="debian.html" />
+    <link rel="next" title="Destroying jails" href="destroy.html" />
     <link rel="prev" title="Create a jail package!" href="jail-package.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="debian.html" title="Create a Debian squeeze jail (gnu kFreeBSD)"
+          <a href="destroy.html" title="Destroying jails"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="jail-package.html" title="Create a jail package!"
@@ -51,11 +51,15 @@
             
   <div class="section" id="dealing-with-clones">
 <h1>Dealing with clones<a class="headerlink" href="#dealing-with-clones" title="Permalink to this headline">¶</a></h1>
-<p>When a jail is cloned iocage creates a ZFS clone filesystem. In a nutshell clones are lightweight writable snapshots.</p>
-<p>A clone depends on its source snapshot and filesystem. If you&#8217;d like to destroy the source jail and preserve its clones you need to promote the clone first, otherwise the source jail cannot be destroyed.</p>
+<p>When a jail is cloned, iocage creates a ZFS clone filesystem.
+In a nutshell clones are cheap lightweight writable snapshots.</p>
+<p>A clone depends on its source snapshot and filesystem.
+If you&#8217;d like to destroy the source jail and preserve its clones
+you need to promote the clone first, otherwise the source jail cannot be destroyed.</p>
 <p><strong>To promote a cloned jail, simply run:</strong></p>
 <p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">promote</span> <span class="pre">UUID</span></tt></p>
-<p>The above step will reverse the clone and source jail relationship. Basically the clone will become the source and the source jail will be demoted to a clone.</p>
+<p>The above step will reverse the clone and source jail relationship.
+Basically the clone will become the source and the source jail will be demoted to a clone.</p>
 <p><strong>Now you can remove the demoted jail with:</strong></p>
 <p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">destroy</span> <span class="pre">UUID</span></tt></p>
 </div>
@@ -70,8 +74,8 @@
   <p class="topless"><a href="jail-package.html"
                         title="previous chapter">Create a jail package!</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="debian.html"
-                        title="next chapter">Create a Debian squeeze jail (gnu kFreeBSD)</a></p>
+  <p class="topless"><a href="destroy.html"
+                        title="next chapter">Destroying jails</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/clones.txt"
@@ -101,7 +105,7 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="debian.html" title="Create a Debian squeeze jail (gnu kFreeBSD)"
+          <a href="destroy.html" title="Destroying jails"
              >next</a> |</li>
         <li class="right" >
           <a href="jail-package.html" title="Create a jail package!"

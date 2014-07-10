@@ -57,7 +57,6 @@ Documentation:
    pre-flight-checklist
    best-practices
    using-uuids
-   configuring-network-interfaces
    auto-boot
    automatic-package-installation
    configure-interfaces

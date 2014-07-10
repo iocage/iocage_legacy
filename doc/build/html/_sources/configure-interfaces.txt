@@ -1,7 +1,7 @@
 Configuring Network Interfaces
 ==============================
 
-iocage handles network configuration for both shared IP and VNET jails
+iocage handles network configuration for both, shared IP and VNET jails
 transparently.
 
 **Configuring a shared IPv4 jail:**
@@ -16,11 +16,12 @@ This will add an IP alias 192.168.0.10/24 to interface em0 for the shared IP jai
 
 ``iocage set defaultrouter=192.168.0.254 UUID``
 
-For VNET jails a default route has to be specified, just like for a normal physical host.
+For VNET jails a default route has to be specified too, just like for a normal
+host system.
 
 **Hints**
 
-To start a jail with no IPv4 address whatsoever:
+To start a jail with no IPv4 address whatsoever set these properties:
 
 ``iocage set ip4_addr=none UUID``
 

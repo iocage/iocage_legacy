@@ -24,7 +24,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="iocage 1.4.2 documentation" href="index.html" />
-    <link rel="prev" title="Automatic package installation" href="automatic-package-installation.html" /> 
+    <link rel="next" title="Create a jail package!" href="jail-package.html" />
+    <link rel="prev" title="Non VNET jails (shared IP)" href="shared-ip.html" /> 
   </head>
   <body>
     <div class="related">
@@ -34,7 +35,10 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="automatic-package-installation.html" title="Automatic package installation"
+          <a href="jail-package.html" title="Create a jail package!"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="shared-ip.html" title="Non VNET jails (shared IP)"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">iocage 1.4.2 documentation</a> &raquo;</li> 
       </ul>
@@ -54,7 +58,7 @@
 <li>Routed traffic</li>
 </ul>
 <p>NAT is probably the easiest method for most cases.</p>
-<p>Follow these steps to get internet connectivity inside a jail with NAT (handled in PF):</p>
+<p>Follow these steps to get Internet connectivity inside a jail with NAT (handled in PF):</p>
 <ol class="arabic">
 <li><dl class="first docutils">
 <dt>Enable the following sysctl&#8217;s:</dt>
@@ -84,7 +88,8 @@ nameserver 46.246.46.246
 </li>
 <li><p class="first">Exit from chroot</p>
 </li>
-<li><p class="first">Configure outbound NAT</p>
+<li><p class="first">Configure outbound NAT (&#8220;Real world example with VNET, NAT, PF, IPFW and
+port forwarding&#8221;)</p>
 </li>
 <li><p class="first">Start jail <tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">start</span> <span class="pre">UUID</span></tt></p>
 </li>
@@ -92,7 +97,8 @@ nameserver 46.246.46.246
 </li>
 <li><p class="first">ping default gateway 10.1.1.254, you should have a reply!</p>
 </li>
-<li><p class="first">ping internet addresses, if all is good you should have internet access!</p>
+<li><p class="first">ping Internet addresses, if all is good you should have Internet access
+now!</p>
 </li>
 </ol>
 </div>
@@ -104,8 +110,11 @@ nameserver 46.246.46.246
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="automatic-package-installation.html"
-                        title="previous chapter">Automatic package installation</a></p>
+  <p class="topless"><a href="shared-ip.html"
+                        title="previous chapter">Non VNET jails (shared IP)</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="jail-package.html"
+                        title="next chapter">Create a jail package!</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/help-no-internet.txt"
@@ -135,7 +144,10 @@ nameserver 46.246.46.246
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="automatic-package-installation.html" title="Automatic package installation"
+          <a href="jail-package.html" title="Create a jail package!"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="shared-ip.html" title="Non VNET jails (shared IP)"
              >previous</a> |</li>
         <li><a href="index.html">iocage 1.4.2 documentation</a> &raquo;</li> 
       </ul>

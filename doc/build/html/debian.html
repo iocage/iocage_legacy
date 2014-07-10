@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="iocage 1.4.2 documentation" href="index.html" />
-    <link rel="prev" title="Create a jail package!" href="jail-package.html" /> 
+    <link rel="prev" title="Real world example with VNET, NAT, PF, IPFW and port forwarding" href="real-world.html" /> 
   </head>
   <body>
     <div class="related">
@@ -34,7 +34,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="jail-package.html" title="Create a jail package!"
+          <a href="real-world.html" title="Real world example with VNET, NAT, PF, IPFW and port forwarding"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">iocage 1.4.2 documentation</a> &raquo;</li> 
       </ul>
@@ -71,6 +71,12 @@ tmpfs    /iocage/jails/UUID/root/lib/init/rw tmpfs     rw,mode=777 0 0
 <p><strong>Start the jail and attach to it:</strong></p>
 <p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">start</span> <span class="pre">UUID</span></tt></p>
 <p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">console</span> <span class="pre">UUID</span></tt></p>
+<p>What you gain is a 64bit Debian Linux userland. Please note this is not
+recommended for production use. The intention was to show that iocage will let
+you do almost anything you want with your jails.</p>
+<p>If you wish to install a Linux only Debian jail you can follow this tutorial:
+<a class="reference external" href="http://devil-detail.blogspot.co.nz/2013/08/debian-linux-freebsd-jail-zfs.html/">debian-linux-freebsd-jail-zfs</a></p>
+<p>Only 32bit Linux jails are supported right now.</p>
 </div>
 
 
@@ -80,8 +86,8 @@ tmpfs    /iocage/jails/UUID/root/lib/init/rw tmpfs     rw,mode=777 0 0
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="jail-package.html"
-                        title="previous chapter">Create a jail package!</a></p>
+  <p class="topless"><a href="real-world.html"
+                        title="previous chapter">Real world example with VNET, NAT, PF, IPFW and port forwarding</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/debian.txt"
@@ -111,7 +117,7 @@ tmpfs    /iocage/jails/UUID/root/lib/init/rw tmpfs     rw,mode=777 0 0
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="jail-package.html" title="Create a jail package!"
+          <a href="real-world.html" title="Real world example with VNET, NAT, PF, IPFW and port forwarding"
              >previous</a> |</li>
         <li><a href="index.html">iocage 1.4.2 documentation</a> &raquo;</li> 
       </ul>

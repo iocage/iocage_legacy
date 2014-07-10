@@ -59,6 +59,9 @@ into your <tt class="docutils literal"><span class="pre">/usr/local/etc/rc.d/</s
 <li>Add <tt class="docutils literal"><span class="pre">iocage_enable=&quot;YES&quot;</span></tt> to the hosts <tt class="docutils literal"><span class="pre">/etc/rc.conf</span></tt></li>
 <li>Set the boot property to on for jails you wish to auto-boot <tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span>
 <span class="pre">boot=on</span> <span class="pre">UUID</span></tt></li>
+<li>If you need to specify a boot order you can do it by setting the priority
+value <tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">priority=20</span> <span class="pre">UUID</span></tt> . Lower value means higher boot
+priority.</li>
 </ul>
 </div>
 

@@ -10,7 +10,7 @@ There are two options to get Internet connectivity for jails:
 
 NAT is probably the easiest method for most cases.
 
-Follow these steps to get internet connectivity inside a jail with NAT (handled in PF):
+Follow these steps to get Internet connectivity inside a jail with NAT (handled in PF):
 
 1. Enable the following sysctl's:
      ::
@@ -34,7 +34,8 @@ Follow these steps to get internet connectivity inside a jail with NAT (handled 
 
 6. Exit from chroot
 
-7. Configure outbound NAT
+7. Configure outbound NAT ("Real world example with VNET, NAT, PF, IPFW and
+   port forwarding")
 
 8. Start jail ``iocage start UUID``
 
@@ -42,5 +43,6 @@ Follow these steps to get internet connectivity inside a jail with NAT (handled 
 
 10. ping default gateway 10.1.1.254, you should have a reply!
 
-11. ping internet addresses, if all is good you should have internet access!
+11. ping Internet addresses, if all is good you should have Internet access
+    now!
 
