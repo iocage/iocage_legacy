@@ -12,8 +12,9 @@ SYNOPSIS
   iocage rcboot
   iocage rcshutdown
   iocage console UUID
-  iocage chroot UUID
+  iocage chroot UUID [command]
   iocage df
+  iocage show property
   iocage get [property | all ] UUID
   iocage set property=value UUID
   iocage cap UUID
@@ -156,10 +157,20 @@ SUBCOMMANDS
 
     Console access, drop into jail.
 
-  chroot UUID
+  chroot UUID [command]
 
     Chroot into jail, without actually starting the jail itself. Useful for
-    initial setup (set root password, configure networking).
+    initial setup (set root password, configure networking). You can specify a
+    command just like with the normal system chroot tool.
+
+  show property
+
+    Shows the given property for all jails and templates. Useful to compare
+    settings/properties for all jails. 
+   
+    To get the last successfull start time for all jails:
+
+        iocage show last_started
 
   get [property | all ] UUID
 
@@ -1163,6 +1174,10 @@ EXAMPLES
   Import package on another host
 
     iocage import UUID
+
+  Get the last successful start time for all jails
+
+    iocage show last_started
 HINTS
   iocage marks a ZFS pool in the pool's comment field and identifies the
   active pool for use based on this string.
