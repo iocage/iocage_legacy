@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.4.3 (2014/07/11)"
+    echo "iocage 1.4.4 (2014/07/16)"
     exit 0
 fi
 
@@ -399,6 +399,7 @@ __print_defaults () {
 # Print supported releases----------------------------------
 __print_release () {
     supported="10.0-RELEASE
+                9.3-RELEASE
                 9.2-RELEASE
                 9.1-RELEASE"
 
@@ -412,7 +413,7 @@ __print_release () {
 __fetch_release () {
     local exist=$(zfs list | grep -w ^$pool/iocage)
     __print_release
-    echo -n "Please specify release [$release]: "
+    echo -n "Please select a release [$release]: "
     read answer
     if [ ! -z "$answer" ] ; then
         release="$answer"
@@ -441,6 +442,7 @@ __fetch_release () {
         zfs create $pool/iocage
         zfs set mountpoint=/iocage $pool/iocage
         zfs create $pool/iocage/jails
+        zfs mount -a
     fi 
 
     if [ -z "$download_exist" ] ; then
@@ -472,7 +474,8 @@ __fetch_release () {
         cat /usr/local/sbin/ioc-freebsd-update \
         > /iocage/releases/$release/root/usr/sbin/freebsd-update
 
-        echo "* Updating base.."
+        echo "* Updating base jail.."
+        sleep 2
         /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root fetch
         /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root install
     fi
@@ -1402,6 +1405,7 @@ __find_mypool () {
         fi
 
         zpool set comment=iocage $answer
+        export pool=$answer
     fi
 }
 
