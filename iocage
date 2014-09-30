@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.4.4 (2014/07/16)"
+    echo "iocage 1.4.5 (2014/09/30)"
     exit 0
 fi
 
@@ -858,7 +858,13 @@ __find_jail () {
     else
         for jail in $jails ; do
             found="$(echo $jail |grep -iE "^$pool/iocage/jails/$name"|wc -l)"
+            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
+
             if [ "$found" -eq 1 ] ; then
+                echo $jail >> $jlist
+            fi
+
+            if [ $tag == $name ] ; then
                 echo $jail >> $jlist
             fi
         done
@@ -2170,7 +2176,7 @@ EOT
 
 # This is mostly for pkg autoinstall
 __resolv_conf () {
-cat /etc/resolv.conf
+    cat /etc/resolv.conf
 }
 
 __help () {
