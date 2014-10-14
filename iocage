@@ -1403,15 +1403,21 @@ __find_mypool () {
     done
 
     if [ $found -ne 1 ] ; then
-        echo -n "  please select a pool for iocage jails [$i]: "
-        read answer
+        if [ -n "$RC_PID" ]; then
+            # RC_PID set means we are running from rc
+            echo "ERROR: No pool for iocage jails found on boot ..exiting"
+            exit 1
+        else
+            echo -n "  please select a pool for iocage jails [$i]: "
+            read answer
 
-        if [ -z "$answer" ] ; then
-            answer=$i
+            if [ -z "$answer" ] ; then
+                answer=$i
+            fi
+
+            zpool set comment=iocage $answer
+            export pool=$answer
         fi
-
-        zpool set comment=iocage $answer
-        export pool=$answer
     fi
 }
 
