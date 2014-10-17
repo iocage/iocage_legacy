@@ -664,7 +664,7 @@ __configure_jail () {
         eval prop="\$${prop}"
         if [ ! -z "$prop" ] && [ "$prop" != "readonly" ] ; then
             zfs set $prop_name="$prop" $1
-fi
+        fi
     done
 }
 
