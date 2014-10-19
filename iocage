@@ -622,6 +622,9 @@ __destroy_jail () {
 
     if [ "$answer" == "Y" ] && [ "$state" -lt "1" ] ; then
         echo "  Destroying: $fulluuid"
+
+        __unlink_tag $dataset
+
         zfs destroy -fr $dataset
 
         if [ "$origin" != "-" ] ; then
@@ -650,6 +653,9 @@ __configure_jail () {
         if [ ! -z "$prop" ] ; then
             echo "** $prop_name=$prop"
             zfs set org.freebsd.iocage:$prop_name="$prop" $1
+            if [ "$prop_name" == "tag" ] ; then
+                __link_tag $1
+            fi
         fi
     done
 
@@ -713,6 +719,10 @@ __set_jail_prop () {
         if [ "$prop" == "$pname" ] ; then
             found=1
             zfs set org.freebsd.iocage:${prop}="${pval}" $dataset
+            if [ "$pname" == "tag" ] ; then
+                __unlink_tag $dataset
+                __link_tag $dataset
+            fi
         fi
     done
 
@@ -2151,6 +2161,39 @@ __check_name () {
 
     echo "$uuid"
 
+}
+
+# reads tag property from given jail dataset
+# creates symlink from /iocage/tags/<tag> to /iocage/jails/<uuid>
+__link_tag () {
+    local dataset=$1
+    local mountpoint
+    local tag
+
+    if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
+        if tag=$(zfs get -H -o value org.freebsd.iocage:tag $dataset); then
+            mkdir -p /iocage/tags
+            if [ ! -e /iocage/tags/$tag ] ; then
+                ln -s $mountpoint /iocage/tags/$tag
+            else
+                echo "  ERROR: tag already exists, can not symlink: $tag"
+                exit 1
+            fi
+        fi
+    else
+        echo "  ERROR: no such dataset: $dataset"
+        exit 1
+    fi
+}
+
+# removes all symlinks found in /iocage/tags pointing to the given jail dataset
+__unlink_tag () {
+    local dataset=$1
+    local mountpoint
+
+    if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
+        find /iocage/tags -type l -lname "${mountpoint}*" -exec rm -f \{\} \;
+    fi
 }
 
 __pkg_install () {
