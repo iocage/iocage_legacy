@@ -1062,9 +1062,9 @@ __vnet_start () {
     allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name)" \
     allow.quotas="$(__get_jail_prop allow_quotas $name)" \
     allow.socket_af="$(__get_jail_prop allow_socket_af $name)" \
-    exec.prestart="$(__get_jail_prop exec_prestart $name)" \
-    exec.poststart="$(__get_jail_prop exec_poststart $name)" \
-    exec.prestop="$(__get_jail_prop exec_prestop $name)" \
+    exec.prestart="$(__findscript $name prestart)" \
+    exec.poststart="$(__findscript $name poststart)" \
+    exec.prestop="$(__findscript $name prestop)" \
     exec.stop="$(__get_jail_prop exec_stop $name)" \
     exec.clean="$(__get_jail_prop exec_clean $name)" \
     exec.timeout="$(__get_jail_prop exec_timeout $name)" \
@@ -1119,9 +1119,9 @@ __legacy_start () {
     allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name)" \
     allow.quotas="$(__get_jail_prop allow_quotas $name)" \
     allow.socket_af="$(__get_jail_prop allow_socket_af $name)" \
-    exec.prestart="$(__get_jail_prop exec_prestart $name)" \
-    exec.poststart="$(__get_jail_prop exec_poststart $name)" \
-    exec.prestop="$(__get_jail_prop exec_prestop $name)" \
+    exec.prestart="$(__findscript $name prestart)" \
+    exec.poststart="$(__findscript $name poststart)" \
+    exec.prestop="$(__findscript $name prestop)" \
     exec.stop="$(__get_jail_prop exec_stop $name)" \
     exec.clean="$(__get_jail_prop exec_clean $name)" \
     exec.timeout="$(__get_jail_prop exec_timeout $name)" \
@@ -1157,9 +1157,9 @@ __stop_jail () {
     local fulluuid="$(__check_name $name)"
 
     local tag="$(__get_jail_prop tag $fulluuid)"
-    local exec_prestop="$(__get_jail_prop exec_prestop $fulluuid)"
+    local exec_prestop="$(__findscript $fulluuid prestop)"
     local exec_stop="$(__get_jail_prop exec_stop $fulluuid)"
-    local exec_poststop="$(__get_jail_prop exec_poststop $fulluuid)"
+    local exec_poststop="$(__findscript $fulluuid poststop)"
     local vnet="$(__get_jail_prop vnet $fulluuid)"
     local state="$(jls | grep $fulluuid | wc -l)"
 
@@ -2226,6 +2226,21 @@ EOT
 # This is mostly for pkg autoinstall
 __resolv_conf () {
     cat /etc/resolv.conf
+}
+
+# search for executable prestart|poststart|prestop|poststop in jail_dir first,
+# else use jail exec_<type> property unchanged
+__findscript () {
+    local name=$1
+    # type should be one of prestart|poststart|prestop|poststop
+    local type=$2
+    local jail_path="$(__get_jail_prop mountpoint $name)"
+
+    if [ -x "${jail_path}/${type}" ]; then
+        echo "${jail_path}/${type}"
+    else
+        echo "$(__get_jail_prop exec_${type} $name)"
+    fi
 }
 
 __help () {
