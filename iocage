@@ -398,7 +398,8 @@ __print_defaults () {
 
 # Print supported releases----------------------------------
 __print_release () {
-    supported="10.0-RELEASE
+    supported="10.1-RELEASE
+               10.0-RELEASE
                 9.3-RELEASE
                 9.2-RELEASE
                 9.1-RELEASE"
@@ -469,7 +470,7 @@ __fetch_release () {
         fi
     done
 
-    if [ $release == "10.0-RELEASE" ] ; then
+    if [ $release == "10.0-RELEASE" -o $release == "10.1-RELEASE" ] ; then
         __freebsd-update-fix
         cat /usr/local/sbin/ioc-freebsd-update \
         > /iocage/releases/$release/root/usr/sbin/freebsd-update
