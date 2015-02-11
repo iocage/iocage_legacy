@@ -4,7 +4,7 @@ iocage
 **FreeBSD jail manager**
 
 iocage is a zero dependency drop in jail/container manager amalgamating some
-of the best features and technologies FreeBSD operating system has to offer.
+of the best features and technologies the FreeBSD operating system has to offer.
 It is geared for ease of use with a simple and easy to understand command syntax.
 
 Iocage is in the FreeBSD ports tree.
@@ -16,7 +16,7 @@ To install simply run: `pkg install iocage`
 - rapid thin provisioning (within seconds!)
 - templating
 - automatic package installation
-- ease of use (also supports shortened UUIDs)
+- ease of use (also supports shortened UUIDs and TAGs)
 - zero configuration files
 - virtual networking stacks (vnet)
 - shared IP based jails (non vnet)
@@ -33,33 +33,33 @@ To install simply run: `pkg install iocage`
 **USAGE:**
 -  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org] 
 -  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]
--  iocage clone UUID | UUID@snapshot [property=value]
--  iocage destroy UUID
+-  iocage clone [UUID|TAG]@snapshot [property=value]
+-  iocage destroy [UUID|TAG]
 -  iocage list [-t]
--  iocage start UUID
--  iocage stop UUID
--  iocage restart UUID
+-  iocage start [UUID|TAG]
+-  iocage stop [UUID|TAG]
+-  iocage restart [UUID|TAG]
 -  iocage rcboot
 -  iocage rcshutdown
--  iocage console UUID
--  iocage chroot UUID
+-  iocage console [UUID|TAG]
+-  iocage chroot [UUID|TAG]
 -  iocage df
--  iocage get [property | all ] UUID
--  iocage set property=value UUID
--  iocage cap UUID
--  iocage limts [UUID]
--  iocage uncap UUID
--  iocage inuse UUID
--  iocage snapshot UUID | UUID@snapshotname
--  iocage snaplist UUID
--  iocage snapremove UUID@snapshotname
--  iocage rollback UUID@snapshotname
--  iocage promote UUID
--  iocage runtime UUID
--  iocage update UUID
--  iocage record start|stop UUID
--  iocage package UUID
--  iocage export UUID
+-  iocage get [property | all ] [UUID|TAG]
+-  iocage set property=value [UUID|TAG]
+-  iocage cap [UUID|TAG]
+-  iocage limts [UUID|TAG]
+-  iocage uncap [UUID|TAG]
+-  iocage inuse [UUID|TAG]
+-  iocage snapshot [UUID|TAG]@snapshotname
+-  iocage snaplist [UUID|TAG]
+-  iocage snapremove [UUID|TAG]@snapshotname
+-  iocage rollback [UUID|TAG]@snapshotname
+-  iocage promote [UUID|TAG]
+-  iocage runtime [UUID|TAG]
+-  iocage update [UUID|TAG]
+-  iocage record start|stop [UUID|TAG]
+-  iocage package [UUID|TAG]
+-  iocage export [UUID|TAG]
 -  iocage import UUID [property=value]
 -  iocage defaults
 -  iocage version | --version
