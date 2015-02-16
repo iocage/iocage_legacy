@@ -145,7 +145,7 @@ mount_procfs="0"
 # Native ZFS properties
 compression="lz4"
 origin="readonly"
-quota=""
+quota="none"
 mountpoint="readonly"
 compressratio="readonly"
 available="readonly"
