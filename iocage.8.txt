@@ -849,7 +849,7 @@ PROPERTIES
     already has a quota does not override the ancestor's quota, but
     rather imposes an additional limit.
 
-    Default: 15G
+    Default: none
     Source: zfs(8)
 
   mountpoint
