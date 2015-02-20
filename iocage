@@ -605,7 +605,6 @@ __destroy_jail () {
         exit 1
     fi
 
-    local state="$(jls | grep $name | wc -l)"
     local dataset="$(__find_jail $name)"
 
     if [ -z $dataset ] ; then
@@ -620,6 +619,7 @@ __destroy_jail () {
 
     local origin="$(zfs get -H -o value origin $dataset)"
     local fulluuid="$(__check_name $name)"
+    local state="$(jls | grep $fulluuid | wc -l)"
 
     echo " "
     echo "  WARNING: this will destroy jail $fulluuid"
