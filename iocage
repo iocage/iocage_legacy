@@ -357,6 +357,9 @@ __parse_cmd () {
             update)     __update "$2"
                         exit
                 ;;
+            upgrade)     __upgrade "$2"
+                        exit
+                ;;
             record)     __record "$2" "$3"
                         exit
                 ;;
@@ -478,21 +481,16 @@ __fetch_release () {
     done
 
     if [ $release == "10.0-RELEASE" -o $release == "10.1-RELEASE" ] ; then
-        __freebsd-update-fix
-        cat /usr/local/sbin/ioc-freebsd-update \
-        > /iocage/releases/$release/root/usr/sbin/freebsd-update
 
         echo "* Updating base jail.."
         sleep 2
-        /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root fetch
-        /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root install
+        /usr/sbin/freebsd-update -b /iocage/releases/$release/root -d /iocage/releases/$release/root/var/db/freebsd-update/ fetch
+        /usr/sbin/freebsd-update -b /iocage/releases/$release/root -d /iocage/releases/$release/root/var/db/freebsd-update/ install
     fi
 
     if [ ! -d /iocage/log ] ; then 
         mkdir /iocage/log
     fi
-
-    rm -f /usr/local/sbin/ioc-freebsd-update
 }
 
 # This creates jails----------------------------------------------------
@@ -1924,31 +1922,51 @@ __update () {
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
     local date=$(date "+%F_%T")
 
-    __freebsd-update-fix
-
-    cat /usr/local/sbin/ioc-freebsd-update \
-    > ${mountpoint}/root/usr/sbin/freebsd-update
-
     echo "* creating back-out snapshot.."
     __snapshot ${fulluuid}@ioc-update_${date}
 
     echo "* Updating jail.."
-    /usr/local/sbin/ioc-freebsd-update -b ${mountpoint}/root fetch
-    /usr/local/sbin/ioc-freebsd-update -b ${mountpoint}/root install
+    /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ fetch
+    /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ install
 
     echo " "
     echo "* Once finished don't forget to remove the snapshot!"
-
-    rm -f /usr/local/sbin/ioc-freebsd-update
 }
 
-# This is a required workaround to allow proper jail updates
-__freebsd-update-fix () {
-    cat /usr/sbin/freebsd-update | sed s/uname\ -r/freebsd-version/g \
-    > /usr/local/sbin/ioc-freebsd-update
+__upgrade () {
+    local name=$1
 
-    chmod +x /usr/local/sbin/ioc-freebsd-update
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
 
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+
+    local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
+    local date=$(date "+%F_%T")
+
+    echo "* creating back-out snapshot.."
+    __snapshot ${fulluuid}@ioc-upgrade_${date}
+
+    echo "* Upgrading jail.."
+    /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ -r $release upgrade
+    /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ -r $release install
+
+    echo " "
+    echo "* Once finished don't forget to remove the snapshot!"
 }
 
 __record () {
