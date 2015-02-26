@@ -1967,7 +1967,8 @@ __upgrade () {
     done
     
     # Set jail's zfs property to new release
-    #zfs set org.freebsd.iocage:release="$release" $dataset
+    zfs set org.freebsd.iocage:release="$release" $dataset
+
     echo " "
     echo "* Once finished don't forget to remove the snapshot!"
 }
