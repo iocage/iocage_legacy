@@ -1960,14 +1960,20 @@ __upgrade () {
     __snapshot ${fulluuid}@ioc-upgrade_${date}
 
     echo "* Upgrading jail.."
+
     env UNAME_r=${oldrelease} /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ -r $release upgrade
     
-    while [ $? -eq 0 ]; do
+    if [ $? -eq 0 ] ; then 
+        while [ $? -eq 0 ] ; do
         env UNAME_r=${oldrelease} /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ -r $release install
     done
     
     # Set jail's zfs property to new release
     zfs set org.freebsd.iocage:release="$release" $dataset
+    else
+       echo "Upgrade failed, aborting install."
+       exit 1
+    fi 
 
     echo " "
     echo "* Once finished don't forget to remove the snapshot!"
