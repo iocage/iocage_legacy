@@ -128,7 +128,7 @@ shmsize="off"
 wallclock="off"
 
 # Custom properties
-iocroot="/neuralnet/iocage"
+iocroot="/iocage"
 tag=$(date "+%F@%T")
 template="no"
 boot="off"
