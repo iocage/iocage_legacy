@@ -28,6 +28,7 @@ SYNOPSIS
   iocage promote [UUID|TAG]
   iocage runtime [UUID|TAG]
   iocage update [UUID|TAG]
+  iocage upgrade [UUID|TAG] [release=RELEASE]
   iocage record start|stop [UUID|TAG]
   iocage package [UUID|TAG]
   iocage export [UUID|TAG]
@@ -93,22 +94,22 @@ SUBCOMMANDS
 
     Example: iocage create tag=www01 pkglist=/home/petert/my-pkgs.txt
 
-  clone UUID | UUID@snapshot [property=value]
+  clone UUID|TAG@snapshot [property=value]
 
-    Clone jail identified by UUID (ZFS clone). All properties will be reset on
+    Clone jail identified by UUID or TAG (ZFS clone). All properties will be reset on
     the clone, defaults can be overridden by specifying properties on the fly.
     Custom point-in-time snapshots can be used as a source for cloning in the
-    form of UUID@snapshot.
+    form of UUID|TAG@snapshot.
 
     Examples:
 
     Clone the current state of the jail:
-    iocage clone UUID tag=www02
+    iocage clone UUID|TAG tag=www02
 
     Clone a jail from a custom snapshot:
-    iocage clone UUID@snapshotname tag=www02
+    iocage clone UUID|TAG@snapshotname tag=www02
 
-  destroy UUID
+  destroy UUID|TAG
 
     Destroy jail. This is irreversible, use with caution. If the jail is
     running destroy action will fail.
@@ -127,15 +128,15 @@ SUBCOMMANDS
     USE - used space
     AVA - available space
 
-  start UUID
+  start UUID|TAG
 
-    Start jail identified by UUID.
+    Start jail identified by UUID|TAG.
 
-  stop UUID
+  stop UUID|TAG
 
-    Stop jail identified by UUID.
+    Stop jail identified by UUID|TAG.
 
-  restart UUID
+  restart UUID|TAG
 
     Soft restart jail. Soft method will restart the jail without destroying
     the jail's networking and the jail itself. All processes are gracefully 
@@ -153,11 +154,11 @@ SUBCOMMANDS
     Jails will be stopped in an ordered fashion based on their "priority"
     property.
 
-  console UUID
+  console UUID|TAG
 
     Console access, drop into jail.
 
-  chroot UUID [command]
+  chroot UUID|TAG [command]
 
     Chroot into jail, without actually starting the jail itself. Useful for
     initial setup (set root password, configure networking). You can specify a
@@ -172,42 +173,42 @@ SUBCOMMANDS
 
         iocage show last_started
 
-  get [property | all ] UUID
+  get [property | all ] UUID|TAG
 
     Get named property or if all is specified dump all properties known to
     iocage.
 
     To display whether resource limits are enforced for jail:
 
-    iocage get rlimits UUID
+    iocage get rlimits UUID|TAG
 
-  set property=value UUID
+  set property=value UUID|TAG
 
     Set a property to value.
 
-  cap UUID
+  cap UUID|TAG
     
     Reapply resource limits on jail while it is running.
 
-  limits [UUID]
+  limits [UUID|TAG]
 
     Display active resource limits for a jail or all jails. With no UUID supplied
     display all limits active for all jail.
 
-  uncap UUID
+  uncap UUID|TAG
 
     Release all resource limits, disable limits on the fly.
 
-  inuse UUID
+  inuse UUID|TAG
     
     Display consumed resources for jail.
 
-  snapshot UUID | UUID@snapshotname
+  snapshot UUID|TAG@snapshotname
 
     Create a ZFS snapshot for jail. If no snapshot name is specified defaults
     to auto snapshot name based on current date and time.
 
-  snaplist UUID
+  snaplist UUID|TAG
 
     List all snapshots belonging to jail.
 
@@ -216,49 +217,55 @@ SUBCOMMANDS
         RSIZE   - referenced size
         USED    - used space
 
-  snapremove UUID@snapshotname
+  snapremove UUID|TAG@snapshotname
 
     Destroy snapshot named snapshotname.
 
-  rollback UUID@snapshotname
+  rollback UUID|TAG@snapshotname
 
     Rollback to an existing snapshot named snapshotname. Any intermediate
     snapshots will be deleted as well. For more info on this please read
     zfs(8).
 
-  promote UUID
+  promote UUID|TAG
 
     Promote a cloned jail to a fully independent copy. For more details please
     read zfs(8).
 
-  runtime UUID
+  runtime UUID|TAG
 
     Show runtime configuration of a jail. Useful for debugging.
 
-  update UUID
+  update UUID|TAG
 
     Update jail to latest patch level. A back-out snapshot is created to allow
     safe update/restore.
 
-  record start|stop UUID
+  upgrade UUID|TAG [release=RELEASE]
+    
+    Upgrade jail to specified RELEASE. If no release is specified, iocage uses 
+    the hosts RELEASE as the target. A back-out snapshot is created to allow a
+    safe upgrade/restore.
+
+  record start|stop UUID|TAG
 
     The record function will record every changed file in a directory called
     /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
     mount. Useful for differential package creation.
 
-  package UUID
+  package UUID|TAG
 
     Package recorded jail session into /iocage/packages. Creates SHA256
     checksum and prunes empty directories, files and some residual files like
     utx.* and .history. Before packaging any jails make sure no unwanted files
     contaminated or leaked into the recorded session.
 
-  export UUID
+  export UUID|TAG
 
     Completely export jail. Archive is created in /iocage/images with SHA256
     checksum. Jail must be in stopped state.
 
-  import UUID [property=value]
+  import UUID|TAG [property=value]
 
     Import full jail images or differential packages. Images need to be
     present in /iocage/images and packages in /iocage/packages along with

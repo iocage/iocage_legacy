@@ -57,6 +57,7 @@ To install simply run: `pkg install iocage`
 -  iocage promote [UUID|TAG]
 -  iocage runtime [UUID|TAG]
 -  iocage update [UUID|TAG]
+-  iocage upgrade [UUID|TAG] [release=RELEASE]
 -  iocage record start|stop [UUID|TAG]
 -  iocage package [UUID|TAG]
 -  iocage export [UUID|TAG]
