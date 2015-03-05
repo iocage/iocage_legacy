@@ -135,6 +135,7 @@ notes="none"
 owner="root"
 priority="99"
 last_started="none"
+use_basejail="yes"
 type="jail"
 release=$(uname -r|cut -f 1,2 -d'-')
 hostid=$(cat /etc/hostid)
@@ -242,6 +243,7 @@ CONF_CUSTOM="tag
              owner
              priority
              last_started
+             use_basejail
              type
              hostid
              cpuset
@@ -468,18 +470,46 @@ __fetch_release () {
             fetch http://$ftphost$ftpdir/$file
         fi
     done
-
+    if [ $use_basejail == "yes" ] ; then
+    if [ -z "$rel_exist" ] ; then
+        zfs create -p $pool/iocage/releases/$release/root
+        zfs create -p $pool/iocage/releases/$release/root/bin
+        zfs create -p $pool/iocage/releases/$release/root/boot
+        zfs create -p $pool/iocage/releases/$release/root/lib
+        zfs create -p $pool/iocage/releases/$release/root/libexec
+        zfs create -p $pool/iocage/releases/$release/root/rescue
+        zfs create -p $pool/iocage/releases/$release/root/sbin
+        zfs create -p $pool/iocage/releases/$release/root/usr/bin
+        zfs create -p $pool/iocage/releases/$release/root/usr/include
+        zfs create -p $pool/iocage/releases/$release/root/usr/lib
+        zfs create -p $pool/iocage/releases/$release/root/usr/lib32
+        zfs create -p $pool/iocage/releases/$release/root/usr/libdata
+        zfs create -p $pool/iocage/releases/$release/root/usr/libexec
+        zfs create -p $pool/iocage/releases/$release/root/usr/ports
+        zfs create -p $pool/iocage/releases/$release/root/usr/sbin
+        zfs create -p $pool/iocage/releases/$release/root/usr/share
+        zfs create -p $pool/iocage/releases/$release/root/usr/src
+    fi
+    else
     if [ -z "$rel_exist" ] ; then
         zfs create -p $pool/iocage/releases/$release/root
     fi
-
+    fi
     for file in $(echo $ftpfiles) ; do
+
+    if [ $use_basejail == "yes" ] ; then
+    if [ -e "$file" ] ; then
+        echo "Extracting: $file"
+        tar --exclude chgrp -C /iocage/releases/$release/root -xf $file
+        cp /iocage/releases/$release/root/usr/sbin/chown /iocage/releases/$release/root/usr/bin/chgrp
+        fi
+        fi
+
         if [ -e "$file" ] ; then
             echo "Extracting: $file"
             tar -C /iocage/releases/$release/root -xf $file
         fi
     done
-    
         echo "* Updating base jail.."
         sleep 2
         env UNAME_r="$release" /usr/sbin/freebsd-update -b /iocage/releases/$release/root -d /iocage/releases/$release/root/var/db/freebsd-update/ fetch
@@ -924,6 +954,7 @@ __start_jail () {
     local cpuset="$(__get_jail_prop cpuset $fulluuid)"
     local procfs="$(__get_jail_prop mount_procfs $fulluuid)"
     local state="$(jls | grep $fulluuid | wc -l)"
+    local use_basejail="$(__get_jail_prop use_basejail $fulluuid)"
     local vnet="$(__get_jail_prop vnet $fulluuid)"
     local nics="$(__get_jail_prop interfaces $fulluuid \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
@@ -968,6 +999,54 @@ __start_jail () {
         __set_jail_prop enforce_statfs=1 $fulluuid
         __set_jail_prop allow_mount_zfs=1 $fulluuid
         zfs set jailed=on ${pool}/$jzfs_dataset
+    fi
+
+    local snap_zfs="$(zfs snapshot -R ${pool}/iocage/releases/$release/root@basejail-$uuid)"
+    local destroy_zfs="$(
+                  /iocage/jails/$fulluuid/root/bin
+                  /iocage/jails/$fulluuid/root/boot
+                  /iocage/jails/$fulluuid/root/lib
+                  /iocage/jails/$fulluuid/root/libexec
+                  /iocage/jails/$fulluuid/root/rescue
+                  /iocage/jails/$fulluuid/root/sbin
+                  /iocage/jails/$fulluuid/root/usr/bin
+                  /iocage/jails/$fulluuid/root/usr/include
+                  /iocage/jails/$fulluuid/root/usr/lib
+                  /iocage/jails/$fulluuid/root/usr/lib32
+                  /iocage/jails/$fulluuid/root/usr/libdata
+                  /iocage/jails/$fulluuid/root/usr/libexec
+                  /iocage/jails/$fulluuid/root/usr/ports
+                  /iocage/jails/$fulluuid/root/usr/sbin
+                  /iocage/jails/$fulluuid/root/usr/share
+                  /iocage/jails/$fulluuid/root/usr/src
+                )"
+    local clone_zfs="$(
+                  ${pool}/iocage/releases/$release/root/bin@basejail-$uuid /iocage/jails/$fulluuid/root/bin
+                  ${pool}/iocage/releases/$release/root/boot@basejail-$uuid /iocage/jails/$fulluuid/root/boot
+                  ${pool}/iocage/releases/$release/root/lib@basejail-$uuid /iocage/jails/$fulluuid/root/lib
+                  ${pool}/iocage/releases/$release/root/libexec@basejail-$uuid /iocage/jails/$fulluuid/root/libexec
+                  ${pool}/iocage/releases/$release/root/rescue@basejail-$uuid /iocage/jails/$fulluuid/root/rescue
+                  ${pool}/iocage/releases/$release/root/sbin@basejail-$uuid /iocage/jails/$fulluuid/root/sbin
+                  ${pool}/iocage/releases/$release/root/usr/bin@basejail-$uuid /iocage/jails/$fulluuid/root/usr/bin
+                  ${pool}/iocage/releases/$release/root/usr/include@basejail-$uuid /iocage/jails/$fulluuid/root/usr/include
+                  ${pool}/iocage/releases/$release/root/usr/lib@basejail-$uuid /iocage/jails/$fulluuid/root/usr/lib
+                  ${pool}/iocage/releases/$release/root/usr/lib32@basejail-$uuid /iocage/jails/$fulluuid/root/usr/lib32
+                  ${pool}/iocage/releases/$release/root/usr/libdata@basejail-$uuid /iocage/jails/$fulluuid/root/usr/libdata
+                  ${pool}/iocage/releases/$release/root/usr/libexec@basejail-$uuid /iocage/jails/$fulluuid/root/usr/libexec
+                  ${pool}/iocage/releases/$release/root/usr/ports@basejail-$uuid /iocage/jails/$fulluuid/root/usr/ports
+                  ${pool}/iocage/releases/$release/root/usr/sbin@basejail-$uuid /iocage/jails/$fulluuid/root/usr/sbin
+                  ${pool}/iocage/releases/$release/root/usr/share@basejail-$uuid /iocage/jails/$fulluuid/root/usr/share
+                  ${pool}/iocage/releases/$release/root/usr/src@basejail-$uuid /iocage/jails/$fulluuid/root/usr/src
+                )"
+    local remove_snap="$(zfs list -H -t snapshot | cut -f 1 | grep $release/root@basejail-)" 
+    
+    if [ $use_basejail == "yes" ] ; then
+    for line in $dzfs; do
+       $snap_zfs
+       zfs destroy $destroy_zfs 
+       zfs clone $clone_zfs
+       zfs destroy $destroy_snap 
+       done
     fi
 
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
