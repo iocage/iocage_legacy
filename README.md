@@ -20,26 +20,26 @@ I'll see myself out...
 
 For instance, my zpool named 'neuralnet' looks like this when zfs list:
 (lololololol you get the idea)
-	# zfs list
-	NAME USED  AVAIL  REFER  MOUNTPOINT
-	neuralnet	
-	neuralnet/vbox
-	neuralnet/ezjail
-	neuralnet/iocage
-	neuralnet/thewarden
-	ZROOT                781M  93.2G   144K  none
-	ZROOT/ROOT           777M  93.2G   144K  none
-	ZROOT/ROOT/default   777M  93.2G   777M  /
-	ZROOT/tmp            176K  93.2G   176K  /tmp
-	ZROOT/usr            616K  93.2G   144K  /usr
-	ZROOT/usr/home       184K  93.2G   184K  /usr/home
-	ZROOT/usr/ports      144K  93.2G   144K  /usr/ports
-	ZROOT/usr/src        144K  93.2G   144K  /usr/src
-	ZROOT/var           1.20M  93.2G   608K  /var
-	ZROOT/var/crash      148K  93.2G   148K  /var/crash
-	ZROOT/var/log        178K  93.2G   178K  /var/log
-	ZROOT/var/mail       144K  93.2G   144K  /var/mail
-	ZROOT/var/tmp        152K  93.2G   152K  /var/tmp
+        # zfs list
+        NAME USED  AVAIL  REFER  MOUNTPOINT
+        neuralnet	
+        neuralnet/vbox
+        neuralnet/ezjail
+        neuralnet/iocage
+        neuralnet/thewarden
+        ZROOT                781M  93.2G   144K  none
+        ZROOT/ROOT           777M  93.2G   144K  none
+        ZROOT/ROOT/default   777M  93.2G   777M  /
+        ZROOT/tmp            176K  93.2G   176K  /tmp
+        ZROOT/usr            616K  93.2G   144K  /usr
+        ZROOT/usr/home       184K  93.2G   184K  /usr/home
+        ZROOT/usr/ports      144K  93.2G   144K  /usr/ports
+        ZROOT/usr/src        144K  93.2G   144K  /usr/src
+        ZROOT/var           1.20M  93.2G   608K  /var
+        ZROOT/var/crash      148K  93.2G   148K  /var/crash
+        ZROOT/var/log        178K  93.2G   178K  /var/log
+        ZROOT/var/mail       144K  93.2G   144K  /var/mail
+        ZROOT/var/tmp        152K  93.2G   152K  /var/tmp
  
 
 **FEATURES:**
