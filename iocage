@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.4.6 (2015/01/03)"
+    echo "iocage 1.4.7 (2015/03/07)"
     exit 0
 fi
 
@@ -422,6 +422,28 @@ __print_release () {
     done
 }
 
+__create_basejail () {
+    local release="$1"
+
+    zfs create -p $pool/iocage/base/${release}/root
+    zfs create -p $pool/iocage/base/${release}/root/bin
+    zfs create -p $pool/iocage/base/${release}/root/boot
+    zfs create -p $pool/iocage/base/${release}/root/lib
+    zfs create -p $pool/iocage/base/${release}/root/libexec
+    zfs create -p $pool/iocage/base/${release}/root/rescue
+    zfs create -p $pool/iocage/base/${release}/root/sbin
+    zfs create -p $pool/iocage/base/${release}/root/usr
+    zfs create -p $pool/iocage/base/${release}/root/usr/bin
+    zfs create -p $pool/iocage/base/${release}/root/usr/include
+    zfs create -p $pool/iocage/base/${release}/root/usr/lib
+    zfs create -p $pool/iocage/base/${release}/root/usr/libexec
+    zfs create -p $pool/iocage/base/${release}/root/usr/sbin
+    zfs create -p $pool/iocage/base/${release}/root/usr/share
+    zfs create -p $pool/iocage/base/${release}/root/usr/libdata
+    zfs create -p $pool/iocage/base/${release}/root/usr/lib32
+}
+
+
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
     local exist=$(zfs list | grep -w ^$pool/iocage)
@@ -507,17 +529,30 @@ __fetch_release () {
 
         if [ -e "$file" ] ; then
             echo "Extracting: $file"
+            chflags -R noschg /iocage/releases/$release/root
             tar -C /iocage/releases/$release/root -xf $file
         fi
     done
         echo "* Updating base jail.."
         sleep 2
-        env UNAME_r="$release" /usr/sbin/freebsd-update -b /iocage/releases/$release/root -d /iocage/releases/$release/root/var/db/freebsd-update/ fetch
-        env UNAME_r="$release" /usr/sbin/freebsd-update -b /iocage/releases/$release/root -d /iocage/releases/$release/root/var/db/freebsd-update/ install
+
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b /iocage/releases/$release/root \
+            -d /iocage/releases/$release/root/var/db/freebsd-update/ fetch
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b /iocage/releases/$release/root \
+            -d /iocage/releases/$release/root/var/db/freebsd-update/ install
     
     if [ ! -d /iocage/log ] ; then 
         mkdir /iocage/log
     fi
+
+    __create_basejail $release
+    chflags -R noschg /iocage/releases/$release/root
+    tar -C /iocage/releases/$release/root -cf - . | \
+    tar --exclude usr/sbin/chown -C /iocage/base/$release/root -xf -
+    cp /iocage/releases/$release/root/usr/sbin/chown \
+    /iocage/base/$release/root/usr/bin/chgrp
 }
 
 # This creates jails----------------------------------------------------
@@ -653,22 +688,27 @@ __destroy_jail () {
     echo -n "  Are you sure ? Y[n]: "
     read answer
 
-    if [ "$answer" == "Y" ] && [ "$state" -lt "1" ] ; then
-        echo "  Destroying: $fulluuid"
+    if [ "$answer" == "Y" ]; then
+        if [ "$state" -lt "1" ] ; then
+            echo "  Destroying: $fulluuid"
 
-        __unlink_tag $dataset
+            __unlink_tag $dataset
 
-        zfs destroy -fr $dataset
+            zfs destroy -fr $dataset
 
-        if [ "$origin" != "-" ] ; then
-            echo "  Destroying clone origin: $origin"
-            zfs destroy -r $origin
+            if [ "$origin" != "-" ] ; then
+                echo "  Destroying clone origin: $origin"
+                zfs destroy -r $origin
+            fi
+
+        elif [ "$state" -eq "1" ] ; then
+            echo "  ERROR: Jail is up and running ..exiting"
+            exit 1
         fi
+   else
+       echo "  Command not confirmed.  No action taken."
+   fi
 
-    elif [ "$state" -eq "1" ] ; then
-        echo "  ERROR: Jail is up and running ..exiting"
-        exit 1
-    fi
 }
 
 # Configure properties -------------------------------------------------
@@ -1319,7 +1359,7 @@ __stop_jail () {
             echo "        OK"
         fi
     else
-
+        __stop_legacy_networking $name
     fi
 
     echo -n "  + Removing jail process"
@@ -1606,6 +1646,38 @@ __networking () {
     fi
 }
 
+__stop_legacy_networking () {
+    local name="$1"
+
+    local ip4_addr="$(__get_jail_prop ip4_addr $name)"
+    local ip6_addr="$(__get_jail_prop ip6_addr $name)"
+
+    if [ $ip4_addr != "none" ] ; then
+        IFS=','
+        for ip in $ip4_addr ; do 
+            local iface="$(echo $ip | \
+                         awk 'BEGIN { FS = "|" } ; { print $1 }')"
+            local ip4="$(echo $ip | \
+                       awk 'BEGIN { FS = "|" } ; { print $2 }' | \
+                       awk 'BEGIN { FS = "/" } ; { print $1 }')"
+
+            ifconfig $iface -alias $ip4
+        done
+    fi
+
+    if [ $ip6_addr != "none" ] ; then
+        IFS=','
+        for ip6 in $ip6_addr ; do
+            local iface="$(echo $ip | \
+                         awk 'BEGIN { FS = "|" } ; { print $1 }')"
+            local ip6="$(echo $ip | \
+                       awk 'BEGIN { FS = "|" } ; { print $2 }' | \
+                       awk 'BEGIN { FS = "/" } ; { print $1 }')"
+            ifconfig $iface -alias $ip6
+        done
+    fi
+}
+
 __rctl_limits () {
     local name="$1"
     local failed=0
@@ -1821,13 +1893,13 @@ __snapremove () {
 
     local dataset=$(__find_jail $name)
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+    if [ -z $dataset ] ; then
+        echo "  ERROR: jail dataset not found"
         exit 1
     fi
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: dataset not found"
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
@@ -2002,8 +2074,12 @@ __update () {
     __snapshot ${fulluuid}@ioc-update_${date}
 
     echo "* Updating jail.."
-    env UNAME_r="$release" /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ fetch
-    env UNAME_r="$release" /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ install
+    env UNAME_r="$release" /usr/sbin/freebsd-update \
+        -b ${mountpoint}/root \
+        -d ${mountpoint}/root/var/db/freebsd-update/ fetch
+    env UNAME_r="$release" /usr/sbin/freebsd-update \
+        -b ${mountpoint}/root \
+        -d ${mountpoint}/root/var/db/freebsd-update/ install
 
     echo " "
     echo "* Once finished don't forget to remove the snapshot!"
@@ -2040,11 +2116,17 @@ __upgrade () {
 
     echo "* Upgrading jail.."
 
-    env UNAME_r=${oldrelease} /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ -r $release upgrade
+    env UNAME_r=${oldrelease} /usr/sbin/freebsd-update \
+    -b ${mountpoint}/root \
+    -d ${mountpoint}/root/var/db/freebsd-update/ \
+    -r $release upgrade
     
     if [ $? -eq 0 ] ; then 
         while [ $? -eq 0 ] ; do
-        env UNAME_r=${oldrelease} /usr/sbin/freebsd-update -b ${mountpoint}/root -d ${mountpoint}/root/var/db/freebsd-update/ -r $release install
+        env UNAME_r=${oldrelease} /usr/sbin/freebsd-update \
+        -b ${mountpoint}/root \
+        -d ${mountpoint}/root/var/db/freebsd-update/ \
+        -r $release install
     done
     
     # Set jail's zfs property to new release
