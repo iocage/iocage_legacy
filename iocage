@@ -420,6 +420,28 @@ __print_release () {
     done
 }
 
+__create_basejail () {
+    local release="$1"
+
+    zfs create -p $pool/iocage/base/${release}/root
+    zfs create -p $pool/iocage/base/${release}/root/bin
+    zfs create -p $pool/iocage/base/${release}/root/boot
+    zfs create -p $pool/iocage/base/${release}/root/lib
+    zfs create -p $pool/iocage/base/${release}/root/libexec
+    zfs create -p $pool/iocage/base/${release}/root/rescue
+    zfs create -p $pool/iocage/base/${release}/root/sbin
+    zfs create -p $pool/iocage/base/${release}/root/usr
+    zfs create -p $pool/iocage/base/${release}/root/usr/bin
+    zfs create -p $pool/iocage/base/${release}/root/usr/include
+    zfs create -p $pool/iocage/base/${release}/root/usr/lib
+    zfs create -p $pool/iocage/base/${release}/root/usr/libexec
+    zfs create -p $pool/iocage/base/${release}/root/usr/sbin
+    zfs create -p $pool/iocage/base/${release}/root/usr/share
+    zfs create -p $pool/iocage/base/${release}/root/usr/libdata
+    zfs create -p $pool/iocage/base/${release}/root/usr/lib32
+}
+
+
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
     local exist=$(zfs list | grep -w ^$pool/iocage)
@@ -476,6 +498,7 @@ __fetch_release () {
     for file in $(echo $ftpfiles) ; do
         if [ -e "$file" ] ; then
             echo "Extracting: $file"
+            chflags -R noschg /iocage/releases/$release/root
             tar -C /iocage/releases/$release/root -xf $file
         fi
     done
@@ -493,6 +516,13 @@ __fetch_release () {
     if [ ! -d /iocage/log ] ; then 
         mkdir /iocage/log
     fi
+
+    __create_basejail $release
+    chflags -R noschg /iocage/releases/$release/root
+    tar -C /iocage/releases/$release/root -cf - . | \
+    tar --exclude usr/sbin/chown -C /iocage/base/$release/root -xf -
+    cp /iocage/releases/$release/root/usr/sbin/chown \
+    /iocage/base/$release/root/usr/bin/chgrp
 }
 
 # This creates jails----------------------------------------------------
