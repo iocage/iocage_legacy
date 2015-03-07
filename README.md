@@ -20,6 +20,7 @@ I'll see myself out...
 
 For instance, my zpool named 'neuralnet' looks like this when zfs list:
 (lololololol you get the idea)
+
         # zfs list
         NAME USED  AVAIL  REFER  MOUNTPOINT
         neuralnet	
