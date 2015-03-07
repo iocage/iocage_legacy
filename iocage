@@ -519,8 +519,9 @@ __fetch_release () {
 
     __create_basejail $release
     chflags -R noschg /iocage/releases/$release/root
-    tar -C /iocage/releases/$release/root -cf - . | \
-    tar --exclude usr/sbin/chown -C /iocage/base/$release/root -xf -
+    chflags -R noschg /iocage/base/$release/root
+    tar --exclude \.zfs -C /iocage/releases/$release/root -cf - . | \
+    tar --exclude \.zfs --exclude usr/sbin/chown -C /iocage/base/$release/root -xf -
     cp /iocage/releases/$release/root/usr/sbin/chown \
     /iocage/base/$release/root/usr/bin/chgrp
 }
