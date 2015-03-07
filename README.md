@@ -1,4 +1,4 @@
-iocage
+iocage Pool Party
 ======
 
 **FreeBSD jail manager**
@@ -7,10 +7,40 @@ iocage is a zero dependency drop in jail/container manager amalgamating some
 of the best features and technologies the FreeBSD operating system has to offer.
 It is geared for ease of use with a simple and easy to understand command syntax.
 
-Iocage is in the FreeBSD ports tree.
-To install simply run: `pkg install iocage`
+iocage is designed to wield the awesome power of iocage, but allow it to be installed on a
+ZFS pool that has multiple types of virtualization platforms housing data in separte datasets. 
 
-- **[DOCUMENTATION](http://iocage.readthedocs.org/en/latest/index.html)**
+Basically, I am hacking at iocage as to allow it's use in the virtualization solution I use 
+in all my FreeBSD virtualization servers. 
+
+This iocage version might be out of date, so beware. 
+
+In other words, everyone is invited to the zpool party! \o/
+I'll see myself out...
+
+For instance, my zpool named 'neuralnet' looks like this when zfs list:
+(lololololol you get the idea)
+# zfs list
+NAME USED  AVAIL  REFER  MOUNTPOINT
+neuralnet	
+neuralnet/vbox
+neuralnet/ezjail
+neuralnet/iocage
+neuralnet/thewarden
+ZROOT                781M  93.2G   144K  none
+ZROOT/ROOT           777M  93.2G   144K  none
+ZROOT/ROOT/default   777M  93.2G   777M  /
+ZROOT/tmp            176K  93.2G   176K  /tmp
+ZROOT/usr            616K  93.2G   144K  /usr
+ZROOT/usr/home       184K  93.2G   184K  /usr/home
+ZROOT/usr/ports      144K  93.2G   144K  /usr/ports
+ZROOT/usr/src        144K  93.2G   144K  /usr/src
+ZROOT/var           1.20M  93.2G   608K  /var
+ZROOT/var/crash      148K  93.2G   148K  /var/crash
+ZROOT/var/log        178K  93.2G   178K  /var/log
+ZROOT/var/mail       144K  93.2G   144K  /var/mail
+ZROOT/var/tmp        152K  93.2G   152K  /var/tmp
+ 
 
 **FEATURES:**
 - rapid thin provisioning (within seconds!)
