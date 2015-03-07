@@ -623,22 +623,27 @@ __destroy_jail () {
     echo -n "  Are you sure ? Y[n]: "
     read answer
 
-    if [ "$answer" == "Y" ] && [ "$state" -lt "1" ] ; then
-        echo "  Destroying: $fulluuid"
+    if [ "$answer" == "Y" ]; then
+        if [ "$state" -lt "1" ] ; then
+            echo "  Destroying: $fulluuid"
 
-        __unlink_tag $dataset
+            __unlink_tag $dataset
 
-        zfs destroy -fr $dataset
+            zfs destroy -fr $dataset
 
-        if [ "$origin" != "-" ] ; then
-            echo "  Destroying clone origin: $origin"
-            zfs destroy -r $origin
+            if [ "$origin" != "-" ] ; then
+                echo "  Destroying clone origin: $origin"
+                zfs destroy -r $origin
+            fi
+
+        elif [ "$state" -eq "1" ] ; then
+            echo "  ERROR: Jail is up and running ..exiting"
+            exit 1
         fi
+   else
+       echo "  Command not confirmed.  No action taken."
+   fi
 
-    elif [ "$state" -eq "1" ] ; then
-        echo "  ERROR: Jail is up and running ..exiting"
-        exit 1
-    fi
 }
 
 # Configure properties -------------------------------------------------
