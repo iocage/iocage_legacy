@@ -1051,10 +1051,6 @@ __start_jail () {
         zfs set jailed=on ${pool}/$jzfs_dataset
     fi
 
-    local snap_zfs="$(zfs snapshot -r ${pool}/iocage/base/$release/root@basejail-$fulluuid)"
-
-    local remove_snap="$(zfs list -H -t snapshot | cut -f 1 | grep $release/root@basejail-)" 
-    
     if [ $use_basejail == "yes" ] ; then
        __start_basejail $release
     fi
