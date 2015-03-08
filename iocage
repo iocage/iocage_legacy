@@ -1468,7 +1468,7 @@ __list_jails () {
 
     if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
         echo "Downloaded releases:"
-        local releases="$(zfs list -o name -Hr zroot/iocage/releases \
+        local releases="$(zfs list -o name -Hr $pool/iocage/releases \
                         | grep RELEASE$ | cut -d \/ -f 4)"
         for rel in $(echo $releases) ; do
             printf "%15s\n" "$rel"
