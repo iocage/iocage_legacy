@@ -580,8 +580,9 @@ __create_jail () {
        zfs create -p $pool/iocage/jails/$uuid/root/usr
 
        for fs in $bfs_list ; do
-           zfs clone $pool/iocage/base/${release}/root/$fs@$uuid \
-                     $pool/iocage/jails/$uuid/root/$fs
+           zfs clone -o readonly=on \
+           $pool/iocage/base/${release}/root/$fs@$uuid \
+           $pool/iocage/jails/$uuid/root/$fs
        done
 
        for dir in $bdir_list ; do
