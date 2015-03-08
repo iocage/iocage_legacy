@@ -268,6 +268,32 @@ CONF_SYNC="sync_stat
 # ftp properties
 CONF_FTP="ftphost ftpdir"
 
+# Basejail filesystems
+bfs_list="bin
+          boot
+          lib
+          libexec
+          rescue
+          sbin
+          usr/bin
+          usr/include
+          usr/lib
+          usr/libexec
+          usr/sbin
+          usr/share
+          usr/libdata
+          usr/lib32"
+
+# Basejail directories
+bdir_list="dev
+           tmp
+           var
+           etc
+           root
+           proc
+           mnt"
+
+
 # Process command line options-------------------------
 __parse_cmd () {
     while [ $# -gt 0 ] ; do
@@ -422,23 +448,25 @@ __print_release () {
 
 __create_basejail () {
     local release="$1"
+    local fs_list="bin
+                   boot
+                   lib
+                   libexec
+                   rescue
+                   sbin
+                   usr
+                   usr/bin
+                   usr/include
+                   usr/lib
+                   usr/libexec
+                   usr/sbin
+                   usr/share
+                   usr/libdata
+                   usr/lib32"
 
-    zfs create -p $pool/iocage/base/${release}/root
-    zfs create -p $pool/iocage/base/${release}/root/bin
-    zfs create -p $pool/iocage/base/${release}/root/boot
-    zfs create -p $pool/iocage/base/${release}/root/lib
-    zfs create -p $pool/iocage/base/${release}/root/libexec
-    zfs create -p $pool/iocage/base/${release}/root/rescue
-    zfs create -p $pool/iocage/base/${release}/root/sbin
-    zfs create -p $pool/iocage/base/${release}/root/usr
-    zfs create -p $pool/iocage/base/${release}/root/usr/bin
-    zfs create -p $pool/iocage/base/${release}/root/usr/include
-    zfs create -p $pool/iocage/base/${release}/root/usr/lib
-    zfs create -p $pool/iocage/base/${release}/root/usr/libexec
-    zfs create -p $pool/iocage/base/${release}/root/usr/sbin
-    zfs create -p $pool/iocage/base/${release}/root/usr/share
-    zfs create -p $pool/iocage/base/${release}/root/usr/libdata
-    zfs create -p $pool/iocage/base/${release}/root/usr/lib32
+    for fs in $(echo $fs_list) ; do
+        zfs create -p $pool/iocage/base/${release}/root/$fs
+    done
 }
 
 
@@ -546,6 +574,21 @@ __create_jail () {
         done
     elif [ "${2}" = "-e" ] ; then
         zfs create -p $pool/iocage/jails/$uuid/root
+    elif [ "${2}" = "-b" ] ; then
+       export type=basejail
+       zfs snapshot -r $pool/iocage/base/$release@$uuid
+       zfs create -p $pool/iocage/jails/$uuid/root/usr
+
+       for fs in $bfs_list ; do
+           zfs clone $pool/iocage/base/${release}/root/$fs@$uuid \
+                     $pool/iocage/jails/$uuid/root/$fs
+       done
+
+       for dir in $bdir_list ; do
+           cp -a /iocage/base/${release}/root/$dir \
+                 /iocage/jails/$uuid/root/$dir
+       done
+
     else
         zfs snapshot -r $pool/iocage/releases/$release@$uuid
         zfs send     -R $pool/iocage/releases/$release@$uuid | \
@@ -651,6 +694,8 @@ __destroy_jail () {
     local origin="$(zfs get -H -o value origin $dataset)"
     local fulluuid="$(__check_name $name)"
     local state="$(jls | grep $fulluuid | wc -l)"
+    local jail_type="$(__get_jail_prop type $fulluuid)"
+    local jail_release="$(__get_jail_prop release $fulluuid)"
 
     echo " "
     echo "  WARNING: this will destroy jail $fulluuid"
@@ -670,6 +715,10 @@ __destroy_jail () {
             if [ "$origin" != "-" ] ; then
                 echo "  Destroying clone origin: $origin"
                 zfs destroy -r $origin
+            fi
+
+            if [ $jail_type == "basejail" ] ; then
+                zfs destroy -fr $pool/iocage/base/$jail_release@$fulluuid
             fi
 
         elif [ "$state" -eq "1" ] ; then
@@ -849,7 +898,7 @@ __get_jail_prop () {
 __usage () {
     echo "usage:"
     echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]"
-    echo "  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
+    echo "  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone [UUID|TAG]@snapshot [property=value]"
     echo "  iocage destroy [UUID|TAG]"
     echo "  iocage list [-t]"
@@ -875,6 +924,7 @@ __usage () {
     echo "  iocage promote [UUID|TAG]"
     echo "  iocage runtime [UUID|TAG]"
     echo "  iocage update [UUID|TAG]"
+    echo "  iocage upgrade [UUID|TAG]"
     echo "  iocage record start|stop [UUID|TAG]"
     echo "  iocage package [UUID|TAG]"
     echo "  iocage export [UUID|TAG]"
@@ -1415,6 +1465,16 @@ __rc_jails () {
 __list_jails () {
     local jails=$(__find_jail ALL)
     local switch=$1
+
+    if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
+        echo "Downloaded releases:"
+        local releases="$(zfs list -o name -Hr zroot/iocage/releases \
+                        | grep RELEASE$ | cut -d \/ -f 4)"
+        for rel in $(echo $releases) ; do
+            printf "%15s\n" "$rel"
+        done
+        exit 0
+    fi
 
     printf "%-36s  %s  %s  %s\n" "UUID" "BOOT"\
            "STATE" "TAG"
@@ -1991,20 +2051,33 @@ __update () {
 
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
     local date=$(date "+%F_%T")
+    local jail_type="$(__get_jail_prop type $fulluuid)"
+    local jail_release="$(__get_jail_prop release $fulluuid)"
 
-    echo "* creating back-out snapshot.."
-    __snapshot ${fulluuid}@ioc-update_${date}
+    if [ $jail_type == "basejail" ] ; then
+        zfs destroy -rRf $pool/iocage/base/$jail_release@$fulluuid
+        zfs snapshot -r  $pool/iocage/base/$jail_release@$fulluuid
 
-    echo "* Updating jail.."
-    env UNAME_r="$release" /usr/sbin/freebsd-update \
-        -b ${mountpoint}/root \
-        -d ${mountpoint}/root/var/db/freebsd-update/ fetch
-    env UNAME_r="$release" /usr/sbin/freebsd-update \
-        -b ${mountpoint}/root \
-        -d ${mountpoint}/root/var/db/freebsd-update/ install
+        # Re-clone required filesystems 
+        for fs in $bfs_list ; do
+            zfs clone $pool/iocage/base/$jail_release/root/$fs@$fulluuid \
+                      $pool/iocage/jails/$fulluuid/root/$fs
+        done
+    else
+        echo "* creating back-out snapshot.."
+        __snapshot ${fulluuid}@ioc-update_${date}
 
-    echo " "
-    echo "* Once finished don't forget to remove the snapshot!"
+        echo "* Updating jail.."
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b ${mountpoint}/root \
+            -d ${mountpoint}/root/var/db/freebsd-update/ fetch
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b ${mountpoint}/root \
+            -d ${mountpoint}/root/var/db/freebsd-update/ install
+
+        echo " "
+        echo "* Once finished don't forget to remove the snapshot!"
+    fi
 }
 
 __upgrade () {
@@ -2408,7 +2481,7 @@ NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
-  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID | UUID@snapshot [property=value]
   iocage destroy UUID
   iocage list [-t]
@@ -2434,6 +2507,7 @@ SYNOPSIS
   iocage promote UUID
   iocage runtime UUID
   iocage update UUID
+  iocage upgrade UUID
   iocage record start|stop UUID
   iocage package UUID
   iocage export UUID
@@ -2489,13 +2563,14 @@ SUBCOMMANDS
 
     Example: iocage fetch release=9.2-RELEASE
 
-  create [-c|-e] [release=RELEASE] [property=value] [property=value] ...
+  create [-b|-c|-e] [release=RELEASE] [property=value] [property=value] ...
 
     By default create will deploy a new jail based on the host operating
     system's release. This can be changed by specifying the release option.
     If the -c switch is specified the jail will be cloned from the release.
     Default is to create a fully independent jail set. The -e switch will
-    create an empty jail.
+    create an empty jail. With -b a jail will be created with a common
+    basejail.
 
     Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
 
