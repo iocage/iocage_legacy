@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.4.7 (2015/03/07)"
+    echo "iocage 1.4.8 (2015/03/08)"
     exit 0
 fi
 
@@ -128,6 +128,7 @@ shmsize="off"
 wallclock="off"
 
 # Custom properties
+iocroot="/iocage"
 tag=$(date "+%F@%T")
 template="no"
 boot="off"
@@ -501,7 +502,7 @@ __fetch_release () {
 
     if [ -z "$exist" ] ; then
         zfs create $pool/iocage
-        zfs set mountpoint=/iocage $pool/iocage
+        zfs set mountpoint=$iocroot $pool/iocage
         zfs create $pool/iocage/jails
         zfs mount -a
     fi 
@@ -512,7 +513,7 @@ __fetch_release () {
 
     ftpdir="/pub/FreeBSD/releases/amd64/$release"
 
-    cd /iocage/download/$release
+    cd $iocroot/download/$release
     for file in $ftpfiles ; do
         if [ ! -e "$file" ] ; then        
             fetch http://$ftphost$ftpdir/$file
@@ -526,8 +527,8 @@ __fetch_release () {
     for file in $(echo $ftpfiles) ; do
         if [ -e "$file" ] ; then
             echo "Extracting: $file"
-            chflags -R noschg /iocage/releases/$release/root
-            tar -C /iocage/releases/$release/root -xf $file
+            chflags -R noschg $iocroot/releases/$release/root
+            tar -C $iocroot/releases/$release/root -xf $file
         fi
     done
     
@@ -535,23 +536,23 @@ __fetch_release () {
         sleep 2
 
         env UNAME_r="$release" /usr/sbin/freebsd-update \
-            -b /iocage/releases/$release/root \
-            -d /iocage/releases/$release/root/var/db/freebsd-update/ fetch
+            -b $iocroot/releases/$release/root \
+            -d $iocroot/releases/$release/root/var/db/freebsd-update/ fetch
         env UNAME_r="$release" /usr/sbin/freebsd-update \
-            -b /iocage/releases/$release/root \
-            -d /iocage/releases/$release/root/var/db/freebsd-update/ install
+            -b $iocroot/releases/$release/root \
+            -d $iocroot/releases/$release/root/var/db/freebsd-update/ install
     
-    if [ ! -d /iocage/log ] ; then 
-        mkdir /iocage/log
+    if [ ! -d $iocroot/log ] ; then 
+        mkdir $iocroot/log
     fi
 
     __create_basejail $release
-    chflags -R noschg /iocage/releases/$release/root
-    chflags -R noschg /iocage/base/$release/root
-    tar --exclude \.zfs -C /iocage/releases/$release/root -cf - . | \
-    tar --exclude \.zfs --exclude usr/sbin/chown -C /iocage/base/$release/root -xf -
-    cp /iocage/releases/$release/root/usr/sbin/chown \
-    /iocage/base/$release/root/usr/bin/chgrp
+    chflags -R noschg $iocroot/releases/$release/root
+    chflags -R noschg $iocroot/base/$release/root
+    tar --exclude \.zfs -C $iocroot/releases/$release/root -cf - . | \
+    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
+    cp $iocroot/releases/$release/root/usr/sbin/chown \
+    $iocroot/base/$release/root/usr/bin/chgrp
 }
 
 # This creates jails----------------------------------------------------
@@ -586,8 +587,8 @@ __create_jail () {
        done
 
        for dir in $bdir_list ; do
-           cp -a /iocage/base/${release}/root/$dir \
-                 /iocage/jails/$uuid/root/$dir
+           cp -a $iocroot/base/${release}/root/$dir \
+                 $iocroot/jails/$uuid/root/$dir
        done
 
     else
@@ -599,14 +600,14 @@ __create_jail () {
     fi
 
     __configure_jail $pool/iocage/jails/$uuid
-    touch /iocage/jails/$uuid/fstab
+    touch $iocroot/jails/$uuid/fstab
 
     # at create time set the default rc.conf
     if [ "${2}" != "-e" ] ; then
-        echo "hostname=${uuid}" > /iocage/jails/${uuid}/root/etc/rc.conf
+        echo "hostname=${uuid}" > $iocroot/jails/${uuid}/root/etc/rc.conf
         __jail_rc_conf >> \
-        /iocage/jails/${uuid}/root/etc/rc.conf
-        __resolv_conf > /iocage/jails/${uuid}/root/etc/resolv.conf
+        $iocroot/jails/${uuid}/root/etc/rc.conf
+        __resolv_conf > $iocroot/jails/${uuid}/root/etc/resolv.conf
     elif [ "${2}" = "-e" ] ; then
         echo $uuid
     fi
@@ -618,7 +619,7 @@ __create_jail () {
     # Install extra packages
     # this requires working resolv.conf in jail
     if [ "$pkglist" != "none" ] ; then
-        __pkg_install "/iocage/jails/${uuid}/root"
+        __pkg_install "$iocroot/jails/${uuid}/root"
     fi
 }
 
@@ -660,15 +661,15 @@ __clone_jail () {
     fi
 
     __configure_jail $pool/iocage/jails/$uuid
-    mv /iocage/jails/$uuid/fstab /iocage/jails/$uuid/fstab.$name
-    touch /iocage/jails/$uuid/fstab
+    mv $iocroot/jails/$uuid/fstab $iocroot/jails/$uuid/fstab.$name
+    touch $iocroot/jails/$uuid/fstab
 
-    cat /iocage/jails/${uuid}/root/etc/rc.conf | \
+    cat $iocroot/jails/${uuid}/root/etc/rc.conf | \
     sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
-    > /iocage/jails/${uuid}/rc.conf
+    > $iocroot/jails/${uuid}/rc.conf
 
-    mv /iocage/jails/${uuid}/rc.conf \
-    /iocage/jails/${uuid}/root/etc/rc.conf
+    mv $iocroot/jails/${uuid}/rc.conf \
+    $iocroot/jails/${uuid}/root/etc/rc.conf
 }
 
 # Destroy jails --------------------------------------------------------------
@@ -1049,7 +1050,7 @@ __start_jail () {
     fi
 
     if [ "$procfs" == "1" ] ; then
-        mount -t procfs proc /iocage/jails/${fulluuid}/root/proc
+        mount -t procfs proc $iocroot/jails/${fulluuid}/root/proc
     fi
 
     local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"
@@ -1115,7 +1116,7 @@ __start_jail () {
 
     echo -n "  + Starting services" 
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
-     >> /iocage/log/${fulluuid}-console.log 2>&1
+     >> $iocroot/log/${fulluuid}-console.log 2>&1
 
     if [ $? -eq 1 ] ; then
         echo "        FAILED"
@@ -1164,11 +1165,11 @@ __vnet_start () {
     exec.clean="$(__get_jail_prop exec_clean $name)" \
     exec.timeout="$(__get_jail_prop exec_timeout $name)" \
     stop.timeout="$(__get_jail_prop stop_timeout $name)" \
-    mount.fstab="/iocage/jails/$name/fstab" \
+    mount.fstab="$iocroot/jails/$name/fstab" \
     mount.devfs="$(__get_jail_prop mount_devfs $name)" \
     mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
     allow.dying \
-    exec.consolelog="/iocage/log/${name}-console.log" \
+    exec.consolelog="$iocroot/log/${name}-console.log" \
     persist
 }
 
@@ -1222,11 +1223,11 @@ __legacy_start () {
         exec.clean="$(__get_jail_prop exec_clean $name)" \
         exec.timeout="$(__get_jail_prop exec_timeout $name)" \
         stop.timeout="$(__get_jail_prop stop_timeout $name)" \
-        mount.fstab="/iocage/jails/$name/fstab" \
+        mount.fstab="$iocroot/jails/$name/fstab" \
         mount.devfs="$(__get_jail_prop mount_devfs $name)" \
         mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
         allow.dying \
-        exec.consolelog="/iocage/log/${name}-console.log" \
+        exec.consolelog="$iocroot/log/${name}-console.log" \
         persist
     else
         jail -c \
@@ -1260,11 +1261,11 @@ __legacy_start () {
         exec.clean="$(__get_jail_prop exec_clean $name)" \
         exec.timeout="$(__get_jail_prop exec_timeout $name)" \
         stop.timeout="$(__get_jail_prop stop_timeout $name)" \
-        mount.fstab="/iocage/jails/$name/fstab" \
+        mount.fstab="$iocroot/jails/$name/fstab" \
         mount.devfs="$(__get_jail_prop mount_devfs $name)" \
         mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
         allow.dying \
-        exec.consolelog="/iocage/log/${name}-console.log" \
+        exec.consolelog="$iocroot/log/${name}-console.log" \
         persist
     fi
 }
@@ -1315,7 +1316,7 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
-    jexec ioc-${fulluuid} $exec_stop >> /iocage/log/${fulluuid}-console.log 2>&1
+    jexec ioc-${fulluuid} $exec_stop >> $iocroot/log/${fulluuid}-console.log 2>&1
 
     if [ $? -ne 1 ] ; then
         echo "        OK"
@@ -1352,13 +1353,13 @@ __stop_jail () {
         echo "    FAILED"
     fi
 
-    umount -afvF /iocage/jails/${fulluuid}/fstab > /dev/null 2>&1
-    umount /iocage/jails/${fulluuid}/root/dev/fd > /dev/null 2>&1
-    umount /iocage/jails/${fulluuid}/root/dev    > /dev/null 2>&1
-    umount /iocage/jails/${fulluuid}/root/proc   > /dev/null 2>&1
+    umount -afvF $iocroot/jails/${fulluuid}/fstab > /dev/null 2>&1
+    umount $iocroot/jails/${fulluuid}/root/dev/fd > /dev/null 2>&1
+    umount $iocroot/jails/${fulluuid}/root/dev    > /dev/null 2>&1
+    umount $iocroot/jails/${fulluuid}/root/proc   > /dev/null 2>&1
 
-    if [ -d /iocage/jails/${fulluuid}/recorded ] ; then
-        umount -ft unionfs /iocage/jails/${fulluuid}/root > /dev/null 2>&1
+    if [ -d $iocroot/jails/${fulluuid}/recorded ] ; then
+        umount -ft unionfs $iocroot/jails/${fulluuid}/root > /dev/null 2>&1
     fi
 
     if [ ! -z $(sysctl -qn kern.features.rctl) ] ; then
@@ -1397,11 +1398,11 @@ __restart_jail () {
     local tag="$(__get_jail_prop tag $fulluuid)"
 
     echo "* Soft restarting $fulluuid ($tag)"
-    jexec ioc-${fulluuid} $exec_stop >> /iocage/log/${fulluuid}-console.log 2>&1
+    jexec ioc-${fulluuid} $exec_stop >> $iocroot/log/${fulluuid}-console.log 2>&1
 
     if [ $? -ne "1" ] ; then
         pkill -j $jid
-        jexec ioc-${fulluuid} $exec_start >> /iocage/log/${fulluuid}-console.log 2>&1
+        jexec ioc-${fulluuid} $exec_start >> $iocroot/log/${fulluuid}-console.log 2>&1
         zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
     else
         echo "  ERROR: soft restart failed.."
@@ -1835,7 +1836,7 @@ __chroot () {
 
     local fulluuid="$(__check_name $name)"
 
-    chroot /iocage/jails/${fulluuid}/root $command
+    chroot $iocroot/jails/${fulluuid}/root $command
 }
 
 
@@ -2181,7 +2182,7 @@ __record () {
         fi
 
     elif [ $action == "stop" ] ; then
-        umount -ft unionfs /iocage/jails/${fulluuid}/root > /dev/null 2>&1
+        umount -ft unionfs $iocroot/jails/${fulluuid}/root > /dev/null 2>&1
         echo "* Stopped recording to: ${mountpoint}/recorded"
 
         find ${mountpoint}/recorded/ -type d -empty -exec rm -rf {} \; \
@@ -2227,15 +2228,15 @@ __package () {
         exit 1
     fi
 
-    if [ ! -d "/iocage/packages" ] ; then
-        mkdir /iocage/packages
+    if [ ! -d "$iocroot/packages" ] ; then
+        mkdir $iocroot/packages
     fi
 
     echo "* Creating package..."
-    tar -cvJf /iocage/packages/$fulluuid.tar.xz -C ${mountpoint}/recorded . && \
-    sha256 -q /iocage/packages/$fulluuid.tar.xz > /iocage/packages/$fulluuid.sha256
-    echo "* Package saved to: /iocage/packages/$fulluuid.tar.xz"
-    echo "* Checksum created: /iocage/packages/$fulluuid.sha256"
+    tar -cvJf $iocroot/packages/$fulluuid.tar.xz -C ${mountpoint}/recorded . && \
+    sha256 -q $iocroot/packages/$fulluuid.tar.xz > $iocroot/packages/$fulluuid.sha256
+    echo "* Package saved to: $iocroot/packages/$fulluuid.tar.xz"
+    echo "* Checksum created: $iocroot/packages/$fulluuid.sha256"
 }
 
 __import () {
@@ -2246,8 +2247,8 @@ __import () {
         exit 1
     fi
 
-    local package="$(find /iocage/packages/ -name $name\*.tar.xz)"
-    local image="$(find /iocage/images/ -name $name\*.tar.xz)"
+    local package="$(find $iocroot/packages/ -name $name\*.tar.xz)"
+    local image="$(find $iocroot/images/ -name $name\*.tar.xz)"
     local pcount="$(echo $package|wc -w)"
     local icount="$(echo $image|wc -w)"
 
@@ -2255,14 +2256,14 @@ __import () {
         echo "  ERROR: multiple matching packages, please narrow down UUID."
         exit 1
     elif [ $pcount -eq 1 ] ; then
-        local pcksum="$(find /iocage/packages/ -name $name\*.sha256)"
+        local pcksum="$(find $iocroot/packages/ -name $name\*.sha256)"
     fi
 
     if [ $icount -gt 1 ] ; then
         echo "  ERROR: multiple matching images, please narrow down UUID."
         exit 1
     elif [ $icount -eq 1 ] ; then
-        local icksum="$(find /iocage/images/ -name $name\*.sha256)"
+        local icksum="$(find $iocroot/images/ -name $name\*.sha256)"
     fi
 
     if [ $pcount -gt 0 ] && [ $icount -gt 0 ] ; then
@@ -2317,12 +2318,12 @@ __import () {
         exit 1
     fi
 
-    cat /iocage/jails/${uuid}/root/etc/rc.conf | \
+    cat $iocroot/jails/${uuid}/root/etc/rc.conf | \
     sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
-    > /iocage/jails/${uuid}/rc.conf
+    > $iocroot/jails/${uuid}/rc.conf
 
-    mv /iocage/jails/${uuid}/rc.conf \
-    /iocage/jails/${uuid}/root/etc/rc.conf
+    mv $iocroot/jails/${uuid}/rc.conf \
+    $iocroot/jails/${uuid}/root/etc/rc.conf
 }
 
 __export () {
@@ -2358,15 +2359,15 @@ __export () {
 
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
 
-    if [ ! -d "/iocage/images" ] ; then
-        mkdir /iocage/images
+    if [ ! -d "$iocroot/images" ] ; then
+        mkdir $iocroot/images
     fi
 
     echo "* Exporting $fulluuid .."
-    tar -cvJf /iocage/images/$fulluuid.tar.xz -C ${mountpoint}/root . && \
-    sha256 -q /iocage/images/$fulluuid.tar.xz > /iocage/images/$fulluuid.sha256
-    echo "* Image saved to: /iocage/images/$fulluuid.tar.xz"
-    echo "* Checksum created: /iocage/images/$fulluuid.sha256"
+    tar -cvJf $iocroot/images/$fulluuid.tar.xz -C ${mountpoint}/root . && \
+    sha256 -q $iocroot/images/$fulluuid.tar.xz > $iocroot/images/$fulluuid.sha256
+    echo "* Image saved to: $iocroot/images/$fulluuid.tar.xz"
+    echo "* Checksum created: $iocroot/images/$fulluuid.sha256"
 
 }
 
@@ -2397,7 +2398,7 @@ __check_name () {
 }
 
 # reads tag property from given jail dataset
-# creates symlink from /iocage/tags/<tag> to /iocage/jails/<uuid>
+# creates symlink from $iocroot/tags/<tag> to $iocroot/jails/<uuid>
 __link_tag () {
     local dataset=$1
     local mountpoint
@@ -2405,9 +2406,9 @@ __link_tag () {
 
     if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
         if tag=$(zfs get -H -o value org.freebsd.iocage:tag $dataset); then
-            mkdir -p /iocage/tags
-            if [ ! -e /iocage/tags/$tag ] ; then
-                ln -s $mountpoint /iocage/tags/$tag
+            mkdir -p $iocroot/tags
+            if [ ! -e $iocroot/tags/$tag ] ; then
+                ln -s $mountpoint $iocroot/tags/$tag
             else
                 echo "  ERROR: tag already exists, can not symlink: $tag"
                 exit 1
@@ -2419,13 +2420,13 @@ __link_tag () {
     fi
 }
 
-# removes all symlinks found in /iocage/tags pointing to the given jail dataset
+# removes all symlinks found in $iocroot/tags pointing to the given jail dataset
 __unlink_tag () {
     local dataset=$1
     local mountpoint
 
     if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
-        find /iocage/tags -type l -lname "${mountpoint}*" -exec rm -f \{\} \;
+        find $iocroot/tags -type l -lname "${mountpoint}*" -exec rm -f \{\} \;
     fi
 }
 
