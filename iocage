@@ -550,9 +550,9 @@ __fetch_release () {
     chflags -R noschg $iocroot/releases/$release/root
     chflags -R noschg $iocroot/base/$release/root
     tar --exclude \.zfs -C $iocroot/releases/$release/root -cf - . | \
-    tar --exclude \.zfs --exclude usr/bin/chgrp -C $iocroot/base/$release/root -xf -
-    cp -p $iocroot/releases/$release/root/usr/sbin/chown \
-    $iocroot/base/$release/root/usr/bin/chgrp
+    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
+    cd $iocroot/base/$release/root/usr
+    ln -s bin/chgrp sbin/chown
 }
 
 # This creates jails----------------------------------------------------
