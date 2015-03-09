@@ -552,7 +552,10 @@ __fetch_release () {
     tar --exclude \.zfs -C $iocroot/releases/$release/root -cf - . | \
     tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
     cd $iocroot/base/$release/root/usr/sbin
-    ln -s ../bin/chgrp chown
+    
+    if [ ! -e "$iocroot/base/$release/root/usr/sbin/chown" ] ; then
+       ln -s ../bin/chgrp chown
+    fi
 }
 
 # This creates jails----------------------------------------------------
