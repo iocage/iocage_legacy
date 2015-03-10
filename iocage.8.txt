@@ -1227,5 +1227,6 @@ BUGS
   Nothing is perfect, please kindly report them.
 AUTHORS
   Peter Toth <peter.toth198@gmail.com>
+  Brandon Schneider <brandonschneider89@gmail.com>
 SPECIAL THANKS
   Sichendra Bista - for his ever willing attitude and ideas.
