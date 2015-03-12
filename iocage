@@ -607,7 +607,7 @@ __create_jail () {
 
     # at create time set the default rc.conf
     if [ "${2}" != "-e" ] ; then
-        echo "hostname=${uuid}" > $iocroot/jails/${uuid}/root/etc/rc.conf
+        echo "hostname=\"${hostname}\"" > $iocroot/jails/${uuid}/root/etc/rc.conf
         __jail_rc_conf >> \
         $iocroot/jails/${uuid}/root/etc/rc.conf
         __resolv_conf > $iocroot/jails/${uuid}/root/etc/resolv.conf
