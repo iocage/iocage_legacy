@@ -42,6 +42,7 @@ To install simply run: `pkg install iocage`
 -  iocage rcboot
 -  iocage rcshutdown
 -  iocage console [UUID|TAG]
+-  iocage exec [-u username | -U username] [UUID|TAG] command [arg ...]
 -  iocage chroot [UUID|TAG]
 -  iocage df
 -  iocage get [property | all ] [UUID|TAG]
