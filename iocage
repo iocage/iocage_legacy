@@ -1590,6 +1590,7 @@ __networking () {
     local nics="$(__get_jail_prop interfaces $name \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
+    local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
 
     if [ $action == "start" ] ; then
         for i in $nics ; do
@@ -1617,7 +1618,7 @@ __networking () {
             for i in $ip6_list ; do
                 iface="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }')"
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
-                jexec ioc-${2} ifconfig $iface $ip up
+                jexec ioc-${2} ifconfig $iface inet6 $ip up
             done
         fi
 
@@ -2457,6 +2458,9 @@ sendmail_msp_queue_enable="NO"
 
 # Run secure syslog
 syslogd_flags="-c -ss"
+
+# Enable IPv6
+ipv6_activate_all_interfaces="YES"
 EOT
 }
 
