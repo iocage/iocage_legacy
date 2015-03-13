@@ -305,7 +305,8 @@ __parse_cmd () {
             console)    __console "$2"
                         exit
                 ;;
-            exec)       __exec "$@"
+            exec)       shift
+                        __exec "$@"
                         exit
                 ;;
             chroot)     __chroot "$2" "$3"
@@ -916,7 +917,7 @@ __usage () {
     echo "  iocage rcboot"
     echo "  iocage rcshutdown"
     echo "  iocage console [UUID|TAG]"
-    echo "  iocage exec [UUID|TAG] command [arg ...]"
+    echo "  iocage exec [-u username | -U username] [UUID|TAG] command [arg ...]"
     echo "  iocage chroot [UUID|TAG] [command]"
     echo "  iocage df"
     echo "  iocage show property"
@@ -1823,7 +1824,21 @@ __console () {
 
 
 __exec () {
-    local name=$2
+    local jexecopts=
+
+    # check for -U or -u to pass to jexec
+    while getopts u:U: opt "$@"; do
+        case "$opt" in
+            [uU]) jexecopts="$jexecopts -$opt $OPTARG";;
+            ?)    echo "  ERROR: invalid exec option: $opt"
+                  exit 1
+                  ;;
+        esac
+    done
+    shift $(expr $OPTIND - 1)
+
+    local name=$1
+    shift
 
     if [ -z $name ] ; then
         echo "  ERROR: missing UUID"
@@ -1844,9 +1859,7 @@ __exec () {
 
     local fulluuid="$(__check_name $name)"
 
-    shift 2 # get rid of command, name
-
-    jexec ioc-${fulluuid} "$@"
+    jexec $jexecopts ioc-${fulluuid} "$@"
 }
 
 
@@ -2533,7 +2546,7 @@ SYNOPSIS
   iocage rcboot
   iocage rcshutdown
   iocage console UUID
-  iocage exec UUID command [arg ...]
+  iocage exec [-u username | -U username] UUID command [arg ...]
   iocage chroot UUID [command]
   iocage df
   iocage show property
@@ -2681,7 +2694,7 @@ SUBCOMMANDS
 
     Console access, drop into jail.
 
-  exec UUID command [arg ...]
+  exec [-u username | -U username] UUID command [arg ...]
 
     Execute command inside the jail. This is simply an iocage UUID/tag wrapper
     for jexec(8).

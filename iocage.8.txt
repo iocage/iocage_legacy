@@ -12,7 +12,7 @@ SYNOPSIS
   iocage rcboot
   iocage rcshutdown
   iocage console [UUID|TAG]
-  iocage exec [UUID|TAG] command [arg ...]
+  iocage exec [-u username | -U username] [UUID|TAG] command [arg ...]
   iocage chroot [UUID|TAG] [command]
   iocage df
   iocage show property
@@ -159,7 +159,7 @@ SUBCOMMANDS
 
     Console access, drop into jail.
 
-  exec UUID|TAG command [arg ...]
+  exec [-u username | -U username] UUID|TAG command [arg ...]
 
     Execute command inside the jail. This is simply an iocage UUID/tag wrapper
     for jexec(8).

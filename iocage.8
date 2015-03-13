@@ -16,7 +16,7 @@
 \fBiocage\fP \fIrcboot\fP
 \fBiocage\fP \fIrcshutdown\fP
 \fBiocage\fP \fIconsole\fP [UUID|TAG]
-\fBiocage\fP \fIexec\fP [UUID|TAG] \fIcommand\fP [\fIarg ...\fP]
+\fBiocage\fP \fIexec\fP [\fB-u\fP \fIusername\fP | \fB-U\fP \fIusername\fP] [UUID|TAG] \fIcommand\fP [\fIarg ...\fP]
 \fBiocage\fP \fIchroot\fP [UUID|TAG] [\fIcommand\fP]
 \fBiocage\fP \fIdf\fP
 \fBiocage\fP \fIshow\fP \fIproperty\fP
@@ -233,7 +233,7 @@ Kernel compiled with:
 
 .fam T
 .fi
-\fIexec\fP \fIUUID|TAG\fP \fIcommand\fP [\fIarg ...\fP]
+\fIexec\fP [\fB-u\fP \fIusername\fP | \fB-U\fP \fIusername\fP] \fIUUID|TAG\fP \fIcommand\fP [\fIarg ...\fP]
 .PP
 .nf
 .fam C
