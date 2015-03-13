@@ -305,6 +305,9 @@ __parse_cmd () {
             console)    __console "$2"
                         exit
                 ;;
+            exec)       __exec "$@"
+                        exit
+                ;;
             chroot)     __chroot "$2" "$3"
                         exit
                 ;;
@@ -913,6 +916,7 @@ __usage () {
     echo "  iocage rcboot"
     echo "  iocage rcshutdown"
     echo "  iocage console [UUID|TAG]"
+    echo "  iocage exec [UUID|TAG] command [arg ...]"
     echo "  iocage chroot [UUID|TAG] [command]"
     echo "  iocage df"
     echo "  iocage show property"
@@ -1817,6 +1821,35 @@ __console () {
     jexec ioc-${fulluuid} login $login_flags
 }
 
+
+__exec () {
+    local name=$2
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+
+    shift 2 # get rid of command, name
+
+    jexec ioc-${fulluuid} "$@"
+}
+
+
 __chroot () {
     local name="$1"
     local command="$2"
@@ -2500,6 +2533,7 @@ SYNOPSIS
   iocage rcboot
   iocage rcshutdown
   iocage console UUID
+  iocage exec UUID command [arg ...]
   iocage chroot UUID [command]
   iocage df
   iocage show property
@@ -2646,6 +2680,11 @@ SUBCOMMANDS
   console UUID
 
     Console access, drop into jail.
+
+  exec UUID command [arg ...]
+
+    Execute command inside the jail. This is simply an iocage UUID/tag wrapper
+    for jexec(8).
 
   chroot UUID [command]
 
