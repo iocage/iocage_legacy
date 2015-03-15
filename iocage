@@ -500,7 +500,7 @@ __reclone_basejail () {
     zfs destroy -rRf $pool/iocage/base/$jail_release@$fulluuid
     zfs snapshot -r  $pool/iocage/base/$jail_release@$fulluuid
 
-    echo "  This is a basejail, re-cloning jail filesystems.."
+    echo "* $fulluuid is a basejail, re-cloning jail.."
 
     # Re-clone required filesystems 
     for fs in $bfs_list ; do
@@ -737,7 +737,8 @@ __destroy_jail () {
 
     local origin="$(zfs get -H -o value origin $dataset)"
     local fulluuid="$(__check_name $name)"
-    local state="$(jls | grep $fulluuid | wc -l)"
+    local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
+    local state="$(jls | grep ${jail_path} | wc -l)"
     local jail_type="$(__get_jail_prop type $fulluuid)"
     local jail_release="$(__get_jail_prop release $fulluuid)"
 
@@ -1060,7 +1061,8 @@ __start_jail () {
     local template="$(__get_jail_prop template $fulluuid)"
     local cpuset="$(__get_jail_prop cpuset $fulluuid)"
     local procfs="$(__get_jail_prop mount_procfs $fulluuid)"
-    local state="$(jls | grep $fulluuid | wc -l)"
+    local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
+    local state="$(jls | grep ${jail_path} | wc -l)"
     local vnet="$(__get_jail_prop vnet $fulluuid)"
     local nics="$(__get_jail_prop interfaces $fulluuid \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
@@ -1489,7 +1491,8 @@ __rc_jails () {
 
         for i in $boot_order ; do 
             local jail="$(echo $i | cut -f2 -d,)"
-            local state="$(jls | grep $jail | wc -l)"
+            local jail_path="$(__get_jail_prop mountpoint $jail)"
+            local state="$(jls | grep ${jail_path} | wc -l)"
 
             if [ "$state" -lt "1" ] ; then
                 __start_jail $jail
@@ -1501,7 +1504,8 @@ __rc_jails () {
 
         for i in $shutdown_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
-            local state="$(jls | grep $jail | wc -l)"
+            local jail_path="$(__get_jail_prop mountpoint $jail)"
+            local state="$(jls | grep ${jail_path} | wc -l)"
 
             if [ "$state" -eq "1" ] ; then
                 __stop_jail $jail
@@ -2441,7 +2445,8 @@ __export () {
     fi
         
     local fulluuid="$(__check_name $name)"
-    local state=$(jls|grep $fulluuid | wc -l)
+    local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
+    local state=$(jls|grep ${jail_path} | wc -l)
 
     if [ "$state" -gt "0" ] ; then
         echo "  ERROR: $fulluuid is running!"
