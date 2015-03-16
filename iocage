@@ -2203,6 +2203,12 @@ __upgrade () {
         zfs destroy -rRf $pool/iocage/base/$basejail_release@$fulluuid
         # Set jail's zfs property to new release
         zfs set org.freebsd.iocage:release="$release" $dataset
+
+        for dir in $bdir_list ; do
+            cp -a $iocroot/base/$release/root/$dir \
+                 $iocroot/jails/$uuid/root/$dir
+        done
+
         echo " "
         echo " Please run \"iocage fetch $release\" before starting this jail."
         exit 0
