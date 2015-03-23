@@ -2,7 +2,7 @@ Create a Debian squeeze jail (gnu kFreeBSD)
 ===========================================
 
 **In this howto we will set up a Debian (gnu/kFreeBSD) jail. gnu/kFreeBSD is a
-Debian userland tailored for FreeBSD kernel.**
+Debian userland tailored for the FreeBSD kernel.**
 
 Don't forget to replace UUID with your jail's full UUID!
 
@@ -18,7 +18,7 @@ exec_stop="/etc/init.d/rc 0"``
 **Grab the mountpoint for our empty jail, append /root/ to it and run
 debootstrap:**
 
-``iocage get mountpoint UUID``
+``iocage get mountpoint UUID | TAG``
 
 ``debootstrap squeeze /iocage/jails/UUID/root/`` (you can replace squeeze with wheezy if that is what you need)
 
@@ -34,9 +34,9 @@ debootstrap:**
 
 **Start the jail and attach to it:**
 
-``iocage start UUID``
+``iocage start UUID | TAG``
 
-``iocage console UUID``
+``iocage console UUID | TAG``
 
 What you gain is a 64bit Debian Linux userland. Please note this is not
 recommended for production use. The intention was to show that iocage will let
@@ -46,4 +46,3 @@ If you wish to install a Linux only Debian jail you can follow this tutorial:
 `debian-linux-freebsd-jail-zfs
 <http://devil-detail.blogspot.co.nz/2013/08/debian-linux-freebsd-jail-zfs.html/>`_
 
-Only 32bit Linux jails are supported right now.

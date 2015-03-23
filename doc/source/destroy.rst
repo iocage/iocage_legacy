@@ -1,7 +1,7 @@
 Destroying jails
 ================
 
-Destroy any jail with ``iocage destroy UUID``
+Destroy any jail with ``iocage destroy UUID | TAG``
 
 **Warning this will irreversibly destroy the jail!**
 

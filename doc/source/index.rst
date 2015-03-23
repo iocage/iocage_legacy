@@ -18,6 +18,8 @@ syntax.
 
 - templating
 
+- base jails
+
 - automatic package installation
 
 - ease of use (also supports shortened UUIDs)
@@ -57,6 +59,7 @@ Documentation:
    pre-flight-checklist
    best-practices
    using-uuids
+   basejails
    auto-boot
    automatic-package-installation
    configure-interfaces

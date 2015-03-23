@@ -13,5 +13,5 @@ How to turn on auto boot
   boot=on UUID``
 
 * If you need to specify a boot order you can do it by setting the priority
-  value ``iocage set priority=20 UUID`` . Lower value means higher boot
+  value ``iocage set priority=20 UUID | TAG`` . Lower value means higher boot
   priority.

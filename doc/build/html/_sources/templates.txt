@@ -12,16 +12,16 @@ Any jail can be converted to a template and back to a jail again as required. In
 1. create a new jail ``iocage create tag=mytemplate``
 2. configure the jail's networking
 3. install any package you like and customize jail
-4. once finished with customization stop the jail ``iocage stop UUID``
-5. a good idea is set some notes ``iocage set notes="customized PHP,nginx jail" UUID``
-6. turn the template property on ``iocage set template=yes UUID``
+4. once finished with customization stop the jail ``iocage stop UUID | TAG``
+5. a good idea is set some notes ``iocage set notes="customized PHP,nginx jail" UUID | TAG``
+6. turn the template property on ``iocage set template=yes UUID | TAG``
 7. list your template with ``iocage list -t``
 
 To create a new jail from this template simply clone it!
 
 1. ``iocage clone UUID-of-mytemplate tag=mynewjail``
 2. list new jail ``iocage list``
-3. start jail ``iocage start UUID``
+3. start jail ``iocage start UUID | TAG``
 
 Done!
 

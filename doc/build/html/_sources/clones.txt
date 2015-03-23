@@ -10,11 +10,11 @@ you need to promote the clone first, otherwise the source jail cannot be destroy
 
 **To promote a cloned jail, simply run:**
 
-``iocage promote UUID``
+``iocage promote UUID | TAG``
 
 The above step will reverse the clone and source jail relationship.
 Basically the clone will become the source and the source jail will be demoted to a clone.
 
 **Now you can remove the demoted jail with:**
 
-``iocage destroy UUID``
+``iocage destroy UUID | TAG``

@@ -10,7 +10,7 @@ You either have a working NAT or shared IP set up which is part of your LAN.
 
 **Turn VNET off**
 
-``iocage set vnet=off UUID``
+``iocage set vnet=off UUID | TAG``
 
 **Set the shared IP and pin it to the right interface:**
 
@@ -18,11 +18,11 @@ You either have a working NAT or shared IP set up which is part of your LAN.
 
 **Start jail:**
 
-``iocage start UUID``
+``iocage start UUID | TAG``
 
 **Drop into jail and try to install some package:**
 
-``iocage console UUID``
+``iocage console UUID | TAG``
 
 ``pkg install tmux``
 

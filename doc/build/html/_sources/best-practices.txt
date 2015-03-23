@@ -5,7 +5,7 @@ These are some generic guidelines for working with iocage managed jails.
 
 **Use PF as a module**
 
-  This is the default setting in the ``GENERIC`` kernel. There seem to be bug which is only
+  This is the default setting in the ``GENERIC`` kernel. There seem to be a VNET bug which is only
   triggered when PF is directly compiled into the kernel.
 
 **Always tag your jails and templates!**
@@ -53,15 +53,9 @@ These are some generic guidelines for working with iocage managed jails.
 
   Remove snapshots you don't need, especially from jails where data is changing a lot!
 
-**Don't change the hostname**
-
-  Unless really needed, don't change the jail's UUID based hostname in
-  ``/etc/rc.conf``. Add required entries to ``/etc/hosts`` instead.
-
 **Use the `chroot` sub-command**
  
-  In case you need to access or modify files in a template or a jail which is in
-  stopped state, use ``iocage chroot UUID``. This way you don't need to spin up the
+  In case you need to access or modify files in a template or a jail which is in a
+  stopped state, use ``iocage chroot UUID | TAG``. This way you don't need to spin up the
   jail or convert the template.
 
-  

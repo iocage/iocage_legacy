@@ -16,3 +16,9 @@ Just enter the first few characters:
 If multiple jails match the short name iocage will throw a warning.
 
 You can use the short UUIDs with any subcommand.
+
+Also, jail TAGs can be used interchangeably with UUIDs:
+
+``iocage console mytag``
+
+

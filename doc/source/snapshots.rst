@@ -8,23 +8,23 @@ Snapshots are point-in-time copies of data, a safety point to which a jail can b
 
 **You can list snapshots anytime for a jail with:**
  
-  ``iocage snaplist UUID``
+  ``iocage snaplist UUID | TAG``
 
 **To create a new snapshot run:**
 
-  ``iocage snapshot UUID`` 
+  ``iocage snapshot UUID | TAG`` 
 
   This will create a snapshot based on current time.
   If you'd like to create a snapshot with custom naming run: 
 
-  ``iocage snapshot UUID@mysnapshotname``
+  ``iocage snapshot UUID|TAG@mysnapshotname``
 
 **To remove a snapshot use:**
 
-  ``iocage snapremove UUID@snapshotname``
+  ``iocage snapremove UUID|TAG@snapshotname``
 
 **To revert a jail's state to a snapshot run:**
 
-  ``iocage rollback UUID@snapshotname``
+  ``iocage rollback UUID|TAG@snapshotname``
 
 Simple as that - don't need to know ZFS internals!

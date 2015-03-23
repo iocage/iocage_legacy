@@ -6,7 +6,7 @@ FAQ
     tasks as much as possible.
 
 **What is a jail?**
-    Jail is a FreeBSD **OS virtualization** technology enabling to run multiple
+    Jail is a FreeBSD **OS virtualization** technology allowing to run multiple
     copies of the operating system. Some operating systems use the term
     **Zones** or **Containers** for OS virtualization.
 
@@ -15,7 +15,7 @@ FAQ
 
 **How do I configure network interfaces in a VNET or shared IPjail?**
     You configure both the same way: ``iocage set
-    ip4_add="interface|IP/netmask" UUID``. For more info please refer to the
+    ip4_add="interface|IP/netmask" UUID | TAG``. For more info please refer to the
     documentation.
 
 **Do I need to set my default gateway?**
@@ -43,7 +43,7 @@ FAQ
     Yes. (refer to manual page)
 
 **Is there a way to display resource consumption?**
-    Yes, ``iocage inuse UUID``
+    Yes, ``iocage inuse UUID | TAG``
 
 **Is i386 supported?**
     It is 2014 - All recent servers are 64bit capable for years now!

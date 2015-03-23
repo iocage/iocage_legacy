@@ -37,9 +37,9 @@ Follow these steps to get Internet connectivity inside a jail with NAT (handled 
 7. Configure outbound NAT ("Real world example with VNET, NAT, PF, IPFW and
    port forwarding")
 
-8. Start jail ``iocage start UUID``
+8. Start jail ``iocage start UUID | TAG``
 
-9. Drop into jail ``iocage console UUID``
+9. Drop into jail ``iocage console UUID | TAG``
 
 10. ping default gateway 10.1.1.254, you should have a reply!
 

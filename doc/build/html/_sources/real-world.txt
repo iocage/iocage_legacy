@@ -7,7 +7,7 @@ After making the following changes make sure the host can restart cleanly.
 
 **For IPFW to work inside a jail set the securelevel property to "2":**
 
-``iocage set securelevel=2 UUID``
+``iocage set securelevel=2 UUID | TAG``
 
 **The host**
 
