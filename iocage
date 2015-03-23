@@ -886,7 +886,7 @@ __get_jail_prop () {
     fi
 
     if [ -z "$name" ] ; then
-        echo "  ERROR: mising UUID!"
+        echo "  ERROR: missing UUID!"
         exit 1
     fi
 
@@ -2194,11 +2194,21 @@ __upgrade () {
     local jail_type="$(__get_jail_prop type $fulluuid)"
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
     local date=$(date "+%F_%T")
+    local basejail_release="$(__get_jail_prop release $fulluuid)"
     local oldrelease="$(zfs get -H -o value org.freebsd.iocage:release $dataset)"
 
     if [ $jail_type == "basejail" ] ; then
-        # Re-clone required filesystems 
-        __reclone_basejail $name
+        zfs destroy -rRf $pool/iocage/base/$basejail_release@$fulluuid
+        # Set jail's zfs property to new release
+        zfs set org.freebsd.iocage:release="$release" $dataset
+
+        for dir in $bdir_list ; do
+            cp -a $iocroot/base/$release/root/$dir \
+                 $iocroot/jails/$uuid/root/$dir
+        done
+
+        echo " "
+        echo " Please run \"iocage fetch $release\" before starting this jail."
         exit 0
     fi
 
