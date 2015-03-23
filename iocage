@@ -497,8 +497,8 @@ __reclone_basejail () {
     local fulluuid="$(__check_name $name)"
     local jail_release="$(__get_jail_prop release $fulluuid)"
 
-    zfs destroy -rRf $pool/iocage/base/$jail_release@$fulluuid
-    zfs snapshot -r  $pool/iocage/base/$jail_release@$fulluuid
+    zfs destroy -rRf $pool/iocage/base@$fulluuid
+    zfs snapshot -r  $pool/iocage/base@$fulluuid
 
     echo "* $fulluuid is a basejail, re-cloning jail.."
 
@@ -617,7 +617,7 @@ __create_jail () {
         zfs create -p $pool/iocage/jails/$uuid/root
     elif [ "${2}" = "-b" ] ; then
        export type=basejail
-       zfs snapshot -r $pool/iocage/base/$release@$uuid
+       zfs snapshot -r $pool/iocage/base@$uuid
        zfs create -p $pool/iocage/jails/$uuid/root/usr
 
        for fs in $bfs_list ; do
