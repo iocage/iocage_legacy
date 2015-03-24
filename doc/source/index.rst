@@ -59,7 +59,6 @@ Documentation:
    pre-flight-checklist
    best-practices
    using-uuids
-   basejails
    auto-boot
    automatic-package-installation
    configure-interfaces
