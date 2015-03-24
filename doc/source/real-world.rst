@@ -3,11 +3,8 @@ Real world example with VNET, NAT, PF, IPFW and port forwarding
 
 This is a tested real world set up with VNET jails running IPFW and the host running both PF and IPFW. IPFW was set to allow all traffic to simplify this example.
 
-After making the following changes make sure the host can restart cleanly. 
+After making the following changes make sure the host can restart cleanly.
 
-**For IPFW to work inside a jail set the securelevel property to "2":**
-
-``iocage set securelevel=2 UUID | TAG``
 
 **The host**
 
@@ -23,7 +20,7 @@ The host has the following relevant configuration needed to support VNET jails
         net.link.bridge.pfil_bridge=0
         net.link.bridge.pfil_member=0
         security.bsd.unprivileged_read_msgbuf=0
-        # This is only for routing tables if any 
+        # This is only for routing tables if any
         # (do not create default routing tables for all FIB's)
         net.add_addr_allfibs=0
 
@@ -50,7 +47,6 @@ The host has the following relevant configuration needed to support VNET jails
 
         # TABLES --------------------------------
         table <abusive_hosts> persist
-
         # don't filter on the loopback, VNET and bridge
         set skip on lo
         set skip on vnet
@@ -85,6 +81,10 @@ The host has the following relevant configuration needed to support VNET jails
         pass in inet proto icmp all icmp-type echoreq
 
 
+**For IPFW to work inside a jail set the securelevel property to "2":**
+
+``iocage set securelevel=2 UUID | TAG``
+
 
 **The jail**
 
@@ -94,12 +94,12 @@ The host has the following relevant configuration needed to support VNET jails
 
         hostname=UUID
         cron_flags="$cron_flags -J 15"
-
+        
         # Configure vnet0
         ifconfig_vnet0="10.1.1.10/24"
 
         # Set default GW to point to bridge0 IP
-        defaultrouter="10.1.1.256"
+        defaultrouter="10.1.1.254"
 
         # Disable Sendmail by default
         sendmail_enable="NONE"
@@ -118,6 +118,6 @@ The host has the following relevant configuration needed to support VNET jails
 
      ::
 
-        nameserver 8.8.4.4
-        nameserver 8.8.8.8
+        nameserver 46.246.46.246
+        nameserver 194.132.32.32
 
