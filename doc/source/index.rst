@@ -56,6 +56,7 @@ Documentation:
    :maxdepth: 2
 
    faq
+   jailtypes
    pre-flight-checklist
    best-practices
    using-uuids
@@ -72,6 +73,7 @@ Documentation:
    snapshots
    thin-thick
    updating
+   upgrading
    real-world
    debian
 
