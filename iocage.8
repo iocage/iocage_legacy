@@ -51,9 +51,9 @@ or shared IP networking with optional support for resource \fIlimits\fP.
 Both, shared IP based jails and VNET enabled jails are supported.
 .PP
 Each jail has a unique ID (\fIUUID\fP) automatically generated at creation time.
-Using \fIUUID\fP as jail identifier means that a jail can be replicated in a
+Using a \fIUUID\fP as the jail identifier means that a jail can be replicated in a
 distributed environment with greater flexibility. This also eliminates
-potential naming clashes on large scale deployments and reduces error.
+potential naming clashes on large scale deployments and helps reduce operator error.
 .PP
 Partial \fIUUID\fP calling is supported with every operation, e.g. for
 "adae47cb-01a8-11e4-aa78-3c970ea3222f" the use in the form of "adae47cb" or just "adae" works.
@@ -108,7 +108,7 @@ Kernel compiled with:
 
     fetch must be executed as the first command on a pristine system. By
     default fetch will download the host node's RELEASE for deployment. If
-    other releases are required this can be changed with supplying the
+    other releases are required, this can be changed by supplying the
     required release property or just selecting the appropriate RELEASE from
     the menu list.
 
@@ -124,7 +124,7 @@ Kernel compiled with:
 .fam T
 .fi
 .RS
-This will apply latest patches to 10.1-RELEASE base. Newly created jails
+This example will apply the latest patches to a 10.1-RELEASE base. Newly created jails
 or basejails will automatically have the latest updates applied.
 .RE
 .PP
@@ -410,7 +410,7 @@ or basejails will automatically have the latest updates applied.
 .PP
 .nf
 .fam C
-    By default upgrade jail RELEASE to match the host's RELEASE unless another
+    By default this will upgrade the jail RELEASE to match the host's RELEASE unless another
     RELEASE version is specified with the "release" property.
 
     Please note: Upgrading basejails is done by setting the jail's "release"
@@ -440,7 +440,7 @@ or basejails will automatically have the latest updates applied.
 .fam C
     Package recorded jail session into /iocage/packages. Creates SHA256
     checksum and prunes empty directories, files and some residual files like
-    utx.* and .history. Before packaging any jails make sure no unwanted files
+    utx.* and .history. Before packaging any jails, make sure no unwanted files
     contaminated or leaked into the recorded package.
 
 .fam T
@@ -509,7 +509,7 @@ vnet=on | off
 .PP
 .nf
 .fam C
-    This controls whether to start the jail with VNET or shared IP
+    This controls whether to start the jail with VNET or a shared IP
     configuration. Default is to auto-guess from a sysctl. If you don't need a fully
     virtualized per jail network stack set it to off.
 
@@ -1814,7 +1814,7 @@ Get the last successful \fIstart\fP time for \fIall\fP jails
 active pool for use based on this string.
 .PP
 If using VNET don't forget to add the node's physical NIC into one of the bridges if you
-need outside connection. Also read \fBbridge\fP(4) how traffic is handled if you
+need an outside connection. Also read \fBbridge\fP(4) to see how traffic is handled if you
 are not familiar with this concept (in a nutshell: bridge behaves like a
 network switch).
 .PP
