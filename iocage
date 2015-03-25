@@ -34,6 +34,13 @@ if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
     exit 0
 fi
 
+# Check is the system has ZFS that is required for iocage to work properly
+# and exit if it doesn't
+if [ "$(zpool list)" = 'no pools available' ] ; then
+    echo "  ERROR: ZFS is required for iocage to work and I can't finy any pools available."
+    exit 1
+fi
+
 # Auto UUID
 uuid=$(uuidgen)
 
