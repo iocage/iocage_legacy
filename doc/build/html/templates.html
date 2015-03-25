@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>How to use templates &mdash; iocage 1.5.1 documentation</title>
+    <title>How to create and use templates &mdash; iocage 1.5.1 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -51,12 +51,12 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="how-to-use-templates">
-<h1>How to use templates<a class="headerlink" href="#how-to-use-templates" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="how-to-create-and-use-templates">
+<h1>How to create and use templates<a class="headerlink" href="#how-to-create-and-use-templates" title="Permalink to this headline">¶</a></h1>
 <p><strong>Templates can save you precious time!</strong></p>
 <p>Set up a jail any way you like, and create a template from it. All packages and pre-configured settings will be available for deployment next time within seconds.</p>
-<p>Any jail can be converted to a template and back to a jail again as required. In fact a template is just another jail which has the property <tt class="docutils literal"><span class="pre">template</span></tt> set to &#8220;yes&#8221;. The difference is that templates are not started by iocage, they are ignored!</p>
-<p><strong>Here is how to do it with iocage:</strong></p>
+<p>Any jail can be converted to a template and back to a jail again as required. In fact a template is just another jail which has the property <tt class="docutils literal"><span class="pre">template</span></tt> set to &#8220;yes&#8221;. The difference is that templates are not started by iocage, they ar$</p>
+<p><strong>Here is how to create a template with iocage:</strong></p>
 <ol class="arabic simple">
 <li>create a new jail <tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">create</span> <span class="pre">tag=mytemplate</span></tt></li>
 <li>configure the jail&#8217;s networking</li>
@@ -66,6 +66,7 @@
 <li>turn the template property on <tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">template=yes</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></li>
 <li>list your template with <tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">list</span> <span class="pre">-t</span></tt></li>
 </ol>
+<p><strong>Here is how to use the created template:</strong></p>
 <p>To create a new jail from this template simply clone it!</p>
 <ol class="arabic simple">
 <li><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">clone</span> <span class="pre">UUID-of-mytemplate</span> <span class="pre">tag=mynewjail</span></tt></li>

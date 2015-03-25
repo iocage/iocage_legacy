@@ -55,8 +55,6 @@
 <h1>Real world example with VNET, NAT, PF, IPFW and port forwarding<a class="headerlink" href="#real-world-example-with-vnet-nat-pf-ipfw-and-port-forwarding" title="Permalink to this headline">¶</a></h1>
 <p>This is a tested real world set up with VNET jails running IPFW and the host running both PF and IPFW. IPFW was set to allow all traffic to simplify this example.</p>
 <p>After making the following changes make sure the host can restart cleanly.</p>
-<p><strong>For IPFW to work inside a jail set the securelevel property to &#8220;2&#8221;:</strong></p>
-<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">securelevel=2</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
 <p><strong>The host</strong></p>
 <p>The host has the following relevant configuration needed to support VNET jails
 (<cite>these are relevant snippets only</cite>):</p>
@@ -94,7 +92,6 @@ int_if = "{" bridge epair vnet "}"
 
 # TABLES --------------------------------
 table &lt;abusive_hosts&gt; persist
-
 # don't filter on the loopback, VNET and bridge
 set skip on lo
 set skip on vnet
@@ -129,6 +126,8 @@ pass log on $if proto { tcp udp } from any to any port { ssh http 445 } keep sta
 pass in inet proto icmp all icmp-type echoreq</pre>
 </div>
 </div></blockquote>
+<p><strong>For IPFW to work inside a jail set the securelevel property to &#8220;2&#8221;:</strong></p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">securelevel=2</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
 <p><strong>The jail</strong></p>
 <p><tt class="docutils literal"><span class="pre">/etc/rc.conf</span></tt>:</p>
 <blockquote>
@@ -139,7 +138,7 @@ pass in inet proto icmp all icmp-type echoreq</pre>
 <span class="n">ifconfig_vnet0</span><span class="o">=</span><span class="s">&quot;10.1.1.10/24&quot;</span>
 
 <span class="c"># Set default GW to point to bridge0 IP</span>
-<span class="n">defaultrouter</span><span class="o">=</span><span class="s">&quot;10.1.1.256&quot;</span>
+<span class="n">defaultrouter</span><span class="o">=</span><span class="s">&quot;10.1.1.254&quot;</span>
 
 <span class="c"># Disable Sendmail by default</span>
 <span class="n">sendmail_enable</span><span class="o">=</span><span class="s">&quot;NONE&quot;</span>
@@ -158,8 +157,8 @@ pass in inet proto icmp all icmp-type echoreq</pre>
 </div></blockquote>
 <p><tt class="docutils literal"><span class="pre">/etc/resolv.conf</span></tt>:</p>
 <blockquote>
-<div><div class="highlight-python"><pre>nameserver 8.8.4.4
-nameserver 8.8.8.8</pre>
+<div><div class="highlight-python"><pre>nameserver 46.246.46.246
+nameserver 194.132.32.32</pre>
 </div>
 </div></blockquote>
 </div>
