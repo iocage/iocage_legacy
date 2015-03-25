@@ -7,8 +7,8 @@ iocage is a zero dependency drop in jail/container manager amalgamating some
 of the best features and technologies the FreeBSD operating system has to offer.
 It is geared for ease of use with a simple and easy to understand command syntax.
 
-Iocage is in the FreeBSD ports tree.
-To install simply run: `pkg install iocage`
+Iocage is in the FreeBSD ports tree in sysutils/iocage.
+To install using binary packages simply run: `pkg install iocage`
 
 - **[DOCUMENTATION](http://iocage.readthedocs.org/en/latest/index.html)**
 
@@ -68,7 +68,7 @@ To install simply run: `pkg install iocage`
 -  iocage help
 
 **REQUIREMENTS**
-- FreeBSD 10.0-RELEASE amd64
+- FreeBSD 9.3-RELEASE amd64 or newer
 - ZFS file system
 - Kernel compiled with:
 
