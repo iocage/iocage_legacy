@@ -44,7 +44,7 @@ for each property. By default iocage pre-configures each property with a safe de
 
 **VNET/VIMAGE issues**
 
-VNET/VIMAGE can cause unexpected system crashes when VNET enabled jails are destroyed - that is the
+VNET/VIMAGE can cause unexpected system crashes when VNET enabled jails are destroyed - that is when the
 jail process is killed, removed, stopped.
 
 As a workaround iocage allows a warm restart without destroying the jail.
