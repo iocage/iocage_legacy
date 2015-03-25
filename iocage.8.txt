@@ -45,9 +45,10 @@ DESCRIPTION
   Both, shared IP based jails and VNET enabled jails are supported.
 
   Each jail has a unique ID (UUID) automatically generated at creation time.
-  Using UUID as jail identifier means that a jail can be replicated in a
+  Using the UUID as a jail identifier means that a jail can be replicated in a
   distributed environment with greater flexibility. This also eliminates
-  potential naming clashes on large scale deployments and reduces error.
+  potential naming clashes on large scale deployments and helps reduce 
+  operator error.
 
   Partial UUID calling is supported with every operation, e.g. for
   "adae47cb-01a8-11e4-aa78-3c970ea3222f" the use in the form of "adae47cb" or just "adae" works.
@@ -82,7 +83,7 @@ SUBCOMMANDS
 
     fetch must be executed as the first command on a pristine system. By
     default fetch will download the host node's RELEASE for deployment. If
-    other releases are required this can be changed with supplying the
+    other releases are required, this can be changed by supplying the
     required release property or just selecting the appropriate RELEASE from
     the menu list.
 
@@ -93,8 +94,9 @@ SUBCOMMANDS
 
              iocage fetch release=10.1-RELEASE
 
-    This will apply latest patches to 10.1-RELEASE base. Newly created jails
-    or basejails will automatically have the latest updates applied.
+    This example will apply latest patches to 10.1-RELEASE base.
+    Newly created jails or basejails will automatically have the latest
+    latest updates applied.
 
   create [-b|-c|-e] [release=RELEASE] [property=value] [property=value]
 
@@ -107,7 +109,7 @@ SUBCOMMANDS
     custom jails.
     The -b flag will create a so called "basejail" with a common shared base.
 
-    Example: iocage create tag=www01 pkglist=/home/ptoth/my-pkgs.txt
+    Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
              iocage create -b tag=mybasejail
 
   clone UUID|TAG [UUID|TAG@snapshot] [property=value]
@@ -264,8 +266,8 @@ SUBCOMMANDS
 
   upgrade UUID|TAG [release=RELEASE]
 
-    By default upgrade jail RELEASE to match the host's RELEASE unless another
-    RELEASE version is specified with the "release" property.
+    By default this will upgrade jail RELEASE to match the host's RELEASE
+    unless another RELEASE is specified with the "release" property.
 
     Please note: Upgrading basejails is done by setting the jail's "release"
     property to the required new RELEASE:
@@ -273,8 +275,8 @@ SUBCOMMANDS
     iocage set release=10.1-RELEASE UUID|TAG
 
     For this the RELEASE must be locally available. The basejail
-    will re-clone its filesystems from the new release either by issuing the upgrade
-    command or at next jail start.
+    will re-clone its filesystems from the new release either by issuing
+    the upgrade command or at next jail start.
 
   record start|stop UUID|TAG
 
@@ -286,7 +288,7 @@ SUBCOMMANDS
 
     Package recorded jail session into /iocage/packages. Creates SHA256
     checksum and prunes empty directories, files and some residual files like
-    utx.* and .history. Before packaging any jails make sure no unwanted files
+    utx.* and .history. Before packaging any jails, make sure no unwanted files
     contaminated or leaked into the recorded package.
 
   export UUID|TAG
@@ -327,9 +329,9 @@ PROPERTIES
 
   vnet=on | off
 
-    This controls whether to start the jail with VNET or shared IP
-    configuration. Default is to auto-guess from a sysctl. If you don't need a fully
-    virtualized per jail network stack set it to off.
+    This controls whether to start the jail with VNET or a shared IP
+    configuration. Default is to auto-guess from a sysctl. If you don't
+    need a fully virtualized per jail network stack set it to off.
 
     Default: auto-guess
     Source: local
@@ -1219,10 +1221,10 @@ HINTS
   iocage marks a ZFS pool in the pool's comment field and identifies the
   active pool for use based on this string.
 
-  If using VNET don't forget to add the node's physical NIC into one of the bridges if you
-  need outside connection. Also read bridge(4) how traffic is handled if you
-  are not familiar with this concept (in a nutshell: bridge behaves like a
-  network switch).
+  If using VNET don't forget to add the node's physical NIC into one
+  of the bridges if you need an outside connection. Also read bridge(4)
+  to see how traffic is handled if you are not familiar with this concept
+  (in a nutshell: bridge behaves like a network switch).
 
   PF firewall is not supported inside VNET jails as of July 2014. PF can be
   enabled for the host however. IPFW is fully supported inside a VNET jail.
