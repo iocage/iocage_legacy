@@ -1557,7 +1557,7 @@ __list_jails () {
 
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
+                printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
                 "$boot" "$state" "$tag"
             fi
         elif [ $switch != "-t" ] ; then
@@ -1587,18 +1587,16 @@ __list_jails () {
     # output non iocage jails currently active
     if [ -n "$non_ioc_jids" ] ; then
         if [ $switch != "-t" ] ; then
-            if [ $template != "yes" ] ; then
-                printf "%-+40s\n" "--- non iocage jails currently active ---"
-                printf "%-4s  %-36s  %-15s  %s \n" "JID" "PATH"\
-                      "IP4" "HOSTNAME"
-                for jid in $non_ioc_jids ; do
-                    path=$(jls -j $jid  -h path | grep -v -x "path")
-                    ip4=$(jls -j $jid  -h ip4.addr | grep -v -x "ip4.addr")
-                    host_hostname=$(jls -j $jid  -h host.hostname | grep -v -x "host.hostname")
-                    printf "%-4s  %-36.36s  %-15s  %s\n" "$jid" "$path"  \
-                            "$ip4" "$host_hostname"
-                done
-            fi
+            printf "%-+40s\n" "--- non iocage jails currently active ---"
+            printf "%-4s  %-36s  %-15s  %s \n" "JID" "PATH"\
+                  "IP4" "HOSTNAME"
+            for jid in $non_ioc_jids ; do
+                path=$(jls -j $jid  -h path | grep -v -x "path")
+                ip4=$(jls -j $jid  -h ip4.addr | grep -v -x "ip4.addr")
+                host_hostname=$(jls -j $jid  -h host.hostname | grep -v -x "host.hostname")
+                printf "%-4s  %-36.36s  %-15s  %s\n" "$jid" "$path"  \
+                        "$ip4" "$host_hostname"
+            done
         fi
     fi
 }
