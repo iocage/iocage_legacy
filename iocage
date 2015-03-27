@@ -1557,7 +1557,7 @@ __list_jails () {
 
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-4s  %-+.36s  %-4s   %-4s   %s\n" "----" "$uuid" \
+                printf "%-+.36s %-3s %-4s %s\n" "$uuid" \
                 "$boot" "$state" "$tag"
             fi
         elif [ $switch != "-t" ] ; then
@@ -2755,7 +2755,7 @@ SUBCOMMANDS
 
     List all jails, if -t is specified list only templates, with -r list downloaded 
     releases.
-    Non iocage jails listed, only if in UP state.
+    Non iocage jail listed, only if jail in UP state.
 
   df
 
