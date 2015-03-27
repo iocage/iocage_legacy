@@ -1538,6 +1538,7 @@ __list_jails () {
         jail_path=$(zfs get -H -o value mountpoint $jail)
         state=$(jls | grep ${jail_path} | awk '{print$1}')
         template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
+        # get jid for iocage jails
         jid=$(jls -j "ioc-"$uuid  -h jid 2> /dev/null | grep -v -x "jid")
         if [ -z "$jid"  ] ; then
             jid="-"
@@ -1567,6 +1568,7 @@ __list_jails () {
         fi
     done
 
+    # create list of active jids not registered in iocage
     for all_jail in $all_jids ; do
         for ioc_jail in $ioc_jids ; do
             if [ "$all_jail" == "$ioc_jail" ] ; then
@@ -1581,6 +1583,8 @@ __list_jails () {
         local non_ioc_jids=$non_ioc_jids" "$temp_loop_var
     fi
     done
+
+    # output non iocage jails currently active
     if [ -n "$non_ioc_jids" ] ; then
         if [ $switch != "-t" ] ; then
             if [ $template != "yes" ] ; then
