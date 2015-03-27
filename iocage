@@ -1516,7 +1516,8 @@ __list_jails () {
     local jails=$(__find_jail ALL)
     local switch=$1
     local all_jids=$(jls -N -h jid | grep -v -x jid )
-    local non_ioc_jails=''
+    local ioc_jids=""
+    local non_ioc_jids=""
 
     if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
         echo "Downloaded releases:"
@@ -1537,9 +1538,11 @@ __list_jails () {
         jail_path=$(zfs get -H -o value mountpoint $jail)
         state=$(jls | grep ${jail_path} | awk '{print$1}')
         template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
-        jid=$(jls -j "ioc-"$uuid  -h jid | grep -v -x "jid")
-
-
+        jid=$(jls -j "ioc-"$uuid  -h jid 2> /dev/null | grep -v -x "jid")
+        if [ -z "$jid"  ] ; then
+            jid="-"
+        fi
+        local ioc_jids=$ioc_jids" "$jid
 
         if [ -z "$state" ] ; then
             state=down
@@ -1565,24 +1568,26 @@ __list_jails () {
     done
 
     for all_jail in $all_jids ; do
-        for jail in $jails ; do
-            if [ $all_jail == $jid ] ; then
-                temp_var=''
+        for ioc_jail in $ioc_jids ; do
+            if [ "$all_jail" == "$ioc_jail" ] ; then
+                local temp_loop_var=""
                 break
             else
-                temp_var=$all_jail
+                local temp_loop_var=$all_jail
+
             fi
         done
-    non_ioc_jails=$non_ioc_jails" "$temp_var
+    if [ -n "$temp_loop_var" ] ; then
+        local non_ioc_jids=$non_ioc_jids" "$temp_loop_var
+    fi
     done
-
-    if [ ! -z $non_ioc_jails ] ; then
+    if [ -n "$non_ioc_jids" ] ; then
         if [ $switch != "-t" ] ; then
             if [ $template != "yes" ] ; then
                 printf "%-+40s\n" "--- non iocage jails currently active ---"
                 printf "%-4s  %-36s  %-15s  %s \n" "JID" "PATH"\
                       "IP4" "HOSTNAME"
-                for jid in $non_ioc_jails ; do
+                for jid in $non_ioc_jids ; do
                     path=$(jls -j $jid  -h path | grep -v -x "path")
                     ip4=$(jls -j $jid  -h ip4.addr | grep -v -x "ip4.addr")
                     host_hostname=$(jls -j $jid  -h host.hostname | grep -v -x "host.hostname")
