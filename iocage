@@ -1557,7 +1557,7 @@ __list_jails () {
 
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-+.36s %-3s %-4s %s\n" "$uuid" \
+                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
                 "$boot" "$state" "$tag"
             fi
         elif [ $switch != "-t" ] ; then
