@@ -1522,6 +1522,9 @@ __rc_jails () {
 __list_jails () {
     local jails=$(__find_jail ALL)
     local switch=$1
+    local all_jids=$(jls -N -h jid | grep -v -x jid )
+    local ioc_jids=""
+    local non_ioc_jids=""
 
     if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
         echo "Downloaded releases:"
@@ -1533,7 +1536,7 @@ __list_jails () {
         exit 0
     fi
 
-    printf "%-36s  %s  %s  %s\n" "UUID" "BOOT"\
+    printf "%-4s  %-36s  %s  %s  %s\n" "JID" "UUID"  "BOOT"\
            "STATE" "TAG"
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
@@ -1542,6 +1545,12 @@ __list_jails () {
         jail_path=$(zfs get -H -o value mountpoint $jail)
         state=$(jls | grep ${jail_path} | awk '{print$1}')
         template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
+        # get jid for iocage jails
+        jid=$(jls -j "ioc-"$uuid  -h jid 2> /dev/null | grep -v -x "jid")
+        if [ -z "$jid"  ] ; then
+            jid="-"
+        fi
+        local ioc_jids=$ioc_jids" "$jid
 
         if [ -z "$state" ] ; then
             state=down
@@ -1555,16 +1564,48 @@ __list_jails () {
 
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
+                printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
                 "$boot" "$state" "$tag"
             fi
         elif [ $switch != "-t" ] ; then
             if [ $template != "yes" ] ; then
-                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
+                printf "%-4s  %-+.36s  %-4s  %-4s   %s\n" "$jid" "$uuid"  \
                 "$boot" "$state" "$tag"
             fi
         fi
     done
+
+    # create list of active jids not registered in iocage
+    for all_jail in $all_jids ; do
+        for ioc_jail in $ioc_jids ; do
+            if [ "$all_jail" == "$ioc_jail" ] ; then
+                local temp_loop_var=""
+                break
+            else
+                local temp_loop_var=$all_jail
+
+            fi
+        done
+    if [ -n "$temp_loop_var" ] ; then
+        local non_ioc_jids=$non_ioc_jids" "$temp_loop_var
+    fi
+    done
+
+    # output non iocage jails currently active
+    if [ -n "$non_ioc_jids" ] ; then
+        if [ $switch != "-t" ] ; then
+            printf "%-+40s\n" "--- non iocage jails currently active ---"
+            printf "%-4s  %-36s  %-15s  %s \n" "JID" "PATH"\
+                  "IP4" "HOSTNAME"
+            for jid in $non_ioc_jids ; do
+                path=$(jls -j $jid  -h path | grep -v -x "path")
+                ip4=$(jls -j $jid  -h ip4.addr | grep -v -x "ip4.addr")
+                host_hostname=$(jls -j $jid  -h host.hostname | grep -v -x "host.hostname")
+                printf "%-4s  %-36.36s  %-15s  %s\n" "$jid" "$path"  \
+                        "$ip4" "$host_hostname"
+            done
+        fi
+    fi
 }
 
 __show () {
@@ -2719,6 +2760,7 @@ SUBCOMMANDS
 
     List all jails, if -t is specified list only templates, with -r list downloaded 
     releases.
+    Non iocage jail listed, only if jail in UP state.
 
   df
 
