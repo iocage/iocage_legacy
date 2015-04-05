@@ -168,7 +168,7 @@ sync_tgt_zpool="none"
 
 # FTP variables
 ftphost="ftp.freebsd.org"
-ftpfiles="base.txz doc.txz lib32.txz"
+ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
 # Resource limits
 CONF_RCTL="memoryuse
@@ -289,6 +289,7 @@ bfs_list="bin
           usr/libexec
           usr/sbin
           usr/share
+          usr/src
           usr/libdata
           usr/lib32"
 
@@ -470,11 +471,15 @@ __create_basejail () {
                    usr/libexec
                    usr/sbin
                    usr/share
+                   usr/src
                    usr/libdata
                    usr/lib32"
 
+    echo ""
+    echo "Creating basejail ZFS datasets... please wait."
+
     for fs in $(echo $fs_list) ; do
-        zfs create -p $pool/iocage/base/${release}/root/$fs
+        zfs create -o compression=lz4 -p $pool/iocage/base/${release}/root/$fs
     done
 }
 
@@ -544,14 +549,14 @@ __fetch_release () {
     local rel_exist=$(zfs list | grep -w ^$pool/iocage/releases/$release)
 
     if [ -z "$exist" ] ; then
-        zfs create $pool/iocage
+        zfs create -o compression=lz4 $pool/iocage
         zfs set mountpoint=$iocroot $pool/iocage
-        zfs create $pool/iocage/jails
+        zfs create -o compression=lz4 $pool/iocage/jails
         zfs mount -a
     fi 
 
     if [ -z "$download_exist" ] ; then
-        zfs create -p $pool/iocage/download/$release
+        zfs create -o compression=lz4 -p $pool/iocage/download/$release
     fi
 
     ftpdir="/pub/FreeBSD/releases/amd64/$release"
@@ -564,7 +569,7 @@ __fetch_release () {
     done
 
     if [ -z "$rel_exist" ] ; then
-        zfs create -p $pool/iocage/releases/$release/root
+        zfs create -o compression=lz4 -p $pool/iocage/releases/$release/root
     fi
 
     for file in $(echo $ftpfiles) ; do
@@ -618,14 +623,14 @@ __create_jail () {
             zfs clone $fs@$uuid $cfs
         done
     elif [ "${2}" = "-e" ] ; then
-        zfs create -p $pool/iocage/jails/$uuid/root
+        zfs create -o compression=lz4 -p $pool/iocage/jails/$uuid/root
     elif [ "${2}" = "-b" ] ; then
        export type=basejail
        zfs snapshot -r $pool/iocage/base@$uuid
-       zfs create -p $pool/iocage/jails/$uuid/root/usr
+       zfs create -o compression=lz4 -p $pool/iocage/jails/$uuid/root/usr
 
        for fs in $bfs_list ; do
-           zfs clone -o readonly=on \
+           zfs clone -o compression=lz4 -o readonly=on \
            $pool/iocage/base/${release}/root/$fs@$uuid \
            $pool/iocage/jails/$uuid/root/$fs
        done
@@ -656,7 +661,7 @@ __create_jail () {
         echo $uuid
     fi
 
-    zfs create ${pool}/$jail_zfs_dataset
+    zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
     zfs set mountpoint=none ${pool}/$jail_zfs_dataset
     zfs set jailed=on ${pool}/$jail_zfs_dataset
 
@@ -2237,14 +2242,37 @@ __upgrade () {
 
     local fulluuid="$(__check_name $name)"
     local jail_type="$(__get_jail_prop type $fulluuid)"
+    local jail_release="$(__get_jail_prop release $fulluuid)"
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
     local date=$(date "+%F_%T")
     local oldrelease="$(zfs get -H -o value org.freebsd.iocage:release $dataset)"
 
     if [ $jail_type == "basejail" ] ; then
-        # Re-clone required filesystems 
+       if [ ! -e $iocroot/base/$release/built_world ] ; then
+        echo ""
+        echo "Building world for mergemaster... please wait."
+        cd $iocroot/base/$release/root/usr/src
+# Not using jobs here since it breaks 9.3's buildworld. Works fine on 10.1 - skarekrow
+        env MAKEOBJDIRPREFIX=$iocroot/base/$release/root/usr/obj make buildworld && \
+        touch $iocroot/base/$release/built_world
+
+       elif [ -e $iocroot/base/$release/built_world ] ; then
+        zfs set org.freebsd.iocage:release="$release" $dataset
+        # Re-clone required filesystems
         __reclone_basejail $name
+        cp -Rp ${mountpoint}/root/etc ${mountpoint}/root/etc.old
+        mergemaster -U -i -m $iocroot/base/$release/root/usr/src \
+        -t ${mountpoint}/root/var/tmp/temproot \
+        -D ${mountpoint}/root 
+
+        echo ""
+        echo "Upgrade successful. Please restart jail and inspect. Remove ${mountpoint}/root/etc.old if everything is OK."
         exit 0
+    else
+        echo ""
+        echo "Build world failed! Backing out."
+        exit 1
+        fi
     fi
 
     echo "* creating back-out snapshot.."
