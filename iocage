@@ -2222,7 +2222,6 @@ __update () {
 
 __upgrade () {
     local name=$1
-    
     if [ -z $name ] ; then
         echo "  ERROR: missing UUID"
         exit 1
@@ -2240,6 +2239,12 @@ __upgrade () {
         exit 1
     fi
 
+    if [ ! -d $iocroot/download/$release ] ; then
+        echo "  ERROR: $release not found."
+        echo "  Please run iocage fetch first."
+	exit 1
+    fi
+
     local fulluuid="$(__check_name $name)"
     local jail_type="$(__get_jail_prop type $fulluuid)"
     local jail_release="$(__get_jail_prop release $fulluuid)"
@@ -2248,15 +2253,6 @@ __upgrade () {
     local oldrelease="$(zfs get -H -o value org.freebsd.iocage:release $dataset)"
 
     if [ $jail_type == "basejail" ] ; then
-       if [ ! -e $iocroot/base/$release/built_world ] ; then
-        echo ""
-        echo "Building world for mergemaster... please wait."
-        cd $iocroot/base/$release/root/usr/src
-# Not using jobs here since it breaks 9.3's buildworld. Works fine on 10.1 - skarekrow
-        env MAKEOBJDIRPREFIX=$iocroot/base/$release/root/usr/obj make buildworld && \
-        touch $iocroot/base/$release/built_world
-
-       elif [ -e $iocroot/base/$release/built_world ] ; then
         zfs set org.freebsd.iocage:release="$release" $dataset
         # Re-clone required filesystems
         __reclone_basejail $name
@@ -2265,14 +2261,18 @@ __upgrade () {
         -t ${mountpoint}/root/var/tmp/temproot \
         -D ${mountpoint}/root 
 
+    if [ $? -eq 0 ] ; then
         echo ""
-        echo "Upgrade successful. Please restart jail and inspect. Remove ${mountpoint}/root/etc.old if everything is OK."
+        echo "  Upgrade successful. Please restart jail and inspect. Remove ${mountpoint}/root/etc.old if everything is OK."
         exit 0
     else
         echo ""
-        echo "Build world failed! Backing out."
+        echo "  Mergemaster failed! Backing out."
+	zfs set org.freebsd.iocage:release="$oldrelease" $dataset
+	rm -rf ${mountpoint}/root/etc
+	mv ${mountpoint}/root/etc.old ${mountpoint}/root/etc
         exit 1
-        fi
+      fi
     fi
 
     echo "* creating back-out snapshot.."
@@ -2296,7 +2296,7 @@ __upgrade () {
     # Set jail's zfs property to new release
     zfs set org.freebsd.iocage:release="$release" $dataset
     else
-       echo "Upgrade failed, aborting install."
+       echo "  Upgrade failed, aborting install."
        exit 1
     fi 
 
