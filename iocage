@@ -602,6 +602,9 @@ __fetch_release () {
     if [ ! -e "$iocroot/base/$release/root/usr/sbin/chown" ] ; then
        cd $iocroot/base/$release/root/usr/sbin && ln -s ../bin/chgrp chown
     fi
+
+    etcupdate extract -D $iocroot/base/$release/root \
+    -s $iocroot/base/$release/root/usr/src
 }
 
 # This creates jails----------------------------------------------------
@@ -2257,9 +2260,9 @@ __upgrade () {
         # Re-clone required filesystems
         __reclone_basejail $name
         cp -Rp ${mountpoint}/root/etc ${mountpoint}/root/etc.old
-        mergemaster -U -i -m $iocroot/base/$release/root/usr/src \
-        -t ${mountpoint}/root/var/tmp/temproot \
-        -D ${mountpoint}/root 
+        etcupdate -D ${mountpoint}/root -F \
+        -s $iocroot/base/$release/root/usr/src
+        chroot ${mountpoint}/root /bin/sh -c "newaliases"
 
     if [ $? -eq 0 ] ; then
         echo ""
