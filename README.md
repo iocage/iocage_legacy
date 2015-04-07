@@ -1,33 +1,34 @@
 iocage
 ======
 
-**FreeBSD jail manager**
+**A FreeBSD jail manager.**
 
-iocage is a zero dependency drop in jail/container manager amalgamating some
+iocage is a zero dependency, drop in jail/container manager amalgamating some
 of the best features and technologies the FreeBSD operating system has to offer.
 It is geared for ease of use with a simple and easy to understand command syntax.
 
-iocage is in the FreeBSD ports tree in sysutils/iocage.
-To install using binary packages simply run: `pkg install iocage`
+iocage is in the FreeBSD ports tree as sysutils/iocage.
+To install using binary packages, simply run: `pkg install iocage`
 
 - **[DOCUMENTATION](http://iocage.readthedocs.org/en/latest/index.html)**
 
 **FEATURES:**
-- rapid thin provisioning (within seconds!)
-- templating
-- automatic package installation
-- ease of use (also supports shortened UUIDs and TAGs)
-- zero configuration files
-- virtual networking stacks (vnet)
-- shared IP based jails (non vnet)
-- fully writable clones
-- resource limits (CPU, MEMORY, etc.)
-- filesystem quotas and reservations
+- Rapid thin provisioning (within seconds!)
+- Templating
+- Automatic package installation
+- Ease of use (also supports shortened UUIDs and TAGs)
+- Zero configuration files
+- Virtual networking stacks (vnet)
+- Shared IP based jails (non vnet)
+- Fully writable clones
+- Read only basejails
+- Resource limits (CPU, MEMORY, etc.)
+- Filesystem quotas and reservations
 - ZFS jailing inside jails
-- transparent snapshot management
-- binary updates
-- differential jail packaging
-- export and import
+- Transparent snapshot management
+- Binary updates
+- Differential jail packaging
+- Export and import
 - and many more!
 
 **USAGE:**
@@ -80,28 +81,28 @@ To install using binary packages simply run: `pkg install iocage`
         options         RCTL   # same as above
 
 **OTHER CONSIDERATIONS**
-- for resource limiting please read rctl(8)
-- for the explanations on jail properties read jail(8)
-- create bridge0 and bridge1 interfaces 
+- For resource limiting please read rctl(8)
+- For the explanations on jail properties read jail(8)
+- Create bridge0 and bridge1 interfaces 
 
 **QUICK HOWTO**
-- 1. add bridge configuration to `/etc/rc.conf` on the host node
+- 1. Add bridge configuration to `/etc/rc.conf` on the host node
    `cloned_interfaces="bridge0 bridge1"`
-- 2. run `iocage fetch` - this will fetch the current release and prepare the
+- 2. Run `iocage fetch` - this will fetch the current release and prepare the
    base jail environment. Optionally release can be overridden by issuing 
    `iocage fetch release=9.2-RELEASE` if you intend to run other releases.
-- 3. execute `iocage create` - this will set up a jail from scratch. If needed
+- 3. Execute `iocage create` - this will set up a jail from scratch. If needed
    The -c option will create a thin jail (ZFS clone) example: `iocage create -c`
    the `tag=any_name` can be used to tag a jail at creation.
-- 4. issue `iocage list`
-- 5. start the jail with `iocage start uuid`
-- 6. drop into jail with `iocage console uuid`
+- 4. Issue `iocage list`
+- 5. Start the jail with `iocage start uuid`
+- 6. Drop into jail with `iocage console uuid`
 
 **OPTIONAL**
-- turn on resource caps with `iocage set rlimits=on uuid`
-- reload limits on-the-fly `iocage cap uuid`
-- list resource usage `iocage inuse uuid`
-- release limits `iocage uncap uuid`
+- Turn on resource caps with `iocage set rlimits=on uuid`
+- Reload limits on-the-fly `iocage cap uuid`
+- List resource usage `iocage inuse uuid`
+- Release limits `iocage uncap uuid`
 
 **HINTS**
 - Use iocage set/get to modify properties
