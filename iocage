@@ -1746,19 +1746,19 @@ __stop_legacy_networking () {
                        awk 'BEGIN { FS = "|" } ; { print $2 }' | \
                        awk 'BEGIN { FS = "/" } ; { print $1 }')"
 
-            ifconfig $iface -alias $ip4
+            ifconfig $iface $ip4 -alias
         done
     fi
 
     if [ $ip6_addr != "none" ] ; then
         IFS=','
         for ip6 in $ip6_addr ; do
-            local iface="$(echo $ip | \
+            local iface="$(echo $ip6 | \
                          awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            local ip6="$(echo $ip | \
+            local ip6="$(echo $ip6 | \
                        awk 'BEGIN { FS = "|" } ; { print $2 }' | \
                        awk 'BEGIN { FS = "/" } ; { print $1 }')"
-            ifconfig $iface -alias $ip6
+            ifconfig $iface inet6 $ip6 -alias
         done
     fi
 }
