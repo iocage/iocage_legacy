@@ -57,12 +57,7 @@ else
     vnet="off"
 fi
 
-# see if there is ipv6 support (for shared mode networking)
-if [ ! -z $(sysctl -qn security.jail.param.ip6.addr) ] ; then
-    ipv6="on"
-else
-    ipv6="off"
-fi
+ipv6="on"
 
 interfaces="vnet0:bridge0,vnet1:bridge1"
 host_hostname=$uuid
