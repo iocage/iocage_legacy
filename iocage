@@ -1693,12 +1693,14 @@ __networking () {
         for i in $nics ; do
             local nic=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')
             local bridge=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')
+	    local memberif=$(ifconfig $bridge | grep member | head -n1 | cut -d' ' -f2)
+	    local brmtu=$(ifconfig $memberif | head -n1 |cut -d' ' -f6)
             epair_a=$(ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
-            ifconfig ${epair_a} name ${nic}:${jid}
+            ifconfig ${epair_a} name ${nic}:${jid} mtu $brmtu
             ifconfig ${nic}:${jid} description "associated with jail: $name"
             ifconfig $epair_b vnet ioc-${2}
-            jexec ioc-${2} ifconfig $epair_b name $nic
+            jexec ioc-${2} ifconfig $epair_b name $nic mtu $brmtu
             ifconfig $bridge addm ${nic}:${jid} up
             ifconfig ${nic}:${jid} up
         done
