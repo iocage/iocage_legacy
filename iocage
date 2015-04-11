@@ -70,6 +70,7 @@ ip6_addr="none"
 ip6_saddrsel="1"
 ip6="new"
 defaultrouter="none"
+defaultrouter6="none"
 
 # Standard jail properties
 devfs_ruleset="4"
@@ -199,6 +200,7 @@ CONF_NET="interfaces
           ip6_saddrsel
           ip6
           defaultrouter
+          defaultrouter6
           exec_fib"
 
 # Native jail properties
@@ -1684,6 +1686,7 @@ __networking () {
     local ip4="$(__get_jail_prop ip4_addr $name)"
     local ip6="$(__get_jail_prop ip6_addr $name)"
     local defaultgw="$(__get_jail_prop defaultrouter $name)"
+    local defaultgw6="$(__get_jail_prop defaultrouter6 $name)"
     local nics="$(__get_jail_prop interfaces $name \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
@@ -1724,6 +1727,10 @@ __networking () {
         if [ "$defaultgw" != "none" ] ; then
             jexec ioc-${2} route add default $defaultgw > /dev/null
         fi
+
+	if [ "$defaulgw6" != "none" ] ; then
+	    jexec ioc-${2} route add -6 default $defaultgw6 >/dev/null
+	fi
 
     elif [ $action == "stop" ] ; then
         for if in $nics ; do
@@ -3041,6 +3048,11 @@ PROPERTIES
 
     Setting this property to anything other than none will try to configure a
     default route inside a VNET jail.
+  
+  defaultrouter6=none | ip6address
+
+    Setting this property to anything other than none will try to configure a
+    default IPv6 route inside a VNET jail.
 
   ip6.addr, ip6.saddrsel, ip6
     A set of IPv6 options for the prison, the counterparts to
