@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -15,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '1.5.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -86,13 +84,13 @@
 </div></blockquote>
 <p><tt class="docutils literal"><span class="pre">/etc/pf.conf</span></tt>:</p>
 <blockquote>
-<div><div class="highlight-python"><pre># MACROS --------------------------------
-if  = "{" em0 "}"
-int_if = "{" bridge epair vnet "}"
+<div><div class="highlight-python"><div class="highlight"><pre># MACROS --------------------------------
+if  = &quot;{&quot; em0 &quot;}&quot;
+int_if = &quot;{&quot; bridge epair vnet &quot;}&quot;
 
 # TABLES --------------------------------
 table &lt;abusive_hosts&gt; persist
-# don't filter on the loopback, VNET and bridge
+# don&#39;t filter on the loopback, VNET and bridge
 set skip on lo
 set skip on vnet
 set skip on bridge
@@ -123,7 +121,8 @@ pass out quick on $if from any to any modulate state
 pass log on $if proto { tcp udp } from any to any port { ssh http 445 } keep state
 
 # allow ping
-pass in inet proto icmp all icmp-type echoreq</pre>
+pass in inet proto icmp all icmp-type echoreq
+</pre></div>
 </div>
 </div></blockquote>
 <p><strong>For IPFW to work inside a jail set the securelevel property to &#8220;2&#8221;:</strong></p>
@@ -157,8 +156,9 @@ pass in inet proto icmp all icmp-type echoreq</pre>
 </div></blockquote>
 <p><tt class="docutils literal"><span class="pre">/etc/resolv.conf</span></tt>:</p>
 <blockquote>
-<div><div class="highlight-python"><pre>nameserver 46.246.46.246
-nameserver 194.132.32.32</pre>
+<div><div class="highlight-python"><div class="highlight"><pre>nameserver 46.246.46.246
+nameserver 194.132.32.32
+</pre></div>
 </div>
 </div></blockquote>
 </div>
@@ -214,7 +214,7 @@ nameserver 194.132.32.32</pre>
     </div>
     <div class="footer">
         &copy; Copyright 2014, Peter Toth.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>
 </html>

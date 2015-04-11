@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -15,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '1.5.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -57,16 +55,20 @@
 transparently.</p>
 <p><strong>Configuring a shared IPv4 jail:</strong></p>
 <p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">ip4_addr=&quot;em0|192.168.0.10/24&quot;</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
-<p>This will add an IP alias 192.168.0.10/24 to interface em0 for the shared IP jail at start time.</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">ip6_addr=&quot;em0|2001:123:456:242::5/64&quot;</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p>This will add an IP alias 192.168.0.10/24 to interface em0 for the shared IP jail at start time,
+as well as 2001:123:456::5/64.</p>
 <p><strong>A better approach using VNET:</strong></p>
 <p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">ip4_addr=&quot;vnet0|192.168.0.10/24&quot;</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
 <p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">defaultrouter=192.168.0.254</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">ip6_addr=&quot;vnet0|2001:123:456:242::5/64&quot;</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">defaultrouter6=&quot;2001:123:456:242::1&quot;</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
 <p>For VNET jails a default route has to be specified too, just like for a normal
 host system.</p>
 <p><strong>Hints</strong></p>
-<p>To start a jail with no IPv4 address whatsoever set these properties:</p>
-<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">ip4_addr=none</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">defaultrouter=none</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p>To start a jail with no IPv4/6 address whatsoever set these properties:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">ip4_addr=none</span> <span class="pre">ip6_addr=none</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">defaultrouter=none</span> <span class="pre">defaultrouter6=none</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
 </div>
 
 
@@ -120,7 +122,7 @@ host system.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2014, Peter Toth.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>
 </html>
