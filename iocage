@@ -1194,7 +1194,15 @@ __start_jail () {
 __vnet_start () {
     local name="$1"
     local jail_path="$(__get_jail_prop mountpoint $name)"
+    local fdescfs="fdescfs=\"mount.fdescfs=$(__get_jail_prop mount_fdescfs)\""
+    local tmpfs="allow.mount.tmpfs=\"$(__get_jail_prop allow_mount_tmpfs $name)\""
 
+    if [ "$(uname -r)" == "9.3-RELEASE" ];
+    then
+	fdescfs=""
+	tmpfs=""
+    fi
+    
     jail -c vnet \
     name="ioc-$(__get_jail_prop host_hostuuid $name)" \
     host.hostname="$(__get_jail_prop hostname $name)" \
@@ -1212,7 +1220,7 @@ __vnet_start () {
     allow.mount.devfs="$(__get_jail_prop allow_mount_devfs $name)" \
     allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs $name)" \
     allow.mount.procfs="$(__get_jail_prop allow_mount_procfs $name)" \
-    allow.mount.tmpfs="$(__get_jail_prop allow_mount_tmpfs $name)" \
+    ${tmpfs} \
     allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name)" \
     allow.quotas="$(__get_jail_prop allow_quotas $name)" \
     allow.socket_af="$(__get_jail_prop allow_socket_af $name)" \
@@ -1225,7 +1233,7 @@ __vnet_start () {
     stop.timeout="$(__get_jail_prop stop_timeout $name)" \
     mount.fstab="${jail_path}/fstab" \
     mount.devfs="$(__get_jail_prop mount_devfs $name)" \
-    mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
+    ${fdescfs} \
     allow.dying \
     exec.consolelog="$iocroot/log/${name}-console.log" \
     persist
@@ -1238,6 +1246,16 @@ __legacy_start () {
     local ip4_addr="$(__get_jail_prop ip4_addr $name)"
     local ip6_addr="$(__get_jail_prop ip6_addr $name)"
 
+    local fdescfs="fdescfs=\"mount.fdescfs=$(__get_jail_prop mount_fdescfs)\""
+    local tmpfs="allow.mount.tmpfs=\"$(__get_jail_prop allow_mount_tmpfs $name)\""
+
+    if [ "$(uname -r)" == "9.3-RELEASE" ];
+    then
+	fdescfs=""
+	tmpfs=""
+    fi
+    
+    
     if [ $ip4_addr == "none" ] ; then
         ip4_addr=""
     fi
@@ -1270,7 +1288,7 @@ __legacy_start () {
         allow.mount.devfs="$(__get_jail_prop allow_mount_devfs $name)" \
         allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs $name)" \
         allow.mount.procfs="$(__get_jail_prop allow_mount_procfs $name)" \
-        allow.mount.tmpfs="$(__get_jail_prop allow_mount_tmpfs $name)" \
+	${tmpfs} \
         allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name)" \
         allow.quotas="$(__get_jail_prop allow_quotas $name)" \
         allow.socket_af="$(__get_jail_prop allow_socket_af $name)" \
@@ -1283,7 +1301,7 @@ __legacy_start () {
         stop.timeout="$(__get_jail_prop stop_timeout $name)" \
         mount.fstab="${jail_path}/fstab" \
         mount.devfs="$(__get_jail_prop mount_devfs $name)" \
-        mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
+	${fdescfs} \
         allow.dying \
         exec.consolelog="$iocroot/log/${name}-console.log" \
         persist
@@ -1308,7 +1326,7 @@ __legacy_start () {
         allow.mount.devfs="$(__get_jail_prop allow_mount_devfs $name)" \
         allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs $name)" \
         allow.mount.procfs="$(__get_jail_prop allow_mount_procfs $name)" \
-        allow.mount.tmpfs="$(__get_jail_prop allow_mount_tmpfs $name)" \
+	${tmpfs} \
         allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name)" \
         allow.quotas="$(__get_jail_prop allow_quotas $name)" \
         allow.socket_af="$(__get_jail_prop allow_socket_af $name)" \
@@ -1321,7 +1339,7 @@ __legacy_start () {
         stop.timeout="$(__get_jail_prop stop_timeout $name)" \
         mount.fstab="${jail_path}/fstab" \
         mount.devfs="$(__get_jail_prop mount_devfs $name)" \
-        mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
+	${fdescfs} \
         allow.dying \
         exec.consolelog="$iocroot/log/${name}-console.log" \
         persist
@@ -3220,6 +3238,7 @@ PROPERTIES
   mount_fdescfs=1 | 0
 
     Mount a fdescfs(5) filesystem in the jail's /dev/fd directory.
+    Note: This is not supported on FreeBSD 9.3.
 
     Default: 1
     Source: jail(8)
@@ -3392,6 +3411,7 @@ PROPERTIES
     and unmount the tmpfs file system.  This permission is
     effective only together with allow.mount and if
     enforce_statfs is set to a value lower than 2.
+    Note: This is not support on FreeBSD 9.3.
 
     Default: 0
     Source: jail(8)
