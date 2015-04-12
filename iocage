@@ -57,12 +57,7 @@ else
     vnet="off"
 fi
 
-# see if there is ipv6 support (for shared mode networking)
-if [ ! -z $(sysctl -qn security.jail.param.ip6.addr) ] ; then
-    ipv6="on"
-else
-    ipv6="off"
-fi
+ipv6="on"
 
 interfaces="vnet0:bridge0,vnet1:bridge1"
 host_hostname=$uuid
@@ -75,6 +70,7 @@ ip6_addr="none"
 ip6_saddrsel="1"
 ip6="new"
 defaultrouter="none"
+defaultrouter6="none"
 
 # Standard jail properties
 devfs_ruleset="4"
@@ -204,6 +200,7 @@ CONF_NET="interfaces
           ip6_saddrsel
           ip6
           defaultrouter
+          defaultrouter6
           exec_fib"
 
 # Native jail properties
@@ -1689,6 +1686,7 @@ __networking () {
     local ip4="$(__get_jail_prop ip4_addr $name)"
     local ip6="$(__get_jail_prop ip6_addr $name)"
     local defaultgw="$(__get_jail_prop defaultrouter $name)"
+    local defaultgw6="$(__get_jail_prop defaultrouter6 $name)"
     local nics="$(__get_jail_prop interfaces $name \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
@@ -1698,12 +1696,14 @@ __networking () {
         for i in $nics ; do
             local nic=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')
             local bridge=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')
+	    local memberif=$(ifconfig $bridge | grep member | head -n1 | cut -d' ' -f2)
+	    local brmtu=$(ifconfig $memberif | head -n1 |cut -d' ' -f6)
             epair_a=$(ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
-            ifconfig ${epair_a} name ${nic}:${jid}
+            ifconfig ${epair_a} name ${nic}:${jid} mtu $brmtu
             ifconfig ${nic}:${jid} description "associated with jail: $name"
             ifconfig $epair_b vnet ioc-${2}
-            jexec ioc-${2} ifconfig $epair_b name $nic
+            jexec ioc-${2} ifconfig $epair_b name $nic mtu $brmtu
             ifconfig $bridge addm ${nic}:${jid} up
             ifconfig ${nic}:${jid} up
         done
@@ -1728,6 +1728,10 @@ __networking () {
             jexec ioc-${2} route add default $defaultgw > /dev/null
         fi
 
+	if [ "$defaulgw6" != "none" ] ; then
+	    jexec ioc-${2} route add -6 default $defaultgw6 >/dev/null
+	fi
+
     elif [ $action == "stop" ] ; then
         for if in $nics ; do
             local nic=$(echo $if | cut -f 1 -d:)
@@ -1751,19 +1755,19 @@ __stop_legacy_networking () {
                        awk 'BEGIN { FS = "|" } ; { print $2 }' | \
                        awk 'BEGIN { FS = "/" } ; { print $1 }')"
 
-            ifconfig $iface -alias $ip4
+            ifconfig $iface $ip4 -alias
         done
     fi
 
     if [ $ip6_addr != "none" ] ; then
         IFS=','
         for ip6 in $ip6_addr ; do
-            local iface="$(echo $ip | \
+            local iface="$(echo $ip6 | \
                          awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            local ip6="$(echo $ip | \
+            local ip6="$(echo $ip6 | \
                        awk 'BEGIN { FS = "|" } ; { print $2 }' | \
                        awk 'BEGIN { FS = "/" } ; { print $1 }')"
-            ifconfig $iface -alias $ip6
+            ifconfig $iface inet6 $ip6 -alias
         done
     fi
 }
@@ -3044,6 +3048,11 @@ PROPERTIES
 
     Setting this property to anything other than none will try to configure a
     default route inside a VNET jail.
+  
+  defaultrouter6=none | ip6address
+
+    Setting this property to anything other than none will try to configure a
+    default IPv6 route inside a VNET jail.
 
   ip6.addr, ip6.saddrsel, ip6
     A set of IPv6 options for the prison, the counterparts to
