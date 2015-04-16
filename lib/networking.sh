@@ -38,12 +38,12 @@ __networking () {
 
     if [ "${action}" == "start" ] ; then
         for i in ${nics} ; do
-            local nic=$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $1 }')
-            local bridge=$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $2 }')
-	    local memberif=$(ifconfig "${bridge}" | grep member | head -n1 | cut -d' ' -f2)
-	    local brmtu=$(ifconfig "${memberif}" | head -n1 |cut -d' ' -f6)
-            epair_a=$(ifconfig epair create)
-            epair_b=$(echo "${epair_a}" | sed s/a\$/b/)
+            local nic="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $1 }')"
+            local bridge="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $2 }')"
+	    local memberif="$(ifconfig "${bridge}" | grep member | head -n1 | cut -d' ' -f2)"
+	    local brmtu="$(ifconfig "${memberif}" | head -n1 |cut -d' ' -f6)"
+            epair_a="$(ifconfig epair create)"
+            epair_b="$(echo "${epair_a}" | sed 's/a$/b/')"
             ifconfig "${epair_a}" name "${nic}:${jid}" mtu "${brmtu}"
             ifconfig "${nic}:${jid}" description "associated with jail: ${name}"
             ifconfig "${epair_b}" vnet "ioc-${2}"
@@ -78,7 +78,7 @@ __networking () {
 
     elif [ "${action}" == "stop" ] ; then
         for if in ${nics} ; do
-            local nic=$(echo "${if}" | cut -f 1 -d:)
+            local nic="$(echo "${if}" | cut -f 1 -d:)"
             ifconfig "${nic}:${jid}" destroy
         done
     fi

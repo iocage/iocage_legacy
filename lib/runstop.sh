@@ -338,7 +338,7 @@ __stop_jail () {
         exit 1
     fi
 
-    local dataset=$(__find_jail "${name}")
+    local dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"

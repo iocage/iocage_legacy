@@ -25,7 +25,7 @@
 
 # This creates jails----------------------------------------------------
 __create_jail () {
-    local installed=$(zfs list -r "${pool}/iocage/releases"|grep "${release}")
+    local installed="$(zfs list -r "${pool}/iocage/releases"|grep "${release}")"
 
     if [ -z "${installed}" ] ; then
         echo "Release ${release} not found locally, run fetch first"
@@ -33,7 +33,7 @@ __create_jail () {
     fi
 
     if [ "${2}" = "-c" ] ; then
-        fs_list=$(zfs list -rH -o name "${pool}/iocage/releases/${release}")
+        fs_list="$(zfs list -rH -o name "${pool}/iocage/releases/${release}")"
 
         zfs snapshot -r "${pool}/iocage/releases/${release}@${uuid}"
         for fs in $fs_list ; do
