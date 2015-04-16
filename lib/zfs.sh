@@ -72,12 +72,12 @@ __print_disk () {
     printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA"
 
     for jail in ${jails} ; do
-        uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid "${jail}")
-        crt=$(zfs get -H -o value compressratio "${jail}")
-        res=$(zfs get -H -o value reservation "${jail}")
-        qta=$(zfs get -H -o value quota "${jail}")
-        use=$(zfs get -H -o value used "${jail}")
-        ava=$(zfs get -H -o value available "${jail}")
+        uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid "${jail}")"
+        crt="$(zfs get -H -o value compressratio "${jail}")"
+        res="$(zfs get -H -o value reservation "${jail}")"
+        qta="$(zfs get -H -o value quota "${jail}")"
+        use="$(zfs get -H -o value used "${jail}")"
+        ava="$(zfs get -H -o value available "${jail}")"
 
         printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "${uuid}" "${crt}" "${res}" "${qta}" \
                "${use}" "${ava}"
@@ -200,7 +200,7 @@ __snaplist () {
             "RSIZE" "USED"
 
     for i in ${snapshots} ; do
-        local snapname=$(echo "${i}" |cut -f 2 -d \@)
+        local snapname="$(echo "${i}" |cut -f 2 -d \@)"
         local creation="$(zfs get -H -o value creation "${i}")"
         local used="$(zfs get -H -o value used "${i}")"
         local referenced="$(zfs get -H -o value referenced "${i}")"
@@ -214,14 +214,14 @@ __snaplist () {
 __rollback () {
     local name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     local snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-    local dataset=$(__find_jail "${name}")
+    local dataset="$(__find_jail "${name}")"
 
     if [ "${dataset}" == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
-    local fs_list=$(zfs list -rH -o name "${dataset}")
+    local fs_list="$(zfs list -rH -o name "${dataset}")"
 
     if [ ! -z "${snapshot}" ] ; then
         for fs in ${fs_list} ; do

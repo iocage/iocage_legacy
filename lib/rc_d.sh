@@ -25,7 +25,7 @@
 
 __rc_jails () {
     local action="${1}"
-    local jails=$(__find_jail "ALL")
+    local jails="$(__find_jail "ALL")"
     local boot_list="/tmp/iocage.${$}"
 
     for jail in ${jails} ; do

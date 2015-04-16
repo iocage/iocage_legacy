@@ -190,8 +190,8 @@ __export () {
 
     local fulluuid="$(__check_name "${name}")"
     local jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local state=$(jls|grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
-              | cut -d' ' -f1)
+    local state="$(jls|grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
+              | cut -d' ' -f1)"
 
     if [ "${state}" -gt "0" ] ; then
         echo "  ERROR: ${fulluuid} is running!"
