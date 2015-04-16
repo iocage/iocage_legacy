@@ -93,8 +93,8 @@ __create_jail () {
 
 # Cloning jails ----------------------------------------------------------
 __clone_jail () {
-    name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" |  cut -d'@' -f2)"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"

@@ -89,7 +89,7 @@ __find_mypool () {
     found="0"
 
     for i in ${pools} ; do
-        mypool="$(zpool get comment "${i}" | grep -v NAME | awk '{print $3}')"
+        mypool="$(zpool get comment "${i}" | grep -v NAME | cut -w -f3)"
 
         if [ "${mypool}" == "iocage" ] ; then
             export pool="${i}"
@@ -118,8 +118,8 @@ __find_mypool () {
 }
 
 __snapshot () {
-    name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" | cut -d'@' -f2)"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
@@ -144,8 +144,8 @@ __snapshot () {
 
 
 __snapremove () {
-    name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" | cut -d'@' -f2)"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
@@ -194,7 +194,7 @@ __snaplist () {
     fi
 
     fulluuid="$(__check_name "${name}")"
-    snapshots="$(zfs list -Hrt snapshot -d1 "${dataset}" | awk '{print $1}')"
+    snapshots="$(zfs list -Hrt snapshot -d1 "${dataset}" | cut -w -f1)"
 
     printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
             "RSIZE" "USED"
@@ -212,8 +212,8 @@ __snaplist () {
 }
 
 __rollback () {
-    name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" | cut -d'@' -f2)"
     dataset="$(__find_jail "${name}")"
 
     if [ "${dataset}" == "multiple" ] ; then

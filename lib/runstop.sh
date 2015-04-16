@@ -55,8 +55,7 @@ __start_jail () {
     state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
     vnet="$(__get_jail_prop vnet "${fulluuid}")"
-    nics="$(__get_jail_prop interfaces "${fulluuid}" \
-               |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
+    nics="$(__get_jail_prop interfaces "${fulluuid}" | cut -d',' -f1,2,3,4)"
 
     if [ "${state}" -eq "1" ] ; then
         echo "* ${fulluuid}: is already up"
@@ -69,8 +68,8 @@ __start_jail () {
     fi
 
     for i in ${nics} ; do
-        nic="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $1 }')"
-        bridge="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $2 }')"
+        nic="$(echo "${i}" |cut -d':' -f1)"
+        bridge="$(echo "${i}" | cut -d':' -f2)"
 
         if [ -z "${nic}" ] || [ -z "${bridge}" ] ; then
             echo "  ERROR  : incorrect interfaces property format"

@@ -31,17 +31,17 @@ __networking () {
     ip6="$(__get_jail_prop ip6_addr "${name}")"
     defaultgw="$(__get_jail_prop defaultrouter "${name}")"
     defaultgw6="$(__get_jail_prop defaultrouter6 "${name}")"
-    nics="$(__get_jail_prop interfaces "${name}" \
-               |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
+    nics="$(__get_jail_prop interfaces "${name}" | sed -e 's/,/ /g')"
     ip4_list="$(echo "${ip4}" | sed 's/,/ /g')"
     ip6_list="$(echo "${ip6}" | sed 's/,/ /g')"
 
     if [ "${action}" == "start" ] ; then
         for i in ${nics} ; do
-            nic="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $1 }')"
-            bridge="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $2 }')"
-	    memberif="$(ifconfig "${bridge}" | grep member | head -n1 | cut -d' ' -f2)"
-	    brmtu="$(ifconfig "${memberif}" | head -n1 |cut -d' ' -f6)"
+            nic="$(echo "${i}" | cut -d':' -f1)"
+            bridge="$(echo "${i}" | cut -d':' -f2)"
+	          memberif="$(ifconfig "${bridge}" | grep member | head -n1 | \
+             cut -d' ' -f2)"
+      	    brmtu="$(ifconfig "${memberif}" | head -n1 |cut -d' ' -f6)"
             epair_a="$(ifconfig epair create)"
             epair_b="$(echo "${epair_a}" | sed 's/a$/b/')"
             ifconfig "${epair_a}" name "${nic}:${jid}" mtu "${brmtu}"
@@ -54,16 +54,16 @@ __networking () {
 
         if [ "${ip4}" != "none" ] ; then
             for i in ${ip4_list} ; do
-                iface="$(echo "${i}" |awk 'BEGIN { FS = "|" } ; { print $1 }')"
-                ip="$(echo "${i}" |awk 'BEGIN { FS = "|" } ; { print $2 }')"
+                iface="$(echo "${i}" | cut -d'|' -f1)"
+                ip="$(echo "${i}" | cut -d'|' -f2)"
                 jexec "ioc-${2}" ifconfig "${iface}" "${ip}" up
             done
         fi
 
         if [ "${ip6}" != "none" ] ; then
             for i in $ip6_list ; do
-                iface="$(echo "${i}" |awk 'BEGIN { FS = "|" } ; { print $1 }')"
-                ip="$(echo "${i}" |awk 'BEGIN { FS = "|" } ; { print $2 }')"
+                iface="$(echo "${i}" | cut -d'|' -f1)"
+                ip="$(echo "${i}" | cut -d'|' -f2)"
                 jexec "ioc-${2}" ifconfig "${iface}" inet6 "${ip}" up
             done
         fi
@@ -93,12 +93,8 @@ __stop_legacy_networking () {
     if [ "${ip4_addr}" != "none" ] ; then
         IFS=','
         for ip in ${ip4_addr} ; do
-            iface="$(echo "${ip}" | \
-                         awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            ip4="$(echo "${ip}" | \
-                       awk 'BEGIN { FS = "|" } ; { print $2 }' | \
-                       awk 'BEGIN { FS = "/" } ; { print $1 }')"
-
+            iface="$(echo "${ip}" | cut -d'|' -f1)"
+            ip4="$(echo "${ip}" | cut -d'|' -f2 | cut -d'/' -f1)"
             ifconfig "${iface}" "${ip4}" -alias
         done
     fi
@@ -106,11 +102,8 @@ __stop_legacy_networking () {
     if [ "${ip6_addr}" != "none" ] ; then
         IFS=','
         for ip6 in ${ip6_addr} ; do
-            iface="$(echo "${ip6}" | \
-                         awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            ip6="$(echo "${ip6}" | \
-                       awk 'BEGIN { FS = "|" } ; { print $2 }' | \
-                       awk 'BEGIN { FS = "/" } ; { print $1 }')"
+            iface="$(echo "${ip6}" | cut -d'|' -f1)"
+            ip6="$(echo "${ip6}" | cut -d'|' -f2 | cut -d'/' -f1)"
             ifconfig "${iface}" inet6 "${ip6}" -alias
         done
     fi

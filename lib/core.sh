@@ -479,7 +479,7 @@ __list_jails () {
         boot="$(zfs get -H -o value org.freebsd.iocage:boot "${jail}")"
         tag="$(zfs get -H -o value org.freebsd.iocage:tag "${jail}")"
         jail_path="$(zfs get -H -o value mountpoint "${jail}")"
-        state="$(jls | grep "${jail_path}" | awk '{print $1}')"
+        state="$(jls | grep "${jail_path}" | cut -w -f1)"
         template="$(zfs get -H -o value org.freebsd.iocage:template "${jail}")"
         # get jid for iocage jails
         jid="$(jls -j "ioc-${uuid}"  -h jid 2> /dev/null | grep -v -x "jid")"

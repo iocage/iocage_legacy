@@ -54,8 +54,8 @@ __set_jail_prop () {
         exit 1
     fi
 
-    pname="$(echo "${property}"|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    pval="$(echo "${property}"|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    pname="$(echo "${property}"| cut -d'=' -f1)"
+    pval="$(echo "${property}"| cut -d'=' -f2)"
 
     if [ -z "${pname}" ] || [ -z "${pval}" ] ; then
         echo "  ERROR: set failed, incorrect property syntax!"
