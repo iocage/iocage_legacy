@@ -69,7 +69,7 @@ __usage () {
 }
 
 __help () {
-cat << 'EOT'
+cat << 'EOT' | less
 NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
