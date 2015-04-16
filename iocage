@@ -745,7 +745,8 @@ __destroy_jail () {
     local origin="$(zfs get -H -o value origin $dataset)"
     local fulluuid="$(__check_name $name)"
     local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
-    local state="$(jls | grep ${jail_path} | wc -l)"
+    local state="$(jls | grep ${jail_path} | wc -l | sed -e 's/^  *//' \
+              | cut -d' ' -f1)"
     local jail_type="$(__get_jail_prop type $fulluuid)"
     local jail_release="$(__get_jail_prop release $fulluuid)"
 
@@ -1006,7 +1007,7 @@ __find_jail () {
     local jlist="/tmp/iocage-jail-list.$$"
     local jails="$(zfs list -rH -o name $pool/iocage/jails \
                  | grep -E \
-                "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
+              "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
 
     if [ "${name}" == "ALL" ] ; then
         for jail in $jails ; do
@@ -1014,7 +1015,8 @@ __find_jail () {
         done
     else
         for jail in $jails ; do
-            found="$(echo $jail |grep -iE "^$pool/iocage/jails/$name"|wc -l)"
+            found="$(echo $jail |grep -iE "^${pool}/iocage/jails/${name}"|wc \
+                      -l | sed -e 's/^  *//')"
             local tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
 
             if [ "$found" -eq 1 ] ; then
@@ -1030,9 +1032,11 @@ __find_jail () {
             exit 0
         fi
 
-        if [ "$(cat $jlist|wc -l)" -eq "1" ] ; then
+        if [ "$(wc -l "${jlist}" | sed -e 's/^  *//' \
+                | cut -d' ' -f1)" -eq "1" ] ; then
             cat $jlist
-        elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
+        elif [ "$(wc -l "${jlist}" | sed -e 's/^  *//' \
+                  | cut -d' ' -f1)" -gt "1" ] ; then
             echo "multiple"
         fi
     fi
@@ -1069,7 +1073,8 @@ __start_jail () {
     local cpuset="$(__get_jail_prop cpuset $fulluuid)"
     local procfs="$(__get_jail_prop mount_procfs $fulluuid)"
     local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
-    local state="$(jls | grep ${jail_path} | wc -l)"
+    local state="$(jls | grep ${jail_path} | wc -l | sed -e 's/^  *//' \
+              | cut -d' ' -f1)"
     local vnet="$(__get_jail_prop vnet $fulluuid)"
     local nics="$(__get_jail_prop interfaces $fulluuid \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
@@ -1373,7 +1378,8 @@ __stop_jail () {
     local exec_stop="$(__get_jail_prop exec_stop $fulluuid)"
     local exec_poststop="$(__findscript $fulluuid poststop)"
     local vnet="$(__get_jail_prop vnet $fulluuid)"
-    local state="$(jls | grep ${jail_path} | wc -l)"
+    local state="$(jls | grep ${jail_path} | wc -l | sed -e 's/^  *//' \
+              | cut -d' ' -f1)"
 
     if [  "$state" -lt "1" ] ; then
         echo "* ${fulluuid}: is already down"
@@ -1439,7 +1445,8 @@ __stop_jail () {
     fi
 
     if [ ! -z $(sysctl -qn kern.features.rctl) ] ; then
-        local rlimits="$(rctl | grep $fulluuid| wc -l)"
+        local rlimits="$(rctl | grep $fulluuid| wc -l | sed -e 's/^  *//' \
+                  | cut -d' ' -f1)"
         if [ $rlimits -gt "0" ] ; then
             rctl -r jail:ioc-${fulluuid}
         fi
@@ -1517,7 +1524,8 @@ __rc_jails () {
         for i in $boot_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
             local jail_path="$(__get_jail_prop mountpoint $jail)"
-            local state="$(jls | grep ${jail_path} | wc -l)"
+            local state="$(jls | grep ${jail_path} | wc -l | sed -e 's/^  *//' \
+                      | cut -d' ' -f1)"
 
             if [ "$state" -lt "1" ] ; then
                 __start_jail $jail
@@ -1530,7 +1538,8 @@ __rc_jails () {
         for i in $shutdown_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
             local jail_path="$(__get_jail_prop mountpoint $jail)"
-            local state="$(jls | grep ${jail_path} | wc -l)"
+            local state="$(jls | grep ${jail_path} | wc -l | sed -e 's/^  *//' \
+                      | cut -d' ' -f1)"
 
             if [ "$state" -eq "1" ] ; then
                 __stop_jail $jail
@@ -2186,7 +2195,8 @@ __runtime () {
 
     local fulluuid="$(__check_name $name)"
 
-    local state="$(jls -n -j ioc-${fulluuid} | wc -l)"
+    local state="$(jls -n -j ioc-${fulluuid} | wc -l | sed -e 's/^  *//' \
+              | cut -d' ' -f1)"
 
     if [ "$state" -eq "1" ] ; then
         local params="$(jls -nj ioc-${fulluuid})"
@@ -2358,7 +2368,8 @@ __record () {
     local fulluuid="$(__check_name $name)"
 
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
-    local union_mount="$(mount -t unionfs | grep $fulluuid | wc -l)"
+    local union_mount="$(mount -t unionfs | grep $fulluuid | wc -l | \
+                        sed -e 's/^  *//' | cut -d' ' -f1)"
 
     if [ ! -d ${mountpoint}/recorded ] ; then
         mkdir ${mountpoint}/recorded
@@ -2441,8 +2452,10 @@ __import () {
 
     local package="$(find $iocroot/packages/ -name $name\*.tar.xz)"
     local image="$(find $iocroot/images/ -name $name\*.tar.xz)"
-    local pcount="$(echo $package|wc -w)"
-    local icount="$(echo $image|wc -w)"
+    local pcount="$(echo $package|wc -w | sed -e 's/^  *//' \
+              | cut -d' ' -f1)"
+    local icount="$(echo $image|wc -w | sed -e 's/^  *//' \
+              | cut -d' ' -f1)"
 
     if [ $pcount -gt 1 ] ; then
         echo "  ERROR: multiple matching packages, please narrow down UUID."
@@ -2542,7 +2555,8 @@ __export () {
 
     local fulluuid="$(__check_name $name)"
     local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
-    local state=$(jls|grep ${jail_path} | wc -l)
+    local state=$(jls|grep ${jail_path} | wc -l | sed -e 's/^  *//' \
+              | cut -d' ' -f1)
 
     if [ "$state" -gt "0" ] ; then
         echo "  ERROR: $fulluuid is running!"
