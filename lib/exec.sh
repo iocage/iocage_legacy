@@ -24,14 +24,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __console () {
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -43,9 +45,11 @@ __console () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
-    local login_flags="$(zfs get -H -o value org.freebsd.iocage:login_flags \
+    local login_flags
+    login_flags="$(zfs get -H -o value org.freebsd.iocage:login_flags \
                        "${pool}/iocage/jails/${fulluuid}")"
 
     jexec "ioc-${fulluuid}" login ${login_flags}
@@ -53,7 +57,8 @@ __console () {
 
 
 __exec () {
-    local jexecopts=
+    local jexecopts
+    jexecopts=
 
     # check for -U or -u to pass to jexec
     while getopts u:U: opt "${@}"; do
@@ -66,7 +71,8 @@ __exec () {
     done
     shift $((OPTIND-1))
 
-    local name="${1}"
+    local name
+    name="${1}"
     shift
 
     if [ -z "${name}" ] ; then
@@ -74,7 +80,8 @@ __exec () {
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -86,22 +93,26 @@ __exec () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
     jexec "${jexecopts}" "ioc-${fulluuid}" ${@}
 }
 
 
 __chroot () {
-    local name="${1}"
-    local command="${2}"
+    local name
+    name="${1}"
+    local command
+    command="${2}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -113,7 +124,8 @@ __chroot () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
     chroot "${iocroot}/jails/${fulluuid}/root" "${command}"
 }

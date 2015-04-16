@@ -24,15 +24,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __rctl_limits () {
-    local name="${1}"
-    local failed=0
+    local name
+    name="${1}"
+    local failed
+    failed=0
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -44,9 +47,11 @@ __rctl_limits () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
-    local rlimits="$(__get_jail_prop rlimits "${fulluuid}")"
+    local rlimits
+    rlimits="$(__get_jail_prop rlimits "${fulluuid}")"
 
     if [ "${rlimits}" == "on" ] ; then
         echo -n "  + Applying resource limits"
@@ -78,15 +83,19 @@ __rctl_limits () {
 }
 
 __rctl_list () {
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "* All active limits:"
         rctl | grep jail
     else
-        local fulluuid="$(__check_name "${name}")"
-        local jid="$(jls -j "ioc-${fulluuid}" jid)"
-        local limits="$(rctl -h | grep "${fulluuid}")"
+        local fulluuid
+        fulluuid="$(__check_name "${name}")"
+        local jid
+        jid="$(jls -j "ioc-${fulluuid}" jid)"
+        local limits
+        limits="$(rctl -h | grep "${fulluuid}")"
 
         echo "* Active limits for jail: ${fulluuid}"
 
@@ -102,14 +111,16 @@ __rctl_list () {
 }
 
 __rctl_uncap () {
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
     echo "  Releasing resource limits.."
     rctl -r "jail:ioc-${fulluuid}"
@@ -119,14 +130,16 @@ __rctl_uncap () {
 
 
 __rctl_used () {
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -138,7 +151,8 @@ __rctl_used () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
     echo "Consumed resources:"
     echo "-------------------"

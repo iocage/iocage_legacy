@@ -24,7 +24,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __pkg_install () {
-    local chrootdir="${1}"
+    local chrootdir
+    chrootdir="${1}"
 
     if [ -e "${pkglist}" ] ; then
         echo "* Installing extra packages.."
@@ -37,14 +38,16 @@ __pkg_install () {
 __package () {
     # create package from recorded changes
     # sha256 too
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -56,9 +59,11 @@ __package () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
-    local mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
+    local mountpoint
+    mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
 
     if [ ! -d "${mountpoint}/recorded" ] ; then
         echo "  ERROR: nothing to package, missing recorded directory!"
@@ -78,32 +83,39 @@ __package () {
 }
 
 __import () {
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing package UUID"
         exit 1
     fi
 
-    local package="$(find "${iocroot}/packages/" -name "${name}*.tar.xz")"
-    local image="$(find "${iocroot}/images/" -name "${name}*.tar.xz")"
-    local pcount="$(echo "$package"|wc -w | sed -e 's/^  *//' \
+    local package
+    package="$(find "${iocroot}/packages/" -name "${name}*.tar.xz")"
+    local image
+    image="$(find "${iocroot}/images/" -name "${name}*.tar.xz")"
+    local pcount
+    pcount="$(echo "$package"|wc -w | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
-    local icount="$(echo "$image"|wc -w | sed -e 's/^  *//' \
+    local icount
+    icount="$(echo "$image"|wc -w | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
 
     if [ "${pcount}" -gt 1 ] ; then
         echo "  ERROR: multiple matching packages, please narrow down UUID."
         exit 1
     elif [ "${pcount}" -eq 1 ] ; then
-        local pcksum="$(find "${iocroot}/packages/" -name "${name}*.sha256")"
+        local pcksum
+        pcksum="$(find "${iocroot}/packages/" -name "${name}*.sha256")"
     fi
 
     if [ "${icount}" -gt 1 ] ; then
         echo "  ERROR: multiple matching images, please narrow down UUID."
         exit 1
     elif [ "${icount}" -eq 1 ] ; then
-        local icksum="$(find "${iocroot}/images/" -name "${name}*.sha256")"
+        local icksum
+        icksum="$(find "${iocroot}/images/" -name "${name}*.sha256")"
     fi
 
     if [ "${pcount}" -gt 0 ] && [ "${icount}" -gt 0 ] ; then
@@ -120,10 +132,14 @@ __import () {
             exit 1
         fi
 
-        local new_cksum="$(sha256 -q "${package}")"
-        local old_cksum="$(cat "${pcksum}")"
-        local uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
-        local mountpoint="$(__get_jail_prop mountpoint "${uuid}")"
+        local new_cksum
+        new_cksum="$(sha256 -q "${package}")"
+        local old_cksum
+        old_cksum="$(cat "${pcksum}")"
+        local uuid
+        uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
+        local mountpoint
+        mountpoint="$(__get_jail_prop mountpoint "${uuid}")"
 
         if [ "${new_cksum}" != "${old_cksum}" ] ; then
             echo "  ERROR: checksum mismatch ..exiting"
@@ -141,10 +157,14 @@ __import () {
             exit 1
         fi
 
-        local new_cksum="$(sha256 -q "${image}")"
-        local old_cksum="$(cat "${icksum}")"
-        local uuid="$(__create_jail create -e|tail -1)"
-        local mountpoint="$(__get_jail_prop mountpoint "${uuid}")"
+        local new_cksum
+        new_cksum="$(sha256 -q "${image}")"
+        local old_cksum
+        old_cksum="$(cat "${icksum}")"
+        local uuid
+        uuid="$(__create_jail create -e|tail -1)"
+        local mountpoint
+        mountpoint="$(__get_jail_prop mountpoint "${uuid}")"
 
         if [ "${new_cksum}" != "${old_cksum}" ] ; then
             echo "  ERROR: checksum mismatch ..exiting"
@@ -169,14 +189,16 @@ __import () {
 __export () {
     # Export full jail
     # sha256
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -188,9 +210,12 @@ __export () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
-    local jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local state="$(jls|grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
+    local jail_path
+    jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
+    local state
+    state="$(jls|grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
 
     if [ "${state}" -gt "0" ] ; then
@@ -199,7 +224,8 @@ __export () {
         exit 1
     fi
 
-    local mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
+    local mountpoint
+    mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
 
     if [ ! -d "${iocroot}/images" ] ; then
         mkdir "${iocroot}/images"

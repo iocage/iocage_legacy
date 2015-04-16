@@ -24,8 +24,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __record () {
-    local name="${2}"
-    local action="${1}"
+    local name
+    name="${2}"
+    local action
+    action="${1}"
 
     if [ -z "${action}" ] ; then
         echo "  ERROR: missing action or UUID"
@@ -37,7 +39,8 @@ __record () {
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -49,10 +52,13 @@ __record () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
 
-    local mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local union_mount="$(mount -t unionfs | grep "$fulluuid" | wc -l | \
+    local mountpoint
+    mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
+    local union_mount
+    union_mount="$(mount -t unionfs | grep "$fulluuid" | wc -l | \
                         sed -e 's/^  *//' | cut -d' ' -f1)"
     if [ ! -d "${mountpoint}/recorded" ] ; then
         mkdir "${mountpoint}/recorded"

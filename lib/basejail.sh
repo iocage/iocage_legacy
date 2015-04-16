@@ -24,8 +24,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __create_basejail () {
-    local release="${1}"
-    local fs_list="bin
+    local release
+    release="${1}"
+    local fs_list
+    fs_list="bin
                    boot
                    lib
                    libexec
@@ -51,14 +53,16 @@ __create_basejail () {
 }
 
 __reclone_basejail () {
-    local name="${1}"
+    local name
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    local dataset
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -70,8 +74,10 @@ __reclone_basejail () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
-    local jail_release="$(__get_jail_prop release "${fulluuid}")"
+    local fulluuid
+    fulluuid="$(__check_name "${name}")"
+    local jail_release
+    jail_release="$(__get_jail_prop release "${fulluuid}")"
 
     zfs destroy -rRf "${pool}/iocage/base@${fulluuid}"
     zfs snapshot -r  "${pool}/iocage/base@${fulluuid}"

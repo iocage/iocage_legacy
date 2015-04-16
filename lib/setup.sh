@@ -50,10 +50,13 @@ __resolv_conf () {
 # search for executable prestart|poststart|prestop|poststop in jail_dir first,
 # else use jail exec_<type> property unchanged
 __findscript () {
-    local name="${1}"
+    local name
+    name="${1}"
     # type should be one of prestart|poststart|prestop|poststop
-    local type="${2}"
-    local jail_path="$(__get_jail_prop mountpoint "${name}")"
+    local type
+    type="${2}"
+    local jail_path
+    jail_path="$(__get_jail_prop mountpoint "${name}")"
 
     if [ -x "${jail_path}/${type}" ]; then
         echo "${jail_path}/${type}"
