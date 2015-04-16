@@ -449,16 +449,16 @@ __get_jail_name () {
 }
 
 __list_jails () {
-    local jails=$(__find_jail ALL)
+    local jails="$(__find_jail ALL)"
     local switch="${1}"
-    local all_jids=$(jls -N -h jid | grep -v -x jid )
+    local all_jids="$(jls -N -h jid | grep -v -x jid )"
     local ioc_jids=""
     local non_ioc_jids=""
 
     if [ ! -z "${switch}" ] && [ "${switch}" == "-r" ] ; then
         echo "Downloaded releases:"
         local releases="$(zfs list -o name -Hr "${pool}/iocage/releases" \
-                        | grep RELEASE$ | cut -d '/' -f 4)"
+                        | grep 'RELEASE$' | cut -d '/' -f 4)"
         for rel in ${releases} ; do
             printf "%15s\n" "${rel}"
         done
@@ -468,12 +468,12 @@ __list_jails () {
     printf "%-4s  %-36s  %s  %s  %s\n" "JID" "UUID"  "BOOT"\
            "STATE" "TAG"
     for jail in ${jails} ; do
-        uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid "${jail}")
-        boot=$(zfs get -H -o value org.freebsd.iocage:boot "${jail}")
-        tag=$(zfs get -H -o value org.freebsd.iocage:tag "${jail}")
-        jail_path=$(zfs get -H -o value mountpoint "${jail}")
-        state=$(jls | grep "${jail_path}" | awk '{print $1}')
-        template=$(zfs get -H -o value org.freebsd.iocage:template "${jail}")
+        uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid "${jail}")"
+        boot="$(zfs get -H -o value org.freebsd.iocage:boot "${jail}")"
+        tag="$(zfs get -H -o value org.freebsd.iocage:tag "${jail}")"
+        jail_path="$(zfs get -H -o value mountpoint "${jail}")"
+        state="$(jls | grep "${jail_path}" | awk '{print $1}')"
+        template="$(zfs get -H -o value org.freebsd.iocage:template "${jail}")"
         # get jid for iocage jails
         jid="$(jls -j "ioc-${uuid}"  -h jid 2> /dev/null | grep -v -x "jid")"
         if [ -z "${jid}"  ] ; then
@@ -527,9 +527,9 @@ __list_jails () {
             printf "%-4s  %-36s  %-15s  %s \n" "JID" "PATH"\
                   "IP4" "HOSTNAME"
             for jid in ${non_ioc_jids} ; do
-                path=$(jls -j "${jid}"  -h path | grep -v -x "path")
-                ip4=$(jls -j "${jid}"  -h ip4.addr | grep -v -x "ip4.addr")
-                host_hostname=$(jls -j "${jid}"  -h host.hostname | grep -v -x "host.hostname")
+                path="$(jls -j "${jid}"  -h path | grep -v -x "path")"
+                ip4="$(jls -j "${jid}"  -h ip4.addr | grep -v -x "ip4.addr")"
+                host_hostname="$(jls -j "${jid}"  -h host.hostname | grep -v -x "host.hostname")"
                 printf "%-4s  %-36.36s  %-15s  %s\n" "${jid}" "${path}"  \
                         "${ip4}" "${host_hostname}"
             done

@@ -52,8 +52,8 @@ __rctl_limits () {
         echo -n "  + Applying resource limits"
         for prop in ${CONF_RCTL} ; do
             value="$(__get_jail_prop "${prop}" "${fulluuid}")"
-            limit=$(echo "${value}" | awk 'BEGIN { FS = ":" } ; { print $1 }')
-            action=$(echo "${value}" | awk 'BEGIN { FS = ":" } ; { print $2 }')
+            limit="$(echo "${value}" | awk 'BEGIN { FS = ":" } ; { print $1 }')"
+            action="$(echo "${value}" | awk 'BEGIN { FS = ":" } ; { print $2 }')"
 
             if [ "${limit}" == "off" ] ; then
                 continue
@@ -91,7 +91,7 @@ __rctl_list () {
         echo "* Active limits for jail: ${fulluuid}"
 
         for i in ${limits} ; do
-            limit=$(echo "${i}" | cut -f 3,4 -d:)
+            limit="$(echo "${i}" | cut -f 3,4 -d:)"
             echo "  - ${limit}"
         done
 
