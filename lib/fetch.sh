@@ -25,7 +25,6 @@
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local exist
     exist="$(zfs list | grep -w "^${pool}/iocage")"
     __print_release
     echo -n "Please select a release [${release}]: "
@@ -49,11 +48,8 @@ __fetch_release () {
         exit 1
     fi
 
-    local exist
     exist="$(zfs list | grep -w "^${pool}/iocage")"
-    local download_exist
     download_exist="$(zfs list | grep -w "^${pool}/iocage/download/${release}")"
-    local rel_exist
     rel_exist="$(zfs list | grep -w "^${pool}/iocage/releases/${release}")"
 
     if [ -z "${exist}" ] ; then
@@ -115,7 +111,6 @@ __fetch_release () {
 }
 
 __update () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -123,7 +118,6 @@ __update () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -136,16 +130,11 @@ __update () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
-    local mountpoint
     mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local date
     date="$(date "+%F_%T")"
-    local jail_type
     jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local jail_release
     jail_release="$(__get_jail_prop release "${fulluuid}")"
 
     if [ "${jail_type}" == "basejail" ] ; then
@@ -169,14 +158,12 @@ __update () {
 }
 
 __upgrade () {
-    local name
     name="${1}"
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -195,17 +182,11 @@ __upgrade () {
 	exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
-    local jail_type
     jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local jail_release
     jail_release="$(__get_jail_prop release "${fulluuid}")"
-    local mountpoint
     mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local date
     date="$(date "+%F_%T")"
-    local oldrelease
     oldrelease="$(zfs get -H -o value org.freebsd.iocage:release "${dataset}")"
 
     if [ "${jail_type}" == "basejail" ] ; then

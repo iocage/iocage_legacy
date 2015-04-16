@@ -24,7 +24,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __console () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -32,7 +31,6 @@ __console () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -45,10 +43,8 @@ __console () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
-    local login_flags
     login_flags="$(zfs get -H -o value org.freebsd.iocage:login_flags \
                        "${pool}/iocage/jails/${fulluuid}")"
 
@@ -57,7 +53,6 @@ __console () {
 
 
 __exec () {
-    local jexecopts
     jexecopts=
 
     # check for -U or -u to pass to jexec
@@ -71,7 +66,6 @@ __exec () {
     done
     shift $((OPTIND-1))
 
-    local name
     name="${1}"
     shift
 
@@ -80,7 +74,6 @@ __exec () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -93,7 +86,6 @@ __exec () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
     jexec "${jexecopts}" "ioc-${fulluuid}" ${@}
@@ -101,9 +93,7 @@ __exec () {
 
 
 __chroot () {
-    local name
     name="${1}"
-    local command
     command="${2}"
 
     if [ -z "${name}" ] ; then
@@ -111,7 +101,6 @@ __chroot () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -124,7 +113,6 @@ __chroot () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
     chroot "${iocroot}/jails/${fulluuid}/root" "${command}"

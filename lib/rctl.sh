@@ -24,9 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __rctl_limits () {
-    local name
     name="${1}"
-    local failed
     failed=0
 
     if [ -z "${name}" ] ; then
@@ -34,7 +32,6 @@ __rctl_limits () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -47,10 +44,8 @@ __rctl_limits () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
-    local rlimits
     rlimits="$(__get_jail_prop rlimits "${fulluuid}")"
 
     if [ "${rlimits}" == "on" ] ; then
@@ -83,18 +78,14 @@ __rctl_limits () {
 }
 
 __rctl_list () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "* All active limits:"
         rctl | grep jail
     else
-        local fulluuid
         fulluuid="$(__check_name "${name}")"
-        local jid
         jid="$(jls -j "ioc-${fulluuid}" jid)"
-        local limits
         limits="$(rctl -h | grep "${fulluuid}")"
 
         echo "* Active limits for jail: ${fulluuid}"
@@ -111,7 +102,6 @@ __rctl_list () {
 }
 
 __rctl_uncap () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -119,7 +109,6 @@ __rctl_uncap () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
     echo "  Releasing resource limits.."
@@ -130,7 +119,6 @@ __rctl_uncap () {
 
 
 __rctl_used () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -138,7 +126,6 @@ __rctl_used () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -151,7 +138,6 @@ __rctl_used () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
     echo "Consumed resources:"

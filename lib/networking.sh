@@ -25,35 +25,22 @@
 
 __networking () {
     action="${1}"
-    local name
     name="${2}"
-    local jid
     jid="$(jls -j "ioc-${name}" jid)"
-    local ip4
     ip4="$(__get_jail_prop ip4_addr "${name}")"
-    local ip6
     ip6="$(__get_jail_prop ip6_addr "${name}")"
-    local defaultgw
     defaultgw="$(__get_jail_prop defaultrouter "${name}")"
-    local defaultgw6
     defaultgw6="$(__get_jail_prop defaultrouter6 "${name}")"
-    local nics
     nics="$(__get_jail_prop interfaces "${name}" \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
-    local ip4_list
     ip4_list="$(echo "${ip4}" | sed 's/,/ /g')"
-    local ip6_list
     ip6_list="$(echo "${ip6}" | sed 's/,/ /g')"
 
     if [ "${action}" == "start" ] ; then
         for i in ${nics} ; do
-            local nic
             nic="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $1 }')"
-            local bridge
             bridge="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $2 }')"
-	    local memberif
 	    memberif="$(ifconfig "${bridge}" | grep member | head -n1 | cut -d' ' -f2)"
-	    local brmtu
 	    brmtu="$(ifconfig "${memberif}" | head -n1 |cut -d' ' -f6)"
             epair_a="$(ifconfig epair create)"
             epair_b="$(echo "${epair_a}" | sed 's/a$/b/')"
@@ -91,7 +78,6 @@ __networking () {
 
     elif [ "${action}" == "stop" ] ; then
         for if in ${nics} ; do
-            local nic
             nic="$(echo "${if}" | cut -f 1 -d:)"
             ifconfig "${nic}:${jid}" destroy
         done
@@ -99,21 +85,16 @@ __networking () {
 }
 
 __stop_legacy_networking () {
-    local name
     name="${1}"
 
-    local ip4_addr
     ip4_addr="$(__get_jail_prop ip4_addr "${name}")"
-    local ip6_addr
     ip6_addr="$(__get_jail_prop ip6_addr "${name}")"
 
     if [ "${ip4_addr}" != "none" ] ; then
         IFS=','
         for ip in ${ip4_addr} ; do
-            local iface
             iface="$(echo "${ip}" | \
                          awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            local ip4
             ip4="$(echo "${ip}" | \
                        awk 'BEGIN { FS = "|" } ; { print $2 }' | \
                        awk 'BEGIN { FS = "/" } ; { print $1 }')"
@@ -125,10 +106,8 @@ __stop_legacy_networking () {
     if [ "${ip6_addr}" != "none" ] ; then
         IFS=','
         for ip6 in ${ip6_addr} ; do
-            local iface
             iface="$(echo "${ip6}" | \
                          awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            local ip6
             ip6="$(echo "${ip6}" | \
                        awk 'BEGIN { FS = "|" } ; { print $2 }' | \
                        awk 'BEGIN { FS = "/" } ; { print $1 }')"

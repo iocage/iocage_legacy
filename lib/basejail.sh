@@ -24,9 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __create_basejail () {
-    local release
     release="${1}"
-    local fs_list
     fs_list="bin
                    boot
                    lib
@@ -53,7 +51,6 @@ __create_basejail () {
 }
 
 __reclone_basejail () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -61,7 +58,6 @@ __reclone_basejail () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -74,9 +70,7 @@ __reclone_basejail () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
-    local jail_release
     jail_release="$(__get_jail_prop release "${fulluuid}")"
 
     zfs destroy -rRf "${pool}/iocage/base@${fulluuid}"

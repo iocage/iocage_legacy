@@ -25,7 +25,6 @@
 
 # This creates jails----------------------------------------------------
 __create_jail () {
-    local installed
     installed="$(zfs list -r "${pool}/iocage/releases"|grep "${release}")"
 
     if [ -z "${installed}" ] ; then
@@ -94,9 +93,7 @@ __create_jail () {
 
 # Cloning jails ----------------------------------------------------------
 __clone_jail () {
-    local name
     name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot
     snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
 
     if [ -z "${name}" ] ; then
@@ -104,7 +101,6 @@ __clone_jail () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -117,7 +113,6 @@ __clone_jail () {
         exit 1
     fi
 
-    local fs_list
     fs_list="$(zfs list -rH -o name "${dataset}")"
 
     if [ -z "$snapshot" ] ; then
@@ -147,7 +142,6 @@ __clone_jail () {
 
 # Destroy jails --------------------------------------------------------------
 __destroy_jail () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -155,7 +149,6 @@ __destroy_jail () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -168,18 +161,12 @@ __destroy_jail () {
         exit 1
     fi
 
-    local origin
     origin="$(zfs get -H -o value origin "${dataset}")"
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
-    local jail_path
     jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local state
     state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
-    local jail_type
     jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local jail_release
     jail_release="$(__get_jail_prop release "${fulluuid}")"
 
     echo " "
@@ -218,7 +205,6 @@ __destroy_jail () {
 
 # Configure properties -------------------------------------------------
 __configure_jail () {
-    local CONF
     CONF="${CONF_NET}
                 ${CONF_JAIL}
                 ${CONF_RCTL}

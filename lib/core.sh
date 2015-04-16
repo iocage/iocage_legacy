@@ -456,20 +456,14 @@ __get_jail_name () {
 }
 
 __list_jails () {
-    local jails
     jails="$(__find_jail ALL)"
-    local switch
     switch="${1}"
-    local all_jids
     all_jids="$(jls -N -h jid | grep -v -x jid )"
-    local ioc_jids
     ioc_jids=""
-    local non_ioc_jids
     non_ioc_jids=""
 
     if [ ! -z "${switch}" ] && [ "${switch}" == "-r" ] ; then
         echo "Downloaded releases:"
-        local releases
         releases="$(zfs list -o name -Hr "${pool}/iocage/releases" \
                         | grep 'RELEASE$' | cut -d '/' -f 4)"
         for rel in ${releases} ; do
@@ -492,7 +486,6 @@ __list_jails () {
         if [ -z "${jid}"  ] ; then
             jid="-"
         fi
-        local ioc_jids
         ioc_jids="${ioc_jids} ${jid}"
 
         if [ -z "${state}" ] ; then
@@ -522,17 +515,14 @@ __list_jails () {
     for all_jail in ${all_jids} ; do
         for ioc_jail in ${ioc_jids} ; do
             if [ "$all_jail" == "${ioc_jail}" ] ; then
-                local temp_loop_var
                 temp_loop_var=""
                 break
             else
-                local temp_loop_var
                 temp_loop_var="${all_jail}"
 
             fi
         done
     if [ -n "${temp_loop_var}" ] ; then
-        local non_ioc_jids
         non_ioc_jids="${non_ioc_jids} ${temp_loop_var}"
     fi
     done
@@ -555,18 +545,14 @@ __list_jails () {
 }
 
 __show () {
-    local jails
     jails="$(__find_jail ALL)"
-    local prop
     prop="${1}"
 
     printf "%-36s  %s\n" "UUID" "${prop}"
 
     for jail in ${jails} ; do
-        local name
         name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                     "${jail}")"
-        local value
         value="$(__get_jail_prop "${prop}" "${name}")"
 
         printf "%-+.36s  %s\n" "${name}"  "${value}"
@@ -574,7 +560,6 @@ __show () {
 }
 
 __check_name () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -582,7 +567,6 @@ __check_name () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -595,7 +579,6 @@ __check_name () {
         exit 1
     fi
 
-    local uuid
     uuid="$(__get_jail_prop host_hostuuid "${name}")"
 
     echo "${uuid}"

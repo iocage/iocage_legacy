@@ -24,9 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __record () {
-    local name
     name="${2}"
-    local action
     action="${1}"
 
     if [ -z "${action}" ] ; then
@@ -39,7 +37,6 @@ __record () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -52,12 +49,9 @@ __record () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
-    local mountpoint
     mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local union_mount
     union_mount="$(mount -t unionfs | grep "$fulluuid" | wc -l | \
                         sed -e 's/^  *//' | cut -d' ' -f1)"
     if [ ! -d "${mountpoint}/recorded" ] ; then

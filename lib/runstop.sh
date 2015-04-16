@@ -24,7 +24,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __start_jail () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -32,7 +31,6 @@ __start_jail () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -45,30 +43,18 @@ __start_jail () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
-    local jail_type
     jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local tag
     tag="$(__get_jail_prop tag "${fulluuid}")"
-    local jail_hostid
     jail_hostid="$(__get_jail_prop hostid "${fulluuid}")"
-    local jail_path
     jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local template
     template="$(__get_jail_prop template "${fulluuid}")"
-    local cpuset
     cpuset="$(__get_jail_prop cpuset "${fulluuid}")"
-    local procfs
     procfs="$(__get_jail_prop mount_procfs "${fulluuid}")"
-    local jail_path
     jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local state
     state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
-    local vnet
     vnet="$(__get_jail_prop vnet "${fulluuid}")"
-    local nics
     nics="$(__get_jail_prop interfaces "${fulluuid}" \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
 
@@ -83,9 +69,7 @@ __start_jail () {
     fi
 
     for i in ${nics} ; do
-        local nic
         nic="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $1 }')"
-        local bridge
         bridge="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $2 }')"
 
         if [ -z "${nic}" ] || [ -z "${bridge}" ] ; then
@@ -111,9 +95,7 @@ __start_jail () {
         mount -t procfs proc "${iocroot}/jails/${fulluuid}/root/proc"
     fi
 
-    local jzfs
     jzfs="$(__get_jail_prop jail_zfs "${fulluuid}")"
-    local jzfs_dataset
     jzfs_dataset="$(__get_jail_prop jail_zfs_dataset "${fulluuid}")"
 
     if [ "${jzfs}" == "on" ] ; then
@@ -165,7 +147,6 @@ __start_jail () {
 
     if [ "${cpuset}" != "off" ] ; then
         echo -n "  + Appliyng CPU affinity"
-        local jid
         jid="$(jls -j "ioc-${fulluuid}" jid)"
         cpuset -l "${cpuset}" -j "${jid}"
         if [ "${?}" -eq 1 ] ; then
@@ -195,13 +176,9 @@ __start_jail () {
 
 # Start a VNET jail
 __vnet_start () {
-    local name
     name="${1}"
-    local jail_path
     jail_path="$(__get_jail_prop mountpoint "${name}")"
-    local fdescfs
     fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${name}")"
-    local tmpfs
     tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${name}")"
 
 
@@ -248,18 +225,12 @@ __vnet_start () {
 
 # Start a shared IP jail
 __legacy_start () {
-    local name
     name="${1}"
-    local jail_path
     jail_path="$(__get_jail_prop mountpoint "${name}")"
-    local ip4_addr
     ip4_addr="$(__get_jail_prop ip4_addr "${name}")"
-    local ip6_addr
     ip6_addr="$(__get_jail_prop ip6_addr "${name}")"
 
-    local fdescfs
     fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${name}")"
-    local tmpfs
     tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${name}")"
 
     if [ "$(uname -U)" == "903000" ];
@@ -360,7 +331,6 @@ __legacy_start () {
 }
 
 __stop_jail () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -368,7 +338,6 @@ __stop_jail () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -381,21 +350,13 @@ __stop_jail () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
-    local jail_path
     jail_path="$(__get_jail_prop mountpoint "${name}")"
-    local tag
     tag="$(__get_jail_prop tag "${fulluuid}")"
-    local exec_prestop
     exec_prestop="$(__findscript "${fulluuid}" prestop)"
-    local exec_stop
     exec_stop="$(__get_jail_prop exec_stop "${fulluuid}")"
-    local exec_poststop
     exec_poststop="$(__findscript "${fulluuid}" poststop)"
-    local vnet
     vnet="$(__get_jail_prop vnet "${fulluuid}")"
-    local state
     state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
 
@@ -464,7 +425,6 @@ __stop_jail () {
     fi
 
     if [ ! -z $(sysctl -qn kern.features.rctl) ] ; then
-        local rlimits
         rlimits="$(rctl | grep "$fulluuid" | wc -l | sed -e 's/^  *//' \
                 | cut -d' ' -f1)"
         if [ "${rlimits}" -gt "0" ] ; then
@@ -475,7 +435,6 @@ __stop_jail () {
 
 # Soft restart
 __restart_jail () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -483,7 +442,6 @@ __restart_jail () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -496,15 +454,10 @@ __restart_jail () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
-    local exec_stop
     exec_stop="$(__get_jail_prop exec_stop "${fulluuid}")"
-    local exec_start
     exec_start="$(__get_jail_prop exec_start "${fulluuid}")"
-    local jid
     jid="$(jls -j "ioc-${fulluuid}" jid)"
-    local tag
     tag="$(__get_jail_prop tag "${fulluuid}")"
 
     echo "* Soft restarting ${fulluuid} (${tag})"
@@ -523,7 +476,6 @@ __restart_jail () {
 }
 
 __runtime () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -531,7 +483,6 @@ __runtime () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -544,15 +495,12 @@ __runtime () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
 
-    local state
     state="$(jls -n -j "ioc-${fulluuid}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
 
     if [ "${state}" -eq "1" ] ; then
-        local params
         params="$(jls -nj "ioc-${fulluuid}")"
         for i in ${params} ; do
             echo "  ${i}"

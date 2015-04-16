@@ -34,9 +34,7 @@ __export_props () {
 
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
-    local name
     name="${2}"
-    local property
     property="${1}"
 
     if [ -z "${name}" ] || [ -z "${property}" ] ; then
@@ -44,7 +42,6 @@ __set_jail_prop () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -57,9 +54,7 @@ __set_jail_prop () {
         exit 1
     fi
 
-    local pname
     pname="$(echo "${property}"|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    local pval
     pval="$(echo "${property}"|awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
     if [ -z "${pname}" ] || [ -z "${pval}" ] ; then
@@ -67,10 +62,8 @@ __set_jail_prop () {
         exit 1
     fi
 
-    local found
     found="0"
 
-    local CONF
     CONF="${CONF_NET}
                 ${CONF_JAIL}
                 ${CONF_RCTL}
@@ -103,9 +96,7 @@ __set_jail_prop () {
 
 # Get properties -----------------------------------------------------
 __get_jail_prop () {
-    local name
     name="${2}"
-    local property
     property="${1}"
 
     if [ -z "${property}" ] ; then
@@ -118,7 +109,6 @@ __get_jail_prop () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -131,10 +121,8 @@ __get_jail_prop () {
         exit 1
     fi
 
-    local found
     found="0"
 
-    local CONF
     CONF="${CONF_NET}
                 ${CONF_JAIL}
                 ${CONF_RCTL}
@@ -144,13 +132,11 @@ __get_jail_prop () {
     for prop in ${CONF} ; do
         if [ "${prop}" == "${property}" ] ; then
             found=1
-            local value
             value="$(zfs get -H -o value org.freebsd.iocage:"${prop}" \
                          "${dataset}")"
             echo "${value}"
         elif [ "${property}" == "all" ] ; then
             found=1
-            local value
             value="$(zfs get -H -o value org.freebsd.iocage:"${prop}" \
                          "${dataset}")"
             echo "${prop}:${value}"
@@ -160,7 +146,6 @@ __get_jail_prop () {
     for prop in ${CONF_ZFS} ; do
         if [ "${prop}" == "${property}" ] ; then
             found=1
-            local value
             value="$(zfs get -H -o value "${prop}" "${dataset}")"
             echo "${value}"
         fi
@@ -175,10 +160,7 @@ __get_jail_prop () {
 # reads tag property from given jail dataset
 # creates symlink from $iocroot/tags/<tag> to $iocroot/jails/<uuid>
 __link_tag () {
-    local dataset
     dataset="${1}"
-    local mountpoint
-    local tag
 
     if mountpoint="$(zfs get -H -o value mountpoint "${dataset}")" ; then
         if tag="$(zfs get -H -o value org.freebsd.iocage:tag "${dataset}")"; then
@@ -198,9 +180,7 @@ __link_tag () {
 
 # removes all symlinks found in $iocroot/tags pointing to the given jail dataset
 __unlink_tag () {
-    local dataset
     dataset="${1}"
-    local mountpoint
 
     if mountpoint="$(zfs get -H -o value mountpoint "${dataset}")" ; then
         find "${iocroot}/tags" -type l -lname "${mountpoint}*" -exec rm -f \{\} \;

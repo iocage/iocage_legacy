@@ -24,20 +24,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __rc_jails () {
-    local action
     action="${1}"
-    local jails
     jails="$(__find_jail "ALL")"
-    local boot_list
     boot_list="/tmp/iocage.${$}"
 
     for jail in ${jails} ; do
-        local name
         name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                     "${jail}")"
-        local boot
         boot="$(zfs get -H -o value org.freebsd.iocage:boot "${jail}")"
-        local priority
         priority="$(zfs get -H -o value org.freebsd.iocage:priority \
                         "${jail}")"
 
@@ -47,9 +41,7 @@ __rc_jails () {
     done
 
     if [ -e "${boot_list}" ] ; then
-        local boot_order
         boot_order="$(sort -n "${boot_list}")"
-        local shutdown_order
         shutdown_order="$(sort -rn "${boot_list}")"
     else
         echo "  ERROR: None of the jails have boot on"
@@ -60,11 +52,8 @@ __rc_jails () {
         echo "* [I|O|C] booting jails... "
 
         for i in ${boot_order} ; do
-            local jail
             jail="$(echo "${i}" | cut -f2 -d,)"
-            local jail_path
             jail_path="$(__get_jail_prop mountpoint "${jail}")"
-            local state
             state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
                       | cut -d' ' -f1)"
             if [ "${state}" -lt "1" ] ; then
@@ -76,11 +65,8 @@ __rc_jails () {
         echo "* [I|O|C] shutting down jails... "
 
         for i in ${shutdown_order} ; do
-            local jail
             jail="$(echo "${i}" | cut -f2 -d,)"
-            local jail_path
             jail_path="$(__get_jail_prop mountpoint "${jail}")"
-            local state
             state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
                       | cut -d' ' -f1)"
             if [ "${state}" -eq "1" ] ; then

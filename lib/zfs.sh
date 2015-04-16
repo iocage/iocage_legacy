@@ -25,11 +25,8 @@
 
 # Find and return the jail's top level ZFS dataset
 __find_jail () {
-    local name
     name="${1}"
-    local jlist
     jlist="/tmp/iocage-jail-list.${$}"
-    local jails
     jails="$(zfs list -rH -o name "${pool}/iocage/jails" \
                  | grep -E \
               "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
@@ -42,7 +39,6 @@ __find_jail () {
         for jail in $jails ; do
             found="$(echo "${jail}" |grep -iE "^${pool}/iocage/jails/${name}"|\
                     wc -l|sed -e 's/^  *//')"
-            local tag
             tag="$(zfs get -H -o value org.freebsd.iocage:tag "${jail}")"
 
             if [ "${found}" -eq 1 ] ; then
@@ -71,7 +67,6 @@ __find_jail () {
 }
 
 __print_disk () {
-    local jails
     jails="$(__find_jail ALL)"
 
     printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA"
@@ -123,9 +118,7 @@ __find_mypool () {
 }
 
 __snapshot () {
-    local name
     name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot
     snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
 
     if [ -z "${name}" ] ; then
@@ -133,7 +126,6 @@ __snapshot () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ "${dataset}" == "multiple" ] ; then
@@ -141,7 +133,6 @@ __snapshot () {
         exit 1
     fi
 
-    local date
     date="$(date "+%F_%T")"
 
     if [ ! -z "${snapshot}" ] ; then
@@ -153,9 +144,7 @@ __snapshot () {
 
 
 __snapremove () {
-    local name
     name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot
     snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
 
     if [ -z "${name}" ] ; then
@@ -163,7 +152,6 @@ __snapremove () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -186,7 +174,6 @@ __snapremove () {
 }
 
 __snaplist () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -194,7 +181,6 @@ __snaplist () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -207,22 +193,16 @@ __snaplist () {
         exit 1
     fi
 
-    local fulluuid
     fulluuid="$(__check_name "${name}")"
-    local snapshots
     snapshots="$(zfs list -Hrt snapshot -d1 "${dataset}" | awk '{print $1}')"
 
     printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
             "RSIZE" "USED"
 
     for i in ${snapshots} ; do
-        local snapname
         snapname="$(echo "${i}" |cut -f 2 -d \@)"
-        local creation
         creation="$(zfs get -H -o value creation "${i}")"
-        local used
         used="$(zfs get -H -o value used "${i}")"
-        local referenced
         referenced="$(zfs get -H -o value referenced "${i}")"
 
         printf "%-36s  %-21s  %s    %s\n" "${snapname}" "${creation}"\
@@ -232,11 +212,8 @@ __snaplist () {
 }
 
 __rollback () {
-    local name
     name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot
     snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ "${dataset}" == "multiple" ] ; then
@@ -244,7 +221,6 @@ __rollback () {
         exit 1
     fi
 
-    local fs_list
     fs_list="$(zfs list -rH -o name "${dataset}")"
 
     if [ ! -z "${snapshot}" ] ; then
@@ -257,7 +233,6 @@ __rollback () {
 
 
 __promote () {
-    local name
     name="${1}"
 
     if [ -z "${name}" ] ; then
@@ -265,7 +240,6 @@ __promote () {
         exit 1
     fi
 
-    local dataset
     dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
@@ -278,7 +252,6 @@ __promote () {
         exit 1
     fi
 
-    local fs_list
     fs_list="$(zfs list -rH -o name "${dataset}")"
 
     if [ -z "${dataset}" ] ; then
@@ -287,7 +260,6 @@ __promote () {
     fi
 
     for fs in ${fs_list} ; do
-        local origin
         origin="$(zfs get -H -o value origin "${fs}")"
 
         if [ "${origin}" != "-" ] ; then
