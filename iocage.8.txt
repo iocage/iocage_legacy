@@ -41,13 +41,13 @@ DESCRIPTION
   iocage is a system administration tool for jails designed to simplify
   jail management tasks. It abstracts away the management of ZFS backed jails running VNET
   or shared IP networking with optional support for resource limits.
-  
+
   Both, shared IP based jails and VNET enabled jails are supported.
 
   Each jail has a unique ID (UUID) automatically generated at creation time.
   Using the UUID as a jail identifier means that a jail can be replicated in a
   distributed environment with greater flexibility. This also eliminates
-  potential naming clashes on large scale deployments and helps reduce 
+  potential naming clashes on large scale deployments and helps reduce
   operator error.
 
   Partial UUID calling is supported with every operation, e.g. for
@@ -134,13 +134,14 @@ SUBCOMMANDS
 
   list [-t|-r]
 
-    List all jails, if -t is specified list only templates, with -r list downloaded 
+    List all jails, if -t is specified list only templates, with -r list downloaded
     releases.
+    Non iocage jail listed, only if jail in UP state.
 
   df
 
     List disk space related information. Available fields:
-    
+
     CRT - compression ratio
     RES - reserved space
     QTA - disk quota
@@ -158,7 +159,7 @@ SUBCOMMANDS
   restart UUID|TAG
 
     Soft restart jail. Soft method will restart the jail without destroying
-    the jail's networking and the jail process itself. All processes are gracefully 
+    the jail's networking and the jail process itself. All processes are gracefully
     restarted inside the jail. Useful for quick and graceful restarts.
 
   rcboot
@@ -191,8 +192,8 @@ SUBCOMMANDS
   show property
 
     Shows the given property for all jails and templates. Useful to compare
-    settings/properties for all jails. 
-   
+    settings/properties for all jails.
+
     To get the last successfull start time for all jails:
 
         iocage show last_started
@@ -211,7 +212,7 @@ SUBCOMMANDS
     Set a property to value.
 
   cap UUID|TAG
-    
+
     Reapply resource limits on jail while it is running.
 
   limits [UUID|TAG]
@@ -224,7 +225,7 @@ SUBCOMMANDS
     Release all resource limits, disable limits on the fly.
 
   inuse UUID|TAG
-    
+
     Display consumed resources for a jail.
 
   snapshot UUID|TAG [UUID|TAG@snapshotname]
@@ -389,15 +390,20 @@ PROPERTIES
     Setting this property to anything other than none will try to configure a
     default route inside a VNET jail.
 
+  defaultrouter6=none | ip6address
+
+    Setting this property to anything other than none will try to configure a
+    default IPv6 route inside a VNET jail.
+
   ip6.addr, ip6.saddrsel, ip6
     A set of IPv6 options for the prison, the counterparts to
     ip4.addr, ip4.saddrsel and ip4 above.
-    
+
   interfaces=vnet0:bridge0,vnet1:bridge1 | vnet0:bridge0
-    
+
     By default there are two interfaces specified with their bridge
     association. Up to four interfaces are supported. Interface configurations
-    are separated by commas. Format is interface:bridge, where left value is 
+    are separated by commas. Format is interface:bridge, where left value is
     the virtual VNET interface name, right value is the bridge name where the
     virtual interface should be attached.
 
@@ -435,7 +441,7 @@ PROPERTIES
     files outside of the jail.  See devfs(8) for information on
     how to use devfs rules to limit access to entries in the per-jail
     devfs.  A simple devfs ruleset for jails is available as ruleset
-    #4 in /etc/defaults/devfs.rules    
+    #4 in /etc/defaults/devfs.rules
 
     Default: 4
     Source: jail(8)
@@ -491,7 +497,7 @@ PROPERTIES
   exec_poststart="/usr/bin/true"
 
     Command(s) to run in the system environment after a jail is started,
-    and after any exec_start commands have completed. 
+    and after any exec_start commands have completed.
 
     Default: /usr/bin/true
     Source: jail(8)
@@ -555,6 +561,7 @@ PROPERTIES
   mount_fdescfs=1 | 0
 
     Mount a fdescfs(5) filesystem in the jail's /dev/fd directory.
+    Note: This is not supported on FreeBSD 9.3.
 
     Default: 1
     Source: jail(8)
@@ -599,7 +606,7 @@ PROPERTIES
     Source: login(1)
 
   jail_zfs=on | off
-    
+
     Enables automatic ZFS jailing inside the jail. Assigned ZFS dataset will
     be fully controlled by the jail.
     NOTE: Setting this to "on" automatically enables allow_mount=1
@@ -727,6 +734,7 @@ PROPERTIES
     and unmount the tmpfs file system.  This permission is
     effective only together with allow.mount and if
     enforce_statfs is set to a value lower than 2.
+    Note: This is not supported on FreeBSD 9.3.
 
     Default: 0
     Source: jail(8)
@@ -780,7 +788,7 @@ PROPERTIES
     This property controls whether the jail is a template. Templates are not
     started by iocage. Set to yes if you intend to convert jail into template.
     (See EXAMPLES section)
-    
+
     Default: no
     Source: local
 
@@ -985,7 +993,7 @@ PROPERTIES
     This is for future use, currently not supported.
 
   rlimits=on | off
-    
+
     If set to "on" resource limits will be enforced.
 
     Default: off
@@ -998,7 +1006,7 @@ PROPERTIES
     Default: off
     Source: cpuset(1)
 RESOURCE LIMITS
-  Resource limits (except cpuset and rlimits) use the following value 
+  Resource limits (except cpuset and rlimits) use the following value
   field formatting in the property: limit:action.
 
   Limit defines how much of the resource a process can use before the
@@ -1178,7 +1186,7 @@ EXAMPLES
     iocage start UUID
 
   Turn on resource limits and apply them:
-  
+
     iocage set rlimits=on UUID
     iocage cap UUID
 
@@ -1207,7 +1215,7 @@ EXAMPLES
     iocage record stop UUID
 
   Create package from recorded session
-  
+
     iocage package UUID
 
   Import package on another host
