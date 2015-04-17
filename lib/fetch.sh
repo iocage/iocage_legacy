@@ -101,6 +101,7 @@ __fetch_release () {
     __create_basejail "${release}"
     chflags -R noschg "${iocroot}/base/${release}/root"
     tar --exclude \.zfs --exclude usr/sbin/chown -C "${iocroot}/releases/${release}/root" -cf - . | \
+    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
 
     if [ ! -e "${iocroot}/base/${release}/root/usr/sbin/chown" ] ; then
        cd "${iocroot}/base/${release}/root/usr/sbin" && ln -s ../bin/chgrp chown
