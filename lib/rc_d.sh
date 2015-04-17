@@ -24,15 +24,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __rc_jails () {
-    local action="${1}"
-    local jails="$(__find_jail "ALL")"
-    local boot_list="/tmp/iocage.${$}"
+    action="${1}"
+    jails="$(__find_jail "ALL")"
+    boot_list="/tmp/iocage.${$}"
 
     for jail in ${jails} ; do
-        local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+        name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                     "${jail}")"
-        local boot="$(zfs get -H -o value org.freebsd.iocage:boot "${jail}")"
-        local priority="$(zfs get -H -o value org.freebsd.iocage:priority \
+        boot="$(zfs get -H -o value org.freebsd.iocage:boot "${jail}")"
+        priority="$(zfs get -H -o value org.freebsd.iocage:priority \
                         "${jail}")"
 
         if [ "${boot}" == "on" ] ; then
@@ -41,8 +41,8 @@ __rc_jails () {
     done
 
     if [ -e "${boot_list}" ] ; then
-        local boot_order="$(sort -n "${boot_list}")"
-        local shutdown_order="$(sort -rn "${boot_list}")"
+        boot_order="$(sort -n "${boot_list}")"
+        shutdown_order="$(sort -rn "${boot_list}")"
     else
         echo "  ERROR: None of the jails have boot on"
         exit 1
@@ -52,9 +52,9 @@ __rc_jails () {
         echo "* [I|O|C] booting jails... "
 
         for i in ${boot_order} ; do
-            local jail="$(echo "${i}" | cut -f2 -d,)"
-            local jail_path="$(__get_jail_prop mountpoint "${jail}")"
-            local state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
+            jail="$(echo "${i}" | cut -f2 -d,)"
+            jail_path="$(__get_jail_prop mountpoint "${jail}")"
+            state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
                       | cut -d' ' -f1)"
             if [ "${state}" -lt "1" ] ; then
                 __start_jail "${jail}"
@@ -65,9 +65,9 @@ __rc_jails () {
         echo "* [I|O|C] shutting down jails... "
 
         for i in ${shutdown_order} ; do
-            local jail="$(echo "${i}" | cut -f2 -d,)"
-            local jail_path="$(__get_jail_prop mountpoint "${jail}")"
-            local state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
+            jail="$(echo "${i}" | cut -f2 -d,)"
+            jail_path="$(__get_jail_prop mountpoint "${jail}")"
+            state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
                       | cut -d' ' -f1)"
             if [ "${state}" -eq "1" ] ; then
                 __stop_jail "${jail}"

@@ -25,7 +25,7 @@
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local exist="$(zfs list | grep -w "^${pool}/iocage")"
+    exist="$(zfs list | grep -w "^${pool}/iocage")"
     __print_release
     echo -n "Please select a release [${release}]: "
     read answer
@@ -48,9 +48,9 @@ __fetch_release () {
         exit 1
     fi
 
-    local exist="$(zfs list | grep -w "^${pool}/iocage")"
-    local download_exist="$(zfs list | grep -w "^${pool}/iocage/download/${release}")"
-    local rel_exist="$(zfs list | grep -w "^${pool}/iocage/releases/${release}")"
+    exist="$(zfs list | grep -w "^${pool}/iocage")"
+    download_exist="$(zfs list | grep -w "^${pool}/iocage/download/${release}")"
+    rel_exist="$(zfs list | grep -w "^${pool}/iocage/releases/${release}")"
 
     if [ -z "${exist}" ] ; then
         zfs create -o compression=lz4 "${pool}/iocage"
@@ -101,6 +101,7 @@ __fetch_release () {
     __create_basejail "${release}"
     chflags -R noschg "${iocroot}/base/${release}/root"
     tar --exclude \.zfs --exclude usr/sbin/chown -C "${iocroot}/releases/${release}/root" -cf - . | \
+    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
 
     if [ ! -e "${iocroot}/base/${release}/root/usr/sbin/chown" ] ; then
        cd "${iocroot}/base/${release}/root/usr/sbin" && ln -s ../bin/chgrp chown
@@ -111,14 +112,14 @@ __fetch_release () {
 }
 
 __update () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -130,12 +131,12 @@ __update () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    fulluuid="$(__check_name "${name}")"
 
-    local mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local date="$(date "+%F_%T")"
-    local jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local jail_release="$(__get_jail_prop release "${fulluuid}")"
+    mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
+    date="$(date "+%F_%T")"
+    jail_type="$(__get_jail_prop type "${fulluuid}")"
+    jail_release="$(__get_jail_prop release "${fulluuid}")"
 
     if [ "${jail_type}" == "basejail" ] ; then
         # Re-clone required filesystems
@@ -158,13 +159,13 @@ __update () {
 }
 
 __upgrade () {
-    local name="${1}"
+    name="${1}"
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -182,12 +183,12 @@ __upgrade () {
 	exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
-    local jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local jail_release="$(__get_jail_prop release "${fulluuid}")"
-    local mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local date="$(date "+%F_%T")"
-    local oldrelease="$(zfs get -H -o value org.freebsd.iocage:release "${dataset}")"
+    fulluuid="$(__check_name "${name}")"
+    jail_type="$(__get_jail_prop type "${fulluuid}")"
+    jail_release="$(__get_jail_prop release "${fulluuid}")"
+    mountpoint="$(__get_jail_prop mountpoint "${fulluuid}")"
+    date="$(date "+%F_%T")"
+    oldrelease="$(zfs get -H -o value org.freebsd.iocage:release "${dataset}")"
 
     if [ "${jail_type}" == "basejail" ] ; then
         zfs set org.freebsd.iocage:release="${release}" "${dataset}"

@@ -25,9 +25,9 @@
 
 # Find and return the jail's top level ZFS dataset
 __find_jail () {
-    local name="${1}"
-    local jlist="/tmp/iocage-jail-list.${$}"
-    local jails="$(zfs list -rH -o name "${pool}/iocage/jails" \
+    name="${1}"
+    jlist="/tmp/iocage-jail-list.${$}"
+    jails="$(zfs list -rH -o name "${pool}/iocage/jails" \
                  | grep -E \
               "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
 
@@ -39,7 +39,7 @@ __find_jail () {
         for jail in $jails ; do
             found="$(echo "${jail}" |grep -iE "^${pool}/iocage/jails/${name}"|\
                     wc -l|sed -e 's/^  *//')"
-            local tag="$(zfs get -H -o value org.freebsd.iocage:tag "${jail}")"
+            tag="$(zfs get -H -o value org.freebsd.iocage:tag "${jail}")"
 
             if [ "${found}" -eq 1 ] ; then
                 echo "${jail}" >> "${jlist}"
@@ -67,7 +67,7 @@ __find_jail () {
 }
 
 __print_disk () {
-    local jails="$(__find_jail ALL)"
+    jails="$(__find_jail ALL)"
 
     printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA"
 
@@ -89,7 +89,7 @@ __find_mypool () {
     found="0"
 
     for i in ${pools} ; do
-        mypool="$(zpool get comment "${i}" | grep -v NAME | awk '{print $3}')"
+        mypool="$(zpool get comment "${i}" | grep -v NAME | cut -w -f3)"
 
         if [ "${mypool}" == "iocage" ] ; then
             export pool="${i}"
@@ -118,22 +118,22 @@ __find_mypool () {
 }
 
 __snapshot () {
-    local name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" | cut -d'@' -f2)"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ "${dataset}" == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
-    local date="$(date "+%F_%T")"
+    date="$(date "+%F_%T")"
 
     if [ ! -z "${snapshot}" ] ; then
         zfs snapshot -r "${dataset}@${snapshot}"
@@ -144,15 +144,15 @@ __snapshot () {
 
 
 __snapremove () {
-    local name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" | cut -d'@' -f2)"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: jail dataset not found"
@@ -174,14 +174,14 @@ __snapremove () {
 }
 
 __snaplist () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -193,17 +193,17 @@ __snaplist () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
-    local snapshots="$(zfs list -Hrt snapshot -d1 "${dataset}" | awk '{print $1}')"
+    fulluuid="$(__check_name "${name}")"
+    snapshots="$(zfs list -Hrt snapshot -d1 "${dataset}" | cut -w -f1)"
 
     printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
             "RSIZE" "USED"
 
     for i in ${snapshots} ; do
-        local snapname="$(echo "${i}" |cut -f 2 -d \@)"
-        local creation="$(zfs get -H -o value creation "${i}")"
-        local used="$(zfs get -H -o value used "${i}")"
-        local referenced="$(zfs get -H -o value referenced "${i}")"
+        snapname="$(echo "${i}" |cut -f 2 -d \@)"
+        creation="$(zfs get -H -o value creation "${i}")"
+        used="$(zfs get -H -o value used "${i}")"
+        referenced="$(zfs get -H -o value referenced "${i}")"
 
         printf "%-36s  %-21s  %s    %s\n" "${snapname}" "${creation}"\
                    "${referenced}" "${used}"
@@ -212,16 +212,16 @@ __snaplist () {
 }
 
 __rollback () {
-    local name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-    local dataset="$(__find_jail "${name}")"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" | cut -d'@' -f2)"
+    dataset="$(__find_jail "${name}")"
 
     if [ "${dataset}" == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
-    local fs_list="$(zfs list -rH -o name "${dataset}")"
+    fs_list="$(zfs list -rH -o name "${dataset}")"
 
     if [ ! -z "${snapshot}" ] ; then
         for fs in ${fs_list} ; do
@@ -233,14 +233,14 @@ __rollback () {
 
 
 __promote () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -252,7 +252,7 @@ __promote () {
         exit 1
     fi
 
-    local fs_list="$(zfs list -rH -o name "${dataset}")"
+    fs_list="$(zfs list -rH -o name "${dataset}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: dataset not found"
@@ -260,7 +260,7 @@ __promote () {
     fi
 
     for fs in ${fs_list} ; do
-        local origin="$(zfs get -H -o value origin "${fs}")"
+        origin="$(zfs get -H -o value origin "${fs}")"
 
         if [ "${origin}" != "-" ] ; then
             echo "* promoting filesystem: ${fs}"

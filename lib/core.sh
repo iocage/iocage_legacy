@@ -26,132 +26,132 @@
 unset LC_ALL
 unset LANG
 
-PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
+PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin ; export PATH
 
 # Auto UUID
-uuid="$(uuidgen)"
+uuid="$(uuidgen)" ; export uuid
 
 # pkg list, only used with the create subcommand
-pkglist="none"
+pkglist="none" ; export pkglist
 
 # Network defaults for jails start here
 
 # detect VNET kernel and adjust jail default
 # if supported turn it on by default
 if [ ! -z "$(sysctl -qn kern.features.vimage)" ] ; then
-    vnet="on"
+    vnet="on" ; export     vnet
 else
-    vnet="off"
+    vnet="off" ; export     vnet
 fi
 
-ipv6="on"
+ipv6="on" ; export ipv6
 
-interfaces="vnet0:bridge0,vnet1:bridge1"
-host_hostname="${uuid}"
-exec_fib=0
-hostname="${uuid}"
-ip4_addr="none"
-ip4_saddrsel="1"
-ip4="new"
-ip6_addr="none"
-ip6_saddrsel="1"
-ip6="new"
-defaultrouter="none"
-defaultrouter6="none"
+interfaces="vnet0:bridge0,vnet1:bridge1" ; export interfaces
+host_hostname="${uuid}" ; export host_hostname
+exec_fib=0 ; export exec_fib
+hostname="${uuid}" ; export hostname
+ip4_addr="none" ; export ip4_addr
+ip4_saddrsel="1" ; export ip4_saddrsel
+ip4="new" ; export ip4
+ip6_addr="none" ; export ip6_addr
+ip6_saddrsel="1" ; export ip6_saddrsel
+ip6="new" ; export ip6
+defaultrouter="none" ; export defaultrouter
+defaultrouter6="none" ; export defaultrouter6
 
 # Standard jail properties
-devfs_ruleset="4"
-exec_start="/bin/sh /etc/rc"
-exec_stop="/bin/sh /etc/rc.shutdown"
-exec_prestart="/usr/bin/true"
-exec_poststart="/usr/bin/true"
-exec_prestop="/usr/bin/true"
-exec_poststop="/usr/bin/true"
-exec_clean=1
-exec_timeout=60
-stop_timeout=30
-exec_jail_user=root
-exec_system_jail_user=0
-exec_system_user=root
-mount_devfs=1
-mount_fdescfs=1
-enforce_statfs="2"
-children_max="0"
-login_flags='-f root'
-securelevel="2"
-host_hostuuid="${uuid}"
-allow_set_hostname=1
-allow_sysvipc=0
-allow_raw_sockets=0
-allow_chflags=0
-allow_mount=0
-allow_mount_devfs=0
-allow_mount_nullfs=0
-allow_mount_procfs=0
-allow_mount_tmpfs=0
-allow_mount_zfs=0
-allow_quotas=0
-allow_socket_af=0
+devfs_ruleset="4" ; export devfs_ruleset
+exec_start="/bin/sh /etc/rc" ; export exec_start
+exec_stop="/bin/sh /etc/rc.shutdown" ; export exec_stop
+exec_prestart="/usr/bin/true" ; export exec_prestart
+exec_poststart="/usr/bin/true" ; export exec_poststart
+exec_prestop="/usr/bin/true" ; export exec_prestop
+exec_poststop="/usr/bin/true" ; export exec_poststop
+exec_clean=1 ; export exec_clean
+exec_timeout=60 ; export exec_timeout
+stop_timeout=30 ; export stop_timeout
+exec_jail_user=root ; export exec_jail_user
+exec_system_jail_user=0 ; export exec_system_jail_user
+exec_system_user=root ; export exec_system_user
+mount_devfs=1 ; export mount_devfs
+mount_fdescfs=1 ; export mount_fdescfs
+enforce_statfs="2" ; export enforce_statfs
+children_max="0" ; export children_max
+login_flags='-f root' ; export login_flags
+securelevel="2" ; export securelevel
+host_hostuuid="${uuid}" ; export host_hostuuid
+allow_set_hostname=1 ; export allow_set_hostname
+allow_sysvipc=0 ; export allow_sysvipc
+allow_raw_sockets=0 ; export allow_raw_sockets
+allow_chflags=0 ; export allow_chflags
+allow_mount=0 ; export allow_mount
+allow_mount_devfs=0 ; export allow_mount_devfs
+allow_mount_nullfs=0 ; export allow_mount_nullfs
+allow_mount_procfs=0 ; export allow_mount_procfs
+allow_mount_tmpfs=0 ; export allow_mount_tmpfs
+allow_mount_zfs=0 ; export allow_mount_zfs
+allow_quotas=0 ; export allow_quotas
+allow_socket_af=0 ; export allow_socket_af
 
 # RCTL limits
-cpuset="off"
-rlimits="off"
-memoryuse="8G:log"
-memorylocked="off"
-vmemoryuse="off"
-maxproc="off"
-cputime="off"
-pcpu="off"
-datasize="off"
-stacksize="off"
-coredumpsize="off"
-openfiles="off"
-pseudoterminals="off"
-swapuse="off"
-nthr="off"
-msgqqueued="off"
-msgqsize="off"
-nmsgq="off"
-nsemop="off"
-nshm="off"
-shmsize="off"
-wallclock="off"
+cpuset="off" ; export cpuset
+rlimits="off" ; export rlimits
+memoryuse="8G:log" ; export memoryuse
+memorylocked="off" ; export memorylocked
+vmemoryuse="off" ; export vmemoryuse
+maxproc="off" ; export maxproc
+cputime="off" ; export cputime
+pcpu="off" ; export pcpu
+datasize="off" ; export datasize
+stacksize="off" ; export stacksize
+coredumpsize="off" ; export coredumpsize
+openfiles="off" ; export openfiles
+pseudoterminals="off" ; export pseudoterminals
+swapuse="off" ; export swapuse
+nthr="off" ; export nthr
+msgqqueued="off" ; export msgqqueued
+msgqsize="off" ; export msgqsize
+nmsgq="off" ; export nmsgq
+nsemop="off" ; export nsemop
+nshm="off" ; export nshm
+shmsize="off" ; export shmsize
+wallclock="off" ; export wallclock
 
 # Custom properties
-iocroot="/iocage"
-tag="$(date "+%F@%T")"
-template="no"
-boot="off"
-notes="none"
-owner="root"
-priority="99"
-last_started="none"
-type="jail"
-release="$(uname -r|cut -f 1,2 -d'-')"
-hostid="$(cat /etc/hostid)"
-jail_zfs="off"
-jail_zfs_dataset="iocage/jails/${uuid}/root/data"
-mount_procfs="0"
+iocroot="/iocage" ; export iocroot
+tag="$(date "+%F@%T")" ; export tag
+template="no" ; export template
+boot="off" ; export boot
+notes="none" ; export notes
+owner="root" ; export owner
+priority="99" ; export priority
+last_started="none" ; export last_started
+type="jail" ; export type
+release="$(uname -r|cut -f 1,2 -d'-')" ; export release
+hostid="$(cat /etc/hostid)" ; export hostid
+jail_zfs="off" ; export jail_zfs
+jail_zfs_dataset="iocage/jails/${uuid}/root/data" ; export jail_zfs_dataset
+mount_procfs="0" ; export mount_procfs
 
 # Native ZFS properties
-compression="lz4"
-origin="readonly"
-quota="none"
-mountpoint="readonly"
-compressratio="readonly"
-available="readonly"
-used="readonly"
-dedup="off"
-reservation="none"
+compression="lz4" ; export compression
+origin="readonly" ; export origin
+quota="none" ; export quota
+mountpoint="readonly" ; export mountpoint
+compressratio="readonly" ; export compressratio
+available="readonly" ; export available
+used="readonly" ; export used
+dedup="off" ; export dedup
+reservation="none" ; export reservation
 
 # Sync properties
-sync_state="none"
-sync_target="none"
-sync_tgt_zpool="none"
+sync_state="none" ; export sync_state
+sync_target="none" ; export sync_target
+sync_tgt_zpool="none" ; export sync_tgt_zpool
 
 # FTP variables
-ftphost="ftp.freebsd.org"
-ftpfiles="base.txz doc.txz lib32.txz src.txz"
+ftphost="ftp.freebsd.org" ; export ftphost
+ftpfiles="base.txz doc.txz lib32.txz src.txz" ; export ftpfiles
 
 # Resource limits
 CONF_RCTL="memoryuse
@@ -174,6 +174,7 @@ CONF_RCTL="memoryuse
            nshm
            shmsize
            wallclock"
+export CONF_RCTL
 
 # Networking configuration
 CONF_NET="interfaces
@@ -189,6 +190,7 @@ CONF_NET="interfaces
           defaultrouter
           defaultrouter6
           exec_fib"
+export CONF_NET
 
 # Native jail properties
 CONF_JAIL="devfs_ruleset
@@ -224,6 +226,7 @@ CONF_JAIL="devfs_ruleset
            allow_quotas
            allow_socket_af
            host_hostuuid"
+export CONF_JAIL
 
 # Custom properties
 CONF_CUSTOM="tag
@@ -240,6 +243,7 @@ CONF_CUSTOM="tag
              jail_zfs
              jail_zfs_dataset
              release"
+export CONF_JAIL
 
 # Native ZFS properties
 CONF_ZFS="compression
@@ -251,14 +255,16 @@ CONF_ZFS="compression
           used
           dedup
           reservation"
+export CONF_ZFS
 
 # ZFS sync (not used yet)
 CONF_SYNC="sync_stat
            sync_target
            sync_tgt_zpool"
+export CONF_SYNC
 
 # ftp properties
-CONF_FTP="ftphost ftpdir"
+CONF_FTP="ftphost ftpdir" ; export CONF_FTP
 
 # Basejail filesystems
 bfs_list="bin
@@ -276,6 +282,7 @@ bfs_list="bin
           usr/src
           usr/libdata
           usr/lib32"
+export bfs_list
 
 # Basejail directories
 bdir_list="dev
@@ -285,7 +292,7 @@ bdir_list="dev
            root
            proc
            mnt"
-
+export bdir_list
 
 # Process command line options-------------------------
 __parse_cmd () {
@@ -449,15 +456,15 @@ __get_jail_name () {
 }
 
 __list_jails () {
-    local jails="$(__find_jail ALL)"
-    local switch="${1}"
-    local all_jids="$(jls -N -h jid | grep -v -x jid )"
-    local ioc_jids=""
-    local non_ioc_jids=""
+    jails="$(__find_jail ALL)"
+    switch="${1}"
+    all_jids="$(jls -N -h jid | grep -v -x jid )"
+    ioc_jids=""
+    non_ioc_jids=""
 
     if [ ! -z "${switch}" ] && [ "${switch}" == "-r" ] ; then
         echo "Downloaded releases:"
-        local releases="$(zfs list -o name -Hr "${pool}/iocage/releases" \
+        releases="$(zfs list -o name -Hr "${pool}/iocage/releases" \
                         | grep 'RELEASE$' | cut -d '/' -f 4)"
         for rel in ${releases} ; do
             printf "%15s\n" "${rel}"
@@ -472,14 +479,14 @@ __list_jails () {
         boot="$(zfs get -H -o value org.freebsd.iocage:boot "${jail}")"
         tag="$(zfs get -H -o value org.freebsd.iocage:tag "${jail}")"
         jail_path="$(zfs get -H -o value mountpoint "${jail}")"
-        state="$(jls | grep "${jail_path}" | awk '{print $1}')"
+        state="$(jls | grep "${jail_path}" | cut -w -f1)"
         template="$(zfs get -H -o value org.freebsd.iocage:template "${jail}")"
         # get jid for iocage jails
         jid="$(jls -j "ioc-${uuid}"  -h jid 2> /dev/null | grep -v -x "jid")"
         if [ -z "${jid}"  ] ; then
             jid="-"
         fi
-        local ioc_jids="${ioc_jids} ${jid}"
+        ioc_jids="${ioc_jids} ${jid}"
 
         if [ -z "${state}" ] ; then
             state=down
@@ -508,15 +515,15 @@ __list_jails () {
     for all_jail in ${all_jids} ; do
         for ioc_jail in ${ioc_jids} ; do
             if [ "$all_jail" == "${ioc_jail}" ] ; then
-                local temp_loop_var=""
+                temp_loop_var=""
                 break
             else
-                local temp_loop_var="${all_jail}"
+                temp_loop_var="${all_jail}"
 
             fi
         done
     if [ -n "${temp_loop_var}" ] ; then
-        local non_ioc_jids="${non_ioc_jids} ${temp_loop_var}"
+        non_ioc_jids="${non_ioc_jids} ${temp_loop_var}"
     fi
     done
 
@@ -538,29 +545,29 @@ __list_jails () {
 }
 
 __show () {
-    local jails="$(__find_jail ALL)"
-    local prop="${1}"
+    jails="$(__find_jail ALL)"
+    prop="${1}"
 
     printf "%-36s  %s\n" "UUID" "${prop}"
 
     for jail in ${jails} ; do
-        local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+        name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                     "${jail}")"
-        local value="$(__get_jail_prop "${prop}" "${name}")"
+        value="$(__get_jail_prop "${prop}" "${name}")"
 
         printf "%-+.36s  %s\n" "${name}"  "${value}"
     done
 }
 
 __check_name () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "ERROR"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: jail ${name} not found!"
@@ -572,7 +579,7 @@ __check_name () {
         exit 1
     fi
 
-    local uuid="$(__get_jail_prop host_hostuuid "${name}")"
+    uuid="$(__get_jail_prop host_hostuuid "${name}")"
 
     echo "${uuid}"
 

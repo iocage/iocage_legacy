@@ -24,14 +24,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __start_jail () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -43,20 +43,19 @@ __start_jail () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
-    local jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local tag="$(__get_jail_prop tag "${fulluuid}")"
-    local jail_hostid="$(__get_jail_prop hostid "${fulluuid}")"
-    local jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local template="$(__get_jail_prop template "${fulluuid}")"
-    local cpuset="$(__get_jail_prop cpuset "${fulluuid}")"
-    local procfs="$(__get_jail_prop mount_procfs "${fulluuid}")"
-    local jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
+    fulluuid="$(__check_name "${name}")"
+    jail_type="$(__get_jail_prop type "${fulluuid}")"
+    tag="$(__get_jail_prop tag "${fulluuid}")"
+    jail_hostid="$(__get_jail_prop hostid "${fulluuid}")"
+    jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
+    template="$(__get_jail_prop template "${fulluuid}")"
+    cpuset="$(__get_jail_prop cpuset "${fulluuid}")"
+    procfs="$(__get_jail_prop mount_procfs "${fulluuid}")"
+    jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
+    state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
-    local vnet="$(__get_jail_prop vnet "${fulluuid}")"
-    local nics="$(__get_jail_prop interfaces "${fulluuid}" \
-               |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
+    vnet="$(__get_jail_prop vnet "${fulluuid}")"
+    nics="$(__get_jail_prop interfaces "${fulluuid}" | cut -d',' -f1,2,3,4)"
 
     if [ "${state}" -eq "1" ] ; then
         echo "* ${fulluuid}: is already up"
@@ -69,8 +68,8 @@ __start_jail () {
     fi
 
     for i in ${nics} ; do
-        local nic="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $1 }')"
-        local bridge="$(echo "${i}" | awk 'BEGIN { FS = ":" } ; { print $2 }')"
+        nic="$(echo "${i}" |cut -d':' -f1)"
+        bridge="$(echo "${i}" | cut -d':' -f2)"
 
         if [ -z "${nic}" ] || [ -z "${bridge}" ] ; then
             echo "  ERROR  : incorrect interfaces property format"
@@ -95,8 +94,8 @@ __start_jail () {
         mount -t procfs proc "${iocroot}/jails/${fulluuid}/root/proc"
     fi
 
-    local jzfs="$(__get_jail_prop jail_zfs "${fulluuid}")"
-    local jzfs_dataset="$(__get_jail_prop jail_zfs_dataset "${fulluuid}")"
+    jzfs="$(__get_jail_prop jail_zfs "${fulluuid}")"
+    jzfs_dataset="$(__get_jail_prop jail_zfs_dataset "${fulluuid}")"
 
     if [ "${jzfs}" == "on" ] ; then
         __set_jail_prop allow_mount=1 "${fulluuid}"
@@ -105,7 +104,7 @@ __start_jail () {
         zfs set jailed=on "${pool}/${jzfs_dataset}"
     fi
 
-    if [ "${vnet}" == "on" ] || [ "${vnet}" == "-" ] ; then
+    if [ "${vnet}" = "on" ] || [ "${vnet}" == "-" ] ; then
         if [ ! -z "$(sysctl -qn kern.features.vimage)" ] ; then
             echo "* Starting ${fulluuid} (${tag})"
             __vnet_start "${fulluuid}"
@@ -147,7 +146,7 @@ __start_jail () {
 
     if [ "${cpuset}" != "off" ] ; then
         echo -n "  + Appliyng CPU affinity"
-        local jid="$(jls -j "ioc-${fulluuid}" jid)"
+        jid="$(jls -j "ioc-${fulluuid}" jid)"
         cpuset -l "${cpuset}" -j "${jid}"
         if [ "${?}" -eq 1 ] ; then
             echo "    FAILED"
@@ -176,10 +175,10 @@ __start_jail () {
 
 # Start a VNET jail
 __vnet_start () {
-    local name="${1}"
-    local jail_path="$(__get_jail_prop mountpoint "${name}")"
-    local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${name}")"
-    local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${name}")"
+    name="${1}"
+    jail_path="$(__get_jail_prop mountpoint "${name}")"
+    fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${name}")"
+    tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${name}")"
 
 
     if [ "$(uname -U)" == "903000" ];
@@ -225,13 +224,13 @@ __vnet_start () {
 
 # Start a shared IP jail
 __legacy_start () {
-    local name="${1}"
-    local jail_path="$(__get_jail_prop mountpoint "${name}")"
-    local ip4_addr="$(__get_jail_prop ip4_addr "${name}")"
-    local ip6_addr="$(__get_jail_prop ip6_addr "${name}")"
+    name="${1}"
+    jail_path="$(__get_jail_prop mountpoint "${name}")"
+    ip4_addr="$(__get_jail_prop ip4_addr "${name}")"
+    ip6_addr="$(__get_jail_prop ip6_addr "${name}")"
 
-    local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${name}")"
-    local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${name}")"
+    fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${name}")"
+    tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${name}")"
 
     if [ "$(uname -U)" == "903000" ];
     then
@@ -331,14 +330,14 @@ __legacy_start () {
 }
 
 __stop_jail () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -350,14 +349,14 @@ __stop_jail () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
-    local jail_path="$(__get_jail_prop mountpoint "${name}")"
-    local tag="$(__get_jail_prop tag "${fulluuid}")"
-    local exec_prestop="$(__findscript "${fulluuid}" prestop)"
-    local exec_stop="$(__get_jail_prop exec_stop "${fulluuid}")"
-    local exec_poststop="$(__findscript "${fulluuid}" poststop)"
-    local vnet="$(__get_jail_prop vnet "${fulluuid}")"
-    local state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
+    fulluuid="$(__check_name "${name}")"
+    jail_path="$(__get_jail_prop mountpoint "${name}")"
+    tag="$(__get_jail_prop tag "${fulluuid}")"
+    exec_prestop="$(__findscript "${fulluuid}" prestop)"
+    exec_stop="$(__get_jail_prop exec_stop "${fulluuid}")"
+    exec_poststop="$(__findscript "${fulluuid}" poststop)"
+    vnet="$(__get_jail_prop vnet "${fulluuid}")"
+    state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
 
 
@@ -399,7 +398,7 @@ __stop_jail () {
     fi
 
     echo -n "  + Removing jail process"
-    jail -r "ioc-${fulluuid}"
+    jail -r "ioc-${fulluuid}" >/dev/null 2>&1
 
     if [ "${?}" -ne 1 ] ; then
         echo "    OK"
@@ -425,7 +424,7 @@ __stop_jail () {
     fi
 
     if [ ! -z $(sysctl -qn kern.features.rctl) ] ; then
-        local rlimits="$(rctl | grep "$fulluuid" | wc -l | sed -e 's/^  *//' \
+        rlimits="$(rctl | grep "$fulluuid" | wc -l | sed -e 's/^  *//' \
                 | cut -d' ' -f1)"
         if [ "${rlimits}" -gt "0" ] ; then
             rctl -r "jail:ioc-${fulluuid}"
@@ -435,14 +434,14 @@ __stop_jail () {
 
 # Soft restart
 __restart_jail () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -454,11 +453,11 @@ __restart_jail () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
-    local exec_stop="$(__get_jail_prop exec_stop "${fulluuid}")"
-    local exec_start="$(__get_jail_prop exec_start "${fulluuid}")"
-    local jid="$(jls -j "ioc-${fulluuid}" jid)"
-    local tag="$(__get_jail_prop tag "${fulluuid}")"
+    fulluuid="$(__check_name "${name}")"
+    exec_stop="$(__get_jail_prop exec_stop "${fulluuid}")"
+    exec_start="$(__get_jail_prop exec_start "${fulluuid}")"
+    jid="$(jls -j "ioc-${fulluuid}" jid)"
+    tag="$(__get_jail_prop tag "${fulluuid}")"
 
     echo "* Soft restarting ${fulluuid} (${tag})"
     jexec "ioc-${fulluuid}" ${exec_stop} >> \
@@ -476,14 +475,14 @@ __restart_jail () {
 }
 
 __runtime () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -495,13 +494,13 @@ __runtime () {
         exit 1
     fi
 
-    local fulluuid="$(__check_name "${name}")"
+    fulluuid="$(__check_name "${name}")"
 
-    local state="$(jls -n -j "ioc-${fulluuid}" | wc -l | sed -e 's/^  *//' \
+    state="$(jls -n -j "ioc-${fulluuid}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
 
     if [ "${state}" -eq "1" ] ; then
-        local params="$(jls -nj "ioc-${fulluuid}")"
+        params="$(jls -nj "ioc-${fulluuid}")"
         for i in ${params} ; do
             echo "  ${i}"
         done

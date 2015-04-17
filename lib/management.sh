@@ -25,14 +25,14 @@
 
 # This creates jails----------------------------------------------------
 __create_jail () {
-    local installed="$(zfs list -r "${pool}/iocage/releases"|grep "${release}")"
+    installed="$(zfs list -r "${pool}/iocage/releases"|grep "${release}")"
 
     if [ -z "${installed}" ] ; then
         echo "Release ${release} not found locally, run fetch first"
         exit 1
     fi
 
-    if [ "${2}" = "-c" ] ; then
+    if [ "${2}" == "-c" ] ; then
         fs_list="$(zfs list -rH -o name "${pool}/iocage/releases/${release}")"
 
         zfs snapshot -r "${pool}/iocage/releases/${release}@${uuid}"
@@ -41,9 +41,9 @@ __create_jail () {
             #echo "cloning $fs into $cfs"
             zfs clone "${fs}@${uuid}" "${cfs}"
         done
-    elif [ "${2}" = "-e" ] ; then
+    elif [ "${2}" == "-e" ] ; then
         zfs create -o compression=lz4 -p "${pool}/iocage/jails/${uuid}/root"
-    elif [ "${2}" = "-b" ] ; then
+    elif [ "${2}" == "-b" ] ; then
        export type=basejail
        zfs snapshot -r "${pool}/iocage/base@${uuid}"
        zfs create -o compression=lz4 -p "${pool}/iocage/jails/${uuid}/root/usr"
@@ -76,7 +76,7 @@ __create_jail () {
         __jail_rc_conf >> \
         "${iocroot}/jails/${uuid}/root/etc/rc.conf"
         __resolv_conf > "${iocroot}/jails/${uuid}/root/etc/resolv.conf"
-    elif [ "${2}" = "-e" ] ; then
+    elif [ "${2}" == "-e" ] ; then
         echo "${uuid}"
     fi
 
@@ -93,15 +93,15 @@ __create_jail () {
 
 # Cloning jails ----------------------------------------------------------
 __clone_jail () {
-    local name="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot="$(echo "${1}" |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    name="$(echo "${1}" | cut -d'@' -f1)"
+    snapshot="$(echo "${1}" |  cut -d'@' -f2)"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -113,7 +113,7 @@ __clone_jail () {
         exit 1
     fi
 
-    local fs_list="$(zfs list -rH -o name "${dataset}")"
+    fs_list="$(zfs list -rH -o name "${dataset}")"
 
     if [ -z "$snapshot" ] ; then
         zfs snapshot -r "${dataset}@${uuid}"
@@ -142,14 +142,14 @@ __clone_jail () {
 
 # Destroy jails --------------------------------------------------------------
 __destroy_jail () {
-    local name="${1}"
+    name="${1}"
 
     if [ -z "${name}" ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -161,13 +161,13 @@ __destroy_jail () {
         exit 1
     fi
 
-    local origin="$(zfs get -H -o value origin "${dataset}")"
-    local fulluuid="$(__check_name "${name}")"
-    local jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
-    local state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
+    origin="$(zfs get -H -o value origin "${dataset}")"
+    fulluuid="$(__check_name "${name}")"
+    jail_path="$(__get_jail_prop mountpoint "${fulluuid}")"
+    state="$(jls | grep "${jail_path}" | wc -l | sed -e 's/^  *//' \
               | cut -d' ' -f1)"
-    local jail_type="$(__get_jail_prop type "${fulluuid}")"
-    local jail_release="$(__get_jail_prop release "${fulluuid}")"
+    jail_type="$(__get_jail_prop type "${fulluuid}")"
+    jail_release="$(__get_jail_prop release "${fulluuid}")"
 
     echo " "
     echo "  WARNING: this will destroy jail ${fulluuid}"
@@ -205,7 +205,7 @@ __destroy_jail () {
 
 # Configure properties -------------------------------------------------
 __configure_jail () {
-    local CONF="${CONF_NET}
+    CONF="${CONF_NET}
                 ${CONF_JAIL}
                 ${CONF_RCTL}
                 ${CONF_CUSTOM}

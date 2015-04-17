@@ -34,15 +34,15 @@ __export_props () {
 
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
-    local name="${2}"
-    local property="${1}"
+    name="${2}"
+    property="${1}"
 
     if [ -z "${name}" ] || [ -z "${property}" ] ; then
         echo "  ERROR: missing property or UUID"
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: ${name} not found"
@@ -54,17 +54,17 @@ __set_jail_prop () {
         exit 1
     fi
 
-    local pname="$(echo "${property}"|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    local pval="$(echo "${property}"|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    pname="$(echo "${property}"| cut -d'=' -f1)"
+    pval="$(echo "${property}"| cut -d'=' -f2)"
 
     if [ -z "${pname}" ] || [ -z "${pval}" ] ; then
         echo "  ERROR: set failed, incorrect property syntax!"
         exit 1
     fi
 
-    local found="0"
+    found="0"
 
-    local CONF="${CONF_NET}
+    CONF="${CONF_NET}
                 ${CONF_JAIL}
                 ${CONF_RCTL}
                 ${CONF_CUSTOM}
@@ -96,8 +96,8 @@ __set_jail_prop () {
 
 # Get properties -----------------------------------------------------
 __get_jail_prop () {
-    local name="${2}"
-    local property="${1}"
+    name="${2}"
+    property="${1}"
 
     if [ -z "${property}" ] ; then
         echo "  ERROR: get failed, incorrect property syntax!"
@@ -109,7 +109,7 @@ __get_jail_prop () {
         exit 1
     fi
 
-    local dataset="$(__find_jail "${name}")"
+    dataset="$(__find_jail "${name}")"
 
     if [ -z "${dataset}" ] ; then
         echo "  ERROR: jail ${name} not found!"
@@ -121,9 +121,9 @@ __get_jail_prop () {
         exit 1
     fi
 
-    local found="0"
+    found="0"
 
-    local CONF="${CONF_NET}
+    CONF="${CONF_NET}
                 ${CONF_JAIL}
                 ${CONF_RCTL}
                 ${CONF_CUSTOM}
@@ -132,12 +132,12 @@ __get_jail_prop () {
     for prop in ${CONF} ; do
         if [ "${prop}" == "${property}" ] ; then
             found=1
-            local value="$(zfs get -H -o value org.freebsd.iocage:"${prop}" \
+            value="$(zfs get -H -o value org.freebsd.iocage:"${prop}" \
                          "${dataset}")"
             echo "${value}"
         elif [ "${property}" == "all" ] ; then
             found=1
-            local value="$(zfs get -H -o value org.freebsd.iocage:"${prop}" \
+            value="$(zfs get -H -o value org.freebsd.iocage:"${prop}" \
                          "${dataset}")"
             echo "${prop}:${value}"
         fi
@@ -146,7 +146,7 @@ __get_jail_prop () {
     for prop in ${CONF_ZFS} ; do
         if [ "${prop}" == "${property}" ] ; then
             found=1
-            local value="$(zfs get -H -o value "${prop}" "${dataset}")"
+            value="$(zfs get -H -o value "${prop}" "${dataset}")"
             echo "${value}"
         fi
     done
@@ -160,9 +160,7 @@ __get_jail_prop () {
 # reads tag property from given jail dataset
 # creates symlink from $iocroot/tags/<tag> to $iocroot/jails/<uuid>
 __link_tag () {
-    local dataset="${1}"
-    local mountpoint
-    local tag
+    dataset="${1}"
 
     if mountpoint="$(zfs get -H -o value mountpoint "${dataset}")" ; then
         if tag="$(zfs get -H -o value org.freebsd.iocage:tag "${dataset}")"; then
@@ -182,8 +180,7 @@ __link_tag () {
 
 # removes all symlinks found in $iocroot/tags pointing to the given jail dataset
 __unlink_tag () {
-    local dataset="${1}"
-    local mountpoint
+    dataset="${1}"
 
     if mountpoint="$(zfs get -H -o value mountpoint "${dataset}")" ; then
         find "${iocroot}/tags" -type l -lname "${mountpoint}*" -exec rm -f \{\} \;
