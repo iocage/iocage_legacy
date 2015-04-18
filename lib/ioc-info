@@ -148,21 +148,6 @@ __list_jails () {
     fi
 }
 
-__show () {
-    local jails=$(__find_jail ALL)
-    local prop="$1"
-
-    printf "%-36s  %s\n" "UUID" "$prop"
-
-    for jail in $jails ; do
-        local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
-                    $jail)"
-        local value="$(__get_jail_prop $prop $name)"
-
-        printf "%-+.36s  %s\n" "$name"  "$value"
-    done
-}
-
 __print_disk () {
     local jails=$(__find_jail ALL)
 
