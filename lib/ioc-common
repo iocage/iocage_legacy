@@ -1,0 +1,252 @@
+# Export every property specified on command line ----------------------
+__export_props () {
+    for i in "$@" ; do
+        if [ "$(echo $i | grep -e ".*=.*")" ] ; then
+            export "$i"
+        fi
+    done
+}
+
+# Set properties ------------------------------------------------------
+__set_jail_prop () {
+    local name="$2"
+    local property="$1"
+
+    if [ -z "$name" ] || [ -z "$property" ] ; then
+        echo "  ERROR: missing property or UUID"
+        exit 1
+    fi
+
+    local dataset="$(__find_jail $name)"
+
+    if [ -z "$dataset" ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ "$dataset" == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local pname="$(echo $property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
+    local pval="$(echo $property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+
+    if [ -z "$pname" ] || [ -z "$pval" ] ; then
+        echo "  ERROR: set failed, incorrect property syntax!"
+        exit 1
+    fi
+
+    local found="0"
+
+    local CONF="$CONF_NET
+                $CONF_JAIL
+                $CONF_RCTL
+                $CONF_CUSTOM
+                $CONF_SYNC"
+
+    for prop in $CONF ; do
+        if [ "$prop" == "$pname" ] ; then
+            found=1
+            zfs set org.freebsd.iocage:${prop}="${pval}" $dataset
+            if [ "$pname" == "tag" ] ; then
+                __unlink_tag $dataset
+                __link_tag $dataset
+            fi
+        fi
+    done
+
+    for prop in $CONF_ZFS ; do
+        if [ "$prop" == "$pname" ] ; then
+            zfs set $prop="$pval" $dataset
+            found=1
+        fi
+    done
+
+    if [ $found -ne "1" ] ; then
+        echo "  ERROR: unsupported property: $pname !"
+        exit 1
+    fi
+}
+
+__console () {
+    local name=$1
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+
+    local login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
+                       $pool/iocage/jails/$fulluuid)
+
+    jexec ioc-${fulluuid} login $login_flags
+}
+
+__exec () {
+    local jexecopts=
+
+    # check for -U or -u to pass to jexec
+    while getopts u:U: opt "$@"; do
+        case "$opt" in
+            [uU]) jexecopts="$jexecopts -$opt $OPTARG";;
+            ?)    echo "  ERROR: invalid exec option: $opt"
+                  exit 1
+                  ;;
+        esac
+    done
+    shift $(expr $OPTIND - 1)
+
+    local name=$1
+    shift
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+
+    jexec $jexecopts ioc-${fulluuid} "$@"
+}
+
+
+__chroot () {
+    local name="$1"
+    local command="$2"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+
+    chroot $iocroot/jails/${fulluuid}/root $command
+}
+
+# Fetch release and prepare base ZFS filesystems-----------
+__fetch_release () {
+    local exist=$(zfs list | grep -w ^$pool/iocage)
+    __print_release
+    echo -n "Please select a release [$release]: "
+    read answer
+    if [ ! -z "$answer" ] ; then
+        release="$answer"
+    else
+        answer="$release"
+    fi
+
+    for rel in $(echo $supported) ; do
+        if [ "$answer" == "$rel" ] ; then
+            release="$rel"
+            match="1"
+            break
+        fi
+    done
+
+    if [ -z $match ] ; then
+        echo "Invalid release $release specified, exiting.."
+        exit 1
+    fi
+
+    local exist=$(zfs list | grep -w ^$pool/iocage)
+    local download_exist=$(zfs list | grep -w ^$pool/iocage/download/$release)
+    local rel_exist=$(zfs list | grep -w ^$pool/iocage/releases/$release)
+
+    if [ -z "$exist" ] ; then
+        zfs create -o compression=lz4 $pool/iocage
+        zfs set mountpoint=$iocroot $pool/iocage
+        zfs create -o compression=lz4 $pool/iocage/jails
+        zfs mount -a
+    fi
+
+    if [ -z "$download_exist" ] ; then
+        zfs create -o compression=lz4 -p $pool/iocage/download/$release
+    fi
+
+    ftpdir="/pub/FreeBSD/releases/amd64/$release"
+
+    cd $iocroot/download/$release
+    for file in $ftpfiles ; do
+        if [ ! -e "$file" ] ; then
+            fetch http://$ftphost$ftpdir/$file
+        fi
+    done
+
+    if [ -z "$rel_exist" ] ; then
+        zfs create -o compression=lz4 -p $pool/iocage/releases/$release/root
+    fi
+
+    for file in $(echo $ftpfiles) ; do
+        if [ -e "$file" ] ; then
+            echo "Extracting: $file"
+            chflags -R noschg $iocroot/releases/$release/root
+            tar -C $iocroot/releases/$release/root -xf $file
+        fi
+    done
+
+        echo "* Updating base jail.."
+        sleep 2
+
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b $iocroot/releases/$release/root \
+            -d $iocroot/releases/$release/root/var/db/freebsd-update/ fetch
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b $iocroot/releases/$release/root \
+            -d $iocroot/releases/$release/root/var/db/freebsd-update/ install
+
+    if [ ! -d $iocroot/log ] ; then
+        mkdir $iocroot/log
+    fi
+
+    __create_basejail $release
+    chflags -R noschg $iocroot/base/$release/root
+    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/releases/$release/root -cf - . | \
+    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
+
+    if [ ! -e "$iocroot/base/$release/root/usr/sbin/chown" ] ; then
+       cd $iocroot/base/$release/root/usr/sbin && ln -s ../bin/chgrp chown
+    fi
+
+    etcupdate extract -D $iocroot/base/$release/root \
+    -s $iocroot/base/$release/root/usr/src
+}
