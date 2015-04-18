@@ -1,0 +1,132 @@
+#!/bin/sh
+
+__update () {
+    local name=$1
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+
+    local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
+    local date=$(date "+%F_%T")
+    local jail_type="$(__get_jail_prop type $fulluuid)"
+    local jail_release="$(__get_jail_prop release $fulluuid)"
+
+    if [ $jail_type == "basejail" ] ; then
+        # Re-clone required filesystems
+        __reclone_basejail $name
+    else
+        echo "* creating back-out snapshot.."
+        __snapshot ${fulluuid}@ioc-update_${date}
+
+        echo "* Updating jail.."
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b ${mountpoint}/root \
+            -d ${mountpoint}/root/var/db/freebsd-update/ fetch
+        env UNAME_r="$release" /usr/sbin/freebsd-update \
+            -b ${mountpoint}/root \
+            -d ${mountpoint}/root/var/db/freebsd-update/ install
+
+        echo " "
+        echo "* Once finished don't forget to remove the snapshot!"
+    fi
+}
+
+__upgrade () {
+    local name=$1
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    if [ ! -d $iocroot/download/$release ] ; then
+        echo "  ERROR: $release not found."
+        echo "  Please run iocage fetch first."
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+    local jail_type="$(__get_jail_prop type $fulluuid)"
+    local jail_release="$(__get_jail_prop release $fulluuid)"
+    local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
+    local date=$(date "+%F_%T")
+    local oldrelease="$(zfs get -H -o value org.freebsd.iocage:release $dataset)"
+
+    if [ $jail_type == "basejail" ] ; then
+        zfs set org.freebsd.iocage:release="$release" $dataset
+        # Re-clone required filesystems
+        __reclone_basejail $name
+        cp -Rp ${mountpoint}/root/etc ${mountpoint}/root/etc.old
+        etcupdate -D ${mountpoint}/root -F \
+        -s $iocroot/base/$release/root/usr/src
+        chroot ${mountpoint}/root /bin/sh -c "newaliases"
+
+    if [ $? -eq 0 ] ; then
+        echo ""
+        echo "  Upgrade successful. Please restart jail and inspect. Remove ${mountpoint}/root/etc.old if everything is OK."
+        exit 0
+    else
+        echo ""
+        echo "  Mergemaster failed! Backing out."
+        zfs set org.freebsd.iocage:release="$oldrelease" $dataset
+        rm -rf ${mountpoint}/root/etc
+        mv ${mountpoint}/root/etc.old ${mountpoint}/root/etc
+        exit 1
+      fi
+    fi
+
+    echo "* creating back-out snapshot.."
+    __snapshot ${fulluuid}@ioc-upgrade_${date}
+
+    echo "* Upgrading jail.."
+
+    env UNAME_r=${oldrelease} /usr/sbin/freebsd-update \
+    -b ${mountpoint}/root \
+    -d ${mountpoint}/root/var/db/freebsd-update/ \
+    -r $release upgrade
+
+    if [ $? -eq 0 ] ; then
+        while [ $? -eq 0 ] ; do
+        env UNAME_r=${oldrelease} /usr/sbin/freebsd-update \
+        -b ${mountpoint}/root \
+        -d ${mountpoint}/root/var/db/freebsd-update/ \
+        -r $release install
+    done
+
+    # Set jail's zfs property to new release
+    zfs set org.freebsd.iocage:release="$release" $dataset
+    else
+       echo "  Upgrade failed, aborting install."
+       exit 1
+    fi
+
+    echo " "
+    echo "* Once finished don't forget to remove the snapshot!"
+}
