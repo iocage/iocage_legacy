@@ -84,8 +84,7 @@ __upgrade () {
         cp -Rp ${mountpoint}/root/etc ${mountpoint}/root/etc.old
         etcupdate -D ${mountpoint}/root -F \
         -s $iocroot/base/$release/root/usr/src
-        chroot ${mountpoint}/root /bin/sh -c "newaliases"
-
+        __chroot "$name" newaliases
     if [ $? -eq 0 ] ; then
         echo ""
         echo "  Upgrade successful. Please restart jail and inspect. Remove ${mountpoint}/root/etc.old if everything is OK."
