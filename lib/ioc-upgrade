@@ -1,5 +1,3 @@
-#!/bin/sh
-
 __update () {
     local name=$1
 

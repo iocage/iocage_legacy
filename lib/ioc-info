@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # Print defaults set in this script.
 __print_defaults () {
     CONF="$CONF_NET
