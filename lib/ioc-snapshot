@@ -1,0 +1,154 @@
+__snapshot () {
+    local name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+    local snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local date=$(date "+%F_%T")
+
+    if [ ! -z $snapshot ] ; then
+        zfs snapshot -r ${dataset}@${snapshot}
+    else
+        zfs snapshot -r ${dataset}@ioc-${date}
+    fi
+}
+
+
+__snapremove () {
+    local name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+    local snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: jail dataset not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    if [ ! -z $snapshot ] ; then
+        echo "* removing snapshot: ${snapshot}"
+        zfs destroy -r ${dataset}@${snapshot}
+    else
+        echo "  ERROR: snapshot not found"
+        exit 1
+    fi
+}
+
+__snaplist () {
+    local name="$1"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fulluuid="$(__check_name $name)"
+    local snapshots="$(zfs list -Hrt snapshot -d1 $dataset | awk '{print $1}')"
+
+    printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
+            "RSIZE" "USED"
+
+    for i in $snapshots ; do
+        local snapname=$(echo $i|cut -f 2 -d \@)
+        local creation="$(zfs get -H -o value creation $i)"
+        local used="$(zfs get -H -o value used $i)"
+        local referenced="$(zfs get -H -o value referenced $i)"
+
+        printf "%-36s  %-21s  %s    %s\n" "$snapname" "$creation"\
+                   "$referenced" "$used"
+    done
+
+}
+
+__rollback () {
+    local name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+    local snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    local dataset=$(__find_jail $name)
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fs_list=$(zfs list -rH -o name $dataset)
+
+    if [ ! -z "$snapshot" ] ; then
+        for fs in $fs_list ; do
+            echo "* Rolling back to ${fs}@${snapshot}"
+            zfs rollback -r ${fs}@${snapshot}
+        done
+    fi
+}
+
+__promote () {
+    local name="$1"
+
+    if [ -z $name ] ; then
+        echo "  ERROR: missing UUID"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: $name not found"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local fs_list=$(zfs list -rH -o name $dataset)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: dataset not found"
+        exit 1
+    fi
+
+    for fs in $fs_list ; do
+        local origin="$(zfs get -H -o value origin $fs)"
+
+        if [ "$origin" != "-" ] ; then
+            echo "* promoting filesystem: $fs"
+            zfs promote $fs
+            continue
+        else
+            echo "  INFO: filesystem $fs is not a clone"
+        fi
+    done
+}
+

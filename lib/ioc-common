@@ -250,3 +250,37 @@ __fetch_release () {
     etcupdate extract -D $iocroot/base/$release/root \
     -s $iocroot/base/$release/root/usr/src
 }
+
+# reads tag property from given jail dataset
+# creates symlink from $iocroot/tags/<tag> to $iocroot/jails/<uuid>
+__link_tag () {
+    local dataset=$1
+    local mountpoint
+    local tag
+
+    if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
+        if tag=$(zfs get -H -o value org.freebsd.iocage:tag $dataset); then
+            mkdir -p $iocroot/tags
+            if [ ! -e $iocroot/tags/$tag ] ; then
+                ln -s $mountpoint $iocroot/tags/$tag
+            else
+                echo "  ERROR: tag already exists, can not symlink: $tag"
+                exit 1
+            fi
+        fi
+    else
+        echo "  ERROR: no such dataset: $dataset"
+        exit 1
+    fi
+}
+
+# removes all symlinks found in $iocroot/tags pointing to the given jail dataset
+__unlink_tag () {
+    local dataset=$1
+    local mountpoint
+
+    if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
+        find $iocroot/tags -type l -lname "${mountpoint}*" -exec rm -f \{\} \;
+    fi
+}
+

@@ -1,3 +1,14 @@
+# Print supported releases----------------------------------
+__print_release () {
+    supported="10.1-RELEASE
+                9.3-RELEASE"
+
+    echo "Supported releases are: "
+    for rel in $(echo $supported) ; do
+        printf "%15s\n" "$rel"
+    done
+}
+
 # Print defaults set in this script.
 __print_defaults () {
     CONF="$CONF_NET
@@ -295,3 +306,53 @@ __runtime () {
         echo " ERROR: jail $fulluuid is not up.."
     fi
 }
+
+__get_jail_name () {
+    for i in $@; do
+        :;
+    done
+
+    echo $i
+}
+
+# search for executable prestart|poststart|prestop|poststop in jail_dir first,
+# else use jail exec_<type> property unchanged
+__findscript () {
+    local name=$1
+    # type should be one of prestart|poststart|prestop|poststop
+    local type=$2
+    local jail_path="$(__get_jail_prop mountpoint $name)"
+
+    if [ -x "${jail_path}/${type}" ]; then
+        echo "${jail_path}/${type}"
+    else
+        echo "$(__get_jail_prop exec_${type} $name)"
+    fi
+}
+
+__check_name () {
+    local name=$1
+
+    if [ -z $name ] ; then
+        echo "ERROR"
+        exit 1
+    fi
+
+    local dataset=$(__find_jail $name)
+
+    if [ -z $dataset ] ; then
+        echo "  ERROR: jail $name not found!"
+        exit 1
+    fi
+
+    if [ $dataset == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
+    fi
+
+    local uuid="$(__get_jail_prop host_hostuuid $name)"
+
+    echo "$uuid"
+
+}
+
