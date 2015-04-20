@@ -1,3 +1,5 @@
+#!/bin/sh
+
 __rctl_limits () {
     local name="$1"
     local failed=0

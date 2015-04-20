@@ -1,3 +1,5 @@
+#!/bin/sh
+
 __snapshot () {
     local name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     local snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"

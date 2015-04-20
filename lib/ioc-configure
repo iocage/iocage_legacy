@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Configure properties -------------------------------------------------
 __configure_jail () {
     local CONF="$CONF_NET

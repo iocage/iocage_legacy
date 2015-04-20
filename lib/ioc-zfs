@@ -1,3 +1,5 @@
+#!/bin/sh
+
 __create_basejail () {
     local release="$1"
     local fs_list="bin

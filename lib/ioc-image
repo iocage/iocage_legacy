@@ -1,3 +1,5 @@
+#!/bin/sh
+
 __record () {
     local name=$2
     local action=$1

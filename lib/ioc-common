@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Export every property specified on command line ----------------------
 __export_props () {
     for i in "$@" ; do

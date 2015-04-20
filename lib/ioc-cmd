@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Process command line options-------------------------
 __parse_cmd () {
     while [ $# -gt 0 ] ; do
