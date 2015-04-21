@@ -46,19 +46,31 @@ if [ "$(uname -K)" -lt "903000" ]; then
     exit 1
 fi
 
-. "lib/ioc-cmd"
-. "lib/ioc-globals"
-. "lib/ioc-zfs"
-. "lib/ioc-snapshot"
-. "lib/ioc-info"
-. "lib/ioc-upgrade"
-. "lib/ioc-help"
-. "lib/ioc-image"
-. "lib/ioc-common"
-. "lib/ioc-rc"
-. "lib/ioc-network"
-. "lib/ioc-rctl"
-. "lib/ioc-configure"
+# Check if libs are available
+if [ -e "./lib" ] ; then
+    LIB="./lib"
+else
+    if [ -e "/usr/local/lib/iocage" ] ; then
+        LIB="/usr/local/lib/iocage"
+    else
+        echo "ERROR: missing libraries"
+        exit 1
+    fi
+fi
+
+. "${LIB}/ioc-cmd"
+. "${LIB}/ioc-globals"
+. "${LIB}/ioc-zfs"
+. "${LIB}/ioc-snapshot"
+. "${LIB}/ioc-info"
+. "${LIB}/ioc-upgrade"
+. "${LIB}/ioc-help"
+. "${LIB}/ioc-image"
+. "${LIB}/ioc-common"
+. "${LIB}/ioc-rc"
+. "${LIB}/ioc-network"
+. "${LIB}/ioc-rctl"
+. "${LIB}/ioc-configure"
 
 if [ -z "$1" ] ; then
     __usage
