@@ -41,6 +41,11 @@ if [ "$(zpool list)" = 'no pools available' ] ; then
     exit 1
 fi
 
+if [ "$(uname -K)" -lt "903000" ]; then
+    echo "  Unsupported RELEASE found. Please upgrade to 9.3-RELEASE or later."
+    exit 1
+fi
+
 . "lib/ioc-cmd"
 . "lib/ioc-globals"
 . "lib/ioc-zfs"
