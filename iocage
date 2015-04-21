@@ -49,13 +49,11 @@ fi
 # Check if libs are available
 if [ -e "./lib" ] ; then
     LIB="./lib"
+elif [ -e "/usr/local/lib/iocage" ] ; then
+    LIB="/usr/local/lib/iocage"
 else
-    if [ -e "/usr/local/lib/iocage" ] ; then
-        LIB="/usr/local/lib/iocage"
-    else
-        echo "ERROR: missing libraries"
-        exit 1
-    fi
+echo "ERROR: missing libraries"
+    exit 1
 fi
 
 . "${LIB}/ioc-cmd"
