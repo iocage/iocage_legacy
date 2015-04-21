@@ -52,7 +52,7 @@ if [ -e "./lib" ] ; then
 elif [ -e "/usr/local/lib/iocage" ] ; then
     LIB="/usr/local/lib/iocage"
 else
-echo "ERROR: missing libraries"
+    echo "ERROR: missing libraries"
     exit 1
 fi
 
