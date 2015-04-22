@@ -56,13 +56,23 @@ else
     exit 1
 fi
 
+if [ "$(whoami)" != "root" ] ; then
+    echo "* Only root can manage jails!"
+    exit 1
+fi
+
+# Source the libs needed to use the script
 . "${LIB}/ioc-cmd"
 . "${LIB}/ioc-globals"
+. "${LIB}/ioc-info"
+__find_mypool
+
+# The rest of the libs
+. "${LIB}/ioc-help"
+. "${LIB}/ioc-common"
 . "${LIB}/ioc-zfs"
 . "${LIB}/ioc-snapshot"
-. "${LIB}/ioc-info"
 . "${LIB}/ioc-upgrade"
-. "${LIB}/ioc-help"
 . "${LIB}/ioc-image"
 . "${LIB}/ioc-common"
 . "${LIB}/ioc-rc"
@@ -78,21 +88,6 @@ fi
 if [ "$1" == "help" ] ; then
     __help
     exit 0
-fi
-
-
-if [ "$(whoami)" != "root" ] ; then
-    echo "* Only root can manage jails!"
-    exit 1
-fi
-
-__find_mypool
-
-# check if .defaults dataset exists, if not create it
-zfs get -H creation ${pool}${iocroot}/.defaults > /dev/null 2>&1
-if [ $? -ne 0 ] ; then
-    echo "INFO: creating ${pool}${iocroot}/.defaults"
-    zfs create ${pool}${iocroot}/.defaults
 fi
 
 __parse_cmd "$@"
