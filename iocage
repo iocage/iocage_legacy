@@ -79,6 +79,7 @@ __find_mypool
 . "${LIB}/ioc-network"
 . "${LIB}/ioc-rctl"
 . "${LIB}/ioc-configure"
+. "${LIB}/ioc-hacks"
 
 if [ -z "$1" ] ; then
     __usage

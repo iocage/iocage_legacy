@@ -104,6 +104,7 @@ hostid=$(cat /etc/hostid)
 jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/root/data"
 mount_procfs="0"
+hack88="0"
 
 # Native ZFS properties
 compression="lz4"
@@ -211,7 +212,8 @@ CONF_CUSTOM="tag
              cpuset
              jail_zfs
              jail_zfs_dataset
-             release"
+             release
+             hack88"
 
 # Native ZFS properties
 CONF_ZFS="compression

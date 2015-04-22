@@ -21,6 +21,9 @@ __start_jail () {
     fi
 
     local fulluuid="$(__check_name $name)"
+
+    __hack88_mount ${fulluuid}
+
     local jail_type="$(__get_jail_prop type $fulluuid)"
     local tag="$(__get_jail_prop tag $fulluuid)"
     local jail_hostid="$(__get_jail_prop hostid $fulluuid)"
@@ -28,7 +31,6 @@ __start_jail () {
     local template="$(__get_jail_prop template $fulluuid)"
     local cpuset="$(__get_jail_prop cpuset $fulluuid)"
     local procfs="$(__get_jail_prop mount_procfs $fulluuid)"
-    local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
     local state="$(jls | grep ${jail_path} | wc -l)"
     local vnet="$(__get_jail_prop vnet $fulluuid)"
     local nics="$(__get_jail_prop interfaces $fulluuid \
