@@ -30,6 +30,18 @@ __print_defaults () {
     done
 }
 
+# Get default value for property if one is found
+__get_default_prop () {
+    local property="$1"
+    local value="$(__get_jail_prop $property default)"
+
+    if [ "$value" != '-' ] ; then
+        echo "$value"
+    else
+        echo "NONE"
+    fi
+}
+
 # Find and return the jail's top level ZFS dataset
 
 __find_jail () {
@@ -43,6 +55,8 @@ __find_jail () {
         for jail in $jails ; do
             echo $jail
         done
+    elif [ "${name}" == "default" ] ; then
+        echo "${pool}/iocage/.defaults"
     else
         for jail in $jails ; do
             found="$(echo $jail |grep -iE "^$pool/iocage/jails/$name"|wc -l)"

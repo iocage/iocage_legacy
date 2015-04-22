@@ -2,6 +2,7 @@
 
 # Configure properties -------------------------------------------------
 __configure_jail () {
+    local _value _default_value
     local CONF="$CONF_NET
                 $CONF_JAIL
                 $CONF_RCTL
@@ -13,8 +14,18 @@ __configure_jail () {
         prop_name=$prop
         eval prop="\$${prop}"
         if [ ! -z "$prop" ] ; then
-            echo "** $prop_name=$prop"
-            zfs set org.freebsd.iocage:$prop_name="$prop" $1
+            # find saved default value if any for the property
+            _default_value="$(__get_default_prop $prop_name)"
+
+            if [ "$_default_value" != "NONE" ] && [ "$_default_value" != "$prop" ] ; then
+                _value="$_default_value"
+            else
+                _value="$prop"
+            fi
+
+            echo "** $prop_name=$_value"
+            zfs set org.freebsd.iocage:$prop_name="$_value" $1
+
             if [ "$prop_name" == "tag" ] ; then
                 __link_tag $1
             fi
@@ -24,8 +35,17 @@ __configure_jail () {
     for prop in $CONF_ZFS ; do
         prop_name=$prop
         eval prop="\$${prop}"
+        _default_value="$(__get_default_prop $prop_name)"
         if [ ! -z "$prop" ] && [ "$prop" != "readonly" ] ; then
-            zfs set $prop_name="$prop" $1
+            # find saved default value if any for the property
+            if [ "$_default_value" != "NONE" ] && [ "$_default_value" != "$prop" ] ; then
+                _value="$_default_value"
+            else
+                _value="$prop"
+            fi
+
+            echo "** $prop_name=$_value"
+            zfs set $prop_name="$_value" $1
         fi
     done
 }

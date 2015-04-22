@@ -87,4 +87,12 @@ if [ "$(whoami)" != "root" ] ; then
 fi
 
 __find_mypool
+
+# check if .defaults dataset exists, if not create it
+zfs get -H creation ${pool}${iocroot}/.defaults > /dev/null 2>&1
+if [ $? -ne 0 ] ; then
+    echo "INFO: creating ${pool}${iocroot}/.defaults"
+    zfs create ${pool}${iocroot}/.defaults
+fi
+
 __parse_cmd "$@"
