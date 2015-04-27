@@ -3,7 +3,7 @@
 # check if .defaults dataset exists, if not create it
 zfs get -H creation ${pool}${iocroot}/.defaults > /dev/null 2>&1
 if [ $? -ne 0 ] ; then
-    echo "INFO: creating ${pool}${iocroot}/.defaults"
+    echo "  INFO: Creating ${pool}${iocroot}/.defaults."
     zfs create ${pool}${iocroot}/.defaults
 fi
 
@@ -38,19 +38,19 @@ __reclone_basejail () {
     local name=$1
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
     local dataset=$(__find_jail $name)
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+        echo "  ERROR: $name not found."
         exit 1
     fi
 
     if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
@@ -75,7 +75,7 @@ __create_jail () {
     local installed=$(zfs list -r $pool/iocage/releases|grep $release)
 
     if [ -z "$installed" ] ; then
-        echo "Release $release not found locally, run fetch first"
+        echo "  ERROR: Release $release not found locally, run fetch first."
         exit 1
     fi
 
@@ -144,19 +144,19 @@ __clone_jail () {
     local snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+        echo "  ERROR: missing UUID!"
         exit 1
     fi
 
     local dataset="$(__find_jail $name)"
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+        echo "  ERROR: $name not found."
         exit 1
     fi
 
     if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
@@ -192,19 +192,89 @@ __destroy_jail () {
     local name=$1
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+        echo "  ERROR: missing UUID!"
+        exit 1
+    fi
+
+    local release_list="$(zfs list -o name -Hr $pool/iocage/releases \
+                        | grep RELEASE$ | cut -d \/ -f 4)"
+
+    local fs_list="bin
+                   boot
+                   lib
+                   libexec
+                   rescue
+                   sbin
+                   usr
+                   usr/bin
+                   usr/include
+                   usr/lib
+                   usr/libexec
+                   usr/sbin
+                   usr/share
+                   usr/src
+                   usr/libdata
+                   usr/lib32"
+
+    if [ $name == "ALL" ] ; then
+        echo " "
+        echo "  WARNING: this will destroy ALL jails"
+        echo " "
+        echo "  Please make sure all jails are stopped before continuing."
+        echo " "
+        echo -n "  Are you sure ? Y[n]: "
+        read answer
+
+    if [ "$answer" == "Y" ]; then
+        echo "  Destroying all jails"
+        zfs destroy -rf ${pool}${iocroot}/jails
+        zfs destroy -rf ${pool}${iocroot}/tags
+        for release in $(echo $release_list) ; do
+            for fslist in $fs_list ; do
+
+                local uuid_list="$(zfs list -Hrt snapshot -o name | grep \
+                    ^${pool}${iocroot}/base/${release}/root/${fslist}@)"
+                for jailsnaps in $(echo $uuid_list) ; do
+                     zfs destroy -rf ${jailsnaps}
+                done
+
+                local uuid_list="$(zfs list -Hrt snapshot -o name | grep \
+                    ^${pool}${iocroot}/base/${release}/root@)"
+                for rootsnaps in $(echo $uuid_list) ; do
+                    zfs destroy -rf ${rootsnaps}
+                done
+
+                local uuid_list="$(zfs list -Hrt snapshot -o name | grep \
+                    ^${pool}${iocroot}/base/${release}@)"
+                for releasesnaps in $(echo $uuid_list) ; do
+                    zfs destroy -rf ${releasesnaps}
+                done
+
+                local uuid_list="$(zfs list -Hrt snapshot -o name | grep \
+                    ^${pool}${iocroot}/base@)"
+                for basesnaps in $(echo $uuid_list) ; do
+                    zfs destroy -rf ${basesnaps}
+                done
+            done
+        done
+             zfs create -o compression=lz4 ${pool}${iocroot}/jails
+             zfs create -o compression=lz4 ${pool}${iocroot}/tags
+             exit 0
+        fi
+    else
+        echo "  Command not confirmed.  No action taken."
         exit 1
     fi
 
     local dataset="$(__find_jail $name)"
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+        echo "  ERROR: $name not found."
         exit 1
     fi
 
     if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
@@ -240,7 +310,7 @@ __destroy_jail () {
             fi
 
         elif [ "$state" -eq "1" ] ; then
-            echo "  ERROR: Jail is up and running ..exiting"
+            echo "  ERROR: Jail is up and running. Exiting."
             exit 1
         fi
    else
