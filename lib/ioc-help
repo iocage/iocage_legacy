@@ -8,7 +8,7 @@ SYNOPSIS
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
-  iocage destroy UUID|TAG
+  iocage destroy [-f] UUID|TAG|ALL
   iocage list [-t|-r]
   iocage start UUID|TAG
   iocage stop UUID|TAG
@@ -131,10 +131,14 @@ SUBCOMMANDS
     Clone a jail from a custom snapshot (snapshot taken previously):
     iocage clone UUID@snapshotname tag=www02
 
-  destroy UUID|TAG
+  destroy [-f] UUID|TAG|ALL
 
     Destroy given jail. This is irreversible, use with caution. If the jail is
     running destroy action will fail. Also a capital "Y" is required for confirmation.
+
+    With -f the jail will be destroyed without confirmation.
+
+    The keyword "ALL" will destroy all jails and templates irreversibly!
 
   list [-t|-r]
 
@@ -1297,42 +1301,42 @@ __usage () {
     echo "usage:"
     echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]"
     echo "  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
-    echo "  iocage clone [UUID|TAG]@snapshot [property=value]"
-    echo "  iocage destroy [UUID|TAG]"
+    echo "  iocage clone UUID|TAG@snapshot [property=value]"
+    echo "  iocage destroy [-f] UUID|TAG|ALL"
     echo "  iocage list [-t]"
-    echo "  iocage start [UUID|TAG]"
-    echo "  iocage stop [UUID|TAG]"
-    echo "  iocage restart [UUID|TAG]"
+    echo "  iocage start UUID|TAG"
+    echo "  iocage stop UUID|TAG"
+    echo "  iocage restart UUID|TAG"
     echo "  iocage rcboot"
     echo "  iocage rcshutdown"
-    echo "  iocage console [UUID|TAG]"
-    echo "  iocage exec [-u username | -U username] [UUID|TAG] command [arg ...]"
-    echo "  iocage chroot [UUID|TAG] [command]"
+    echo "  iocage console UUID|TAG"
+    echo "  iocage exec [-u username | -U username] UUID|TAG command [arg ...]"
+    echo "  iocage chroot UUID|TAG [command]"
     echo "  iocage df"
     echo "  iocage show property"
-    echo "  iocage get [property | all ] [UUID|TAG]"
-    echo "  iocage set property=value [UUID|TAG]"
-    echo "  iocage cap [UUID|TAG]"
-    echo "  iocage limits [UUID|TAG]"
-    echo "  iocage uncap [UUID|TAG]"
-    echo "  iocage inuse [UUID|TAG]"
-    echo "  iocage snapshot [UUID|TAG]@snapshotname"
-    echo "  iocage snaplist [UUID|TAG]"
-    echo "  iocage snapremove [UUID|TAG]@snapshotname"
-    echo "  iocage rollback [UUID|TAG]@snapshotname"
-    echo "  iocage promote [UUID|TAG]"
-    echo "  iocage runtime [UUID|TAG]"
-    echo "  iocage update [UUID|TAG]"
-    echo "  iocage upgrade [UUID|TAG]"
-    echo "  iocage record start|stop [UUID|TAG]"
-    echo "  iocage package [UUID|TAG]"
-    echo "  iocage export [UUID|TAG]"
+    echo "  iocage get property|all ] UUID|TAG"
+    echo "  iocage set property=value UUID|TAG"
+    echo "  iocage cap UUID|TAG"
+    echo "  iocage limits UUID|TAG"
+    echo "  iocage uncap UUID|TAG"
+    echo "  iocage inuse UUID|TAG"
+    echo "  iocage snapshot UUID|TAG@snapshotname"
+    echo "  iocage snaplist UUID|TAG"
+    echo "  iocage snapremove UUID|TAG@snapshotname"
+    echo "  iocage rollback UUID|TAG@snapshotname"
+    echo "  iocage promote UUID|TAG"
+    echo "  iocage runtime UUID|TAG"
+    echo "  iocage update UUID|TAG"
+    echo "  iocage upgrade UUID|TAG"
+    echo "  iocage record start|stop UUID|TAG"
+    echo "  iocage package UUID|TAG"
+    echo "  iocage export UUID|TAG"
     echo "  iocage import UUID [property=value]"
     echo "  iocage defaults"
     echo "  iocage version | --version"
     echo "  iocage help"
     echo " "
-    echo "  Hint:  you can use shortened UUIDs!"
+    echo "  Hint:  you can use shortened UUIDs or TAGs interchangeably!"
     echo " "
     echo "  e.g. for  adae47cb-01a8-11e4-aa78-3c970ea3222f"
     echo "       use  adae47cb or just adae"

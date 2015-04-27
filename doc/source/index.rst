@@ -76,6 +76,7 @@ Documentation:
    upgrading
    real-world
    debian
+   networking
    known-issues
 
 Indices and tables
