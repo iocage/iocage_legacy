@@ -372,3 +372,11 @@ __check_name () {
 
 }
 
+# check if .defaults dataset exists, if not create it
+__check_defaults () {
+    zfs get -H creation ${pool}${iocroot}/.defaults > /dev/null 2>&1
+    if [ $? -ne 0 ] ; then
+        echo "  INFO: Creating ${pool}${iocroot}/.defaults."
+        zfs create ${pool}${iocroot}/.defaults
+    fi
+}
