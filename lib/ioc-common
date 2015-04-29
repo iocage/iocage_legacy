@@ -263,8 +263,6 @@ __fetch_release () {
 __link_tag () {
     local _dataset _mountpoint _tag
     _dataset=$1
-    _mountpoint
-    _tag
 
     if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
         if _tag=$(zfs get -H -o value org.freebsd.iocage:tag $_dataset); then
@@ -286,10 +284,8 @@ __link_tag () {
 __unlink_tag () {
     local _dataset _mountpoint
     _dataset=$1
-    _mountpoint
 
     if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
         find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \;
     fi
 }
-
