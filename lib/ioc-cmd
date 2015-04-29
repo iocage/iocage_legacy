@@ -4,31 +4,37 @@
 __parse_cmd () {
     while [ $# -gt 0 ] ; do
         case "$1" in
-            list)       __list_jails "$2"
-                        exit
-                ;;
-            console)    __console "$2"
-                        exit
-                ;;
-            exec)       shift
-                        __exec "$@"
+            cap)        __rctl_limits "$2"
                         exit
                 ;;
             chroot)     __chroot "$2" "$3"
                         exit
                 ;;
-            defaults)   __print_defaults
+            clone)      __export_props "$@"
+                        __clone_jail "$2"
+                        exit
+                ;;
+            console)    __console "$2"
                         exit
                 ;;
             create)     __export_props "$@"
                         __create_jail "$@"
                         exit
                 ;;
+            defaults)   __print_defaults
+                        exit
+                ;;
             destroy)    __destroy_jail "$2" "$3"
                         exit
                 ;;
-            clone)      __export_props "$@"
-                        __clone_jail "$2"
+            df)         __print_disk
+                        exit
+                ;;
+            exec)       shift
+                        __exec "$@"
+                        exit
+                ;;
+            export)     __export "$2"
                         exit
                 ;;
             fetch)      __export_props "$@"
@@ -38,17 +44,26 @@ __parse_cmd () {
             get)        __get_jail_prop "$2" "$3"
                         exit
                 ;;
-            set)        __export_props "$@"
-                        __set_jail_prop "$2" "$3"
+            help)       __help
                         exit
                 ;;
-            start)      __start_jail "$2"
+            inuse)      __rctl_used "$2"
                         exit
                 ;;
-            stop)       __stop_jail "$2"
+            import)     __export_props "$@"
+                        __import "$2"
                         exit
                 ;;
-            restart)    __restart_jail "$2"
+            limits)     __rctl_list "$2"
+                        exit
+                ;;
+            list)       __list_jails "$2"
+                        exit
+                ;;
+            package)    __package "$2"
+                        exit
+                ;;
+            promote)    __promote "$2"
                         exit
                 ;;
             rcboot)     __rc_jails boot
@@ -57,10 +72,23 @@ __parse_cmd () {
             rcshutdown) __rc_jails shutdown
                         exit
                 ;;
-            df)         __print_disk
+            record)     __record "$2" "$3"
                         exit
                 ;;
-            snapshot)   __snapshot "$2"
+            restart)    __restart_jail "$2"
+                        exit
+                ;;
+            rollback)   __rollback "$2"
+                        exit
+                ;;
+            runtime)    __runtime "$2"
+                        exit
+                ;;
+            set)        __export_props "$@"
+                        __set_jail_prop "$2" "$3"
+                        exit
+                ;;
+            show)       __show "$2"
                         exit
                 ;;
             snaplist)   __snaplist "$2"
@@ -69,50 +97,22 @@ __parse_cmd () {
             snapremove) __snapremove "$2"
                         exit
                 ;;
-            promote)    __promote "$2"
+            snapshot)   __snapshot "$2"
                         exit
                 ;;
-            rollback)   __rollback "$2"
+            start)      __start_jail "$2"
+                        exit
+                ;;
+            stop)       __stop_jail "$2"
                         exit
                 ;;
             uncap)      __rctl_uncap "$2"
-                        exit
-                ;;
-            cap)        __rctl_limits "$2"
-                        exit
-                ;;
-            limits)     __rctl_list "$2"
-                        exit
-                ;;
-            inuse)      __rctl_used "$2"
-                        exit
-                ;;
-            runtime)    __runtime "$2"
                         exit
                 ;;
             update)     __update "$2"
                         exit
                 ;;
             upgrade)     __upgrade "$2"
-                        exit
-                ;;
-            record)     __record "$2" "$3"
-                        exit
-                ;;
-            package)    __package "$2"
-                        exit
-                ;;
-            export)     __export "$2"
-                        exit
-                ;;
-            import)     __export_props "$@"
-                        __import "$2"
-                        exit
-                ;;
-            show)       __show "$2"
-                        exit
-                ;;
-            help)       __help
                         exit
                 ;;
                 *)      __usage
@@ -122,4 +122,3 @@ __parse_cmd () {
         shift
     done
 }
-
