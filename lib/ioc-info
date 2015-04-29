@@ -32,13 +32,15 @@ __print_defaults () {
 
 # Get default value for property if one is found
 __get_default_prop () {
-    local property="$1"
-    local value="$(__get_jail_prop $property default)"
+    local _property _value
 
-    if [ "$value" != '-' ] ; then
-        echo "$value"
+    _property="$1"
+    _value="$(__get_jail_prop $_property default)"
+
+    if [ "$_value" != '-' ] ; then
+        echo "$_value"
     else
-        echo "NONE"
+        echo "none"
     fi
 }
 
