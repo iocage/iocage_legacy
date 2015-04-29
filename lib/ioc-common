@@ -49,9 +49,9 @@ __set_jail_prop () {
            $CONF_SYNC"
 
     for prop in $_CONF ; do
-        if [ "$_prop" == "$_pname" ] ; then
+        if [ "$prop" == "$_pname" ] ; then
             _found=1
-            zfs set org.freebsd.iocage:${_prop}="${_pval}" $_dataset
+            zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
             if [ "$_pname" == "_tag" ] ; then
                 __unlink_tag $_dataset
                 __link_tag $_dataset
@@ -60,8 +60,8 @@ __set_jail_prop () {
     done
 
     for prop in $CONF_ZFS ; do
-        if [ "$_prop" == "$_pname" ] ; then
-            zfs set $_prop="$_pval" $_dataset
+        if [ "$prop" == "$_pname" ] ; then
+            zfs set $prop="$_pval" $_dataset
             found=1
         fi
     done
