@@ -18,7 +18,7 @@ __configure_jail () {
             # find saved default value if any for the property
             _default_value="$(__get_default_prop $prop_name)"
 
-            if [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] ; then
+            if [ "$_default_value" != "NONE" ] && [ "$_default_value" != "$prop" ] ; then
                 _value="$_default_value"
             else
                 _value="$prop"
