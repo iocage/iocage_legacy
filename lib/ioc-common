@@ -271,7 +271,7 @@ __link_tag () {
                 ln -s $_mountpoint $iocroot/tags/$_tag
             else
                 echo "  ERROR: Tag already exists, can not symlink: $_tag."
-                exit 1
+#                exit 1
             fi
         fi
     else

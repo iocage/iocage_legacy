@@ -20,6 +20,16 @@ __configure_jail () {
 
             if [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] ; then
                 _value="$_default_value"
+            elif [ "$prop_name" = "tag" ] ; then
+                _value="$tag"
+            elif [ "$prop_name" = "host_hostname" ] ; then
+                _value="$uuid"
+            elif [ "$prop_name" = "hostname" ] ; then
+                _value="$uuid"
+            elif [ "$prop_name" = "host_hostuuid" ] ; then
+                _value="$uuid"
+            elif [ "$prop_name" = "jail_zfs_dataset" ] ; then
+                _value="iocage/jails/${uuid}/root/data"
             else
                 _value="$prop"
             fi
@@ -86,3 +96,61 @@ __pkg_install () {
     fi
 }
 
+__reset_jail_props () {
+    local _name _dataset uuid tag
+    _name=$1
+
+    if [ -z "$_name" ] ; then
+        echo "  ERROR: Missing UUID!"
+        exit 1
+    fi
+
+    _dataset="$(__find_jail $_name)"
+
+    if [ -z "$_dataset" ] ; then
+        echo "  ERROR: $_name not found."
+        exit 1
+    fi
+
+    if [ "$_dataset" == "multiple" ] ; then
+        echo "  ERROR: Multiple matching UUIDs!"
+        exit 1
+    fi
+
+    if [ $_name == "ALL" ] ; then
+        echo " "
+        echo "  WARNING: This will reset ALL jails!"
+        echo " "
+        echo -n "  Are you sure? Y[n]: "
+        read answer
+
+        if [ "$answer" == "Y" ]; then
+            echo "  Resetting all jails."
+
+            __reset_jail_props_all
+
+            exit 0
+        else
+            echo "  Command not confirmed.  No action taken."
+            exit 1
+        fi
+    fi
+
+    # Cache UUID and TAG to set again later
+    uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
+    tag="$(zfs get -H -o value org.freebsd.iocage:tag $_dataset)"
+
+    __configure_jail $_dataset
+}
+
+__reset_jail_props_all () {
+    local _jails uuid tag _dataset
+    _jails="$(__find_jail ALL)"
+
+    for jail in $_jails ; do
+       uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
+       _dataset="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
+       tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
+       __reset_jail_props "$_dataset"
+    done
+}
