@@ -75,7 +75,7 @@ __parse_cmd () {
             record)     __record "$2" "$3"
                         exit
                 ;;
-            reset)      __reset_jail_props "$2" "$3"
+            reset)      __reset_jail_props "$2"
                         exit
                 ;;
             restart)    __restart_jail "$2"
