@@ -261,7 +261,7 @@ __fetch_release () {
 # reads tag property from given jail dataset
 # creates symlink from $iocroot/tags/<tag> to $iocroot/jails/<uuid>
 __link_tag () {
-    local _dataset _mountpoint _tag
+    local _dataset _mountpoint _tag _readlink_tag _readlink_mount _tag_date
     _dataset=$1
 
     if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
@@ -269,9 +269,18 @@ __link_tag () {
             mkdir -p $iocroot/tags
             if [ ! -e $iocroot/tags/$_tag ] ; then
                 ln -s $_mountpoint $iocroot/tags/$_tag
-            else
-                echo "  ERROR: Tag already exists, can not symlink: $_tag."
-#                exit 1
+            elif [ -e $iocroot/tags/$_tag ] ; then
+                _readlink_tag="$(readlink $iocroot/tags/$_tag | cut -d \/ -f 4)"
+                _readlink_mount="$(readlink $iocroot/tags/$_tag)"
+                _tag_date=$(date "+%F@%T")
+                echo " "
+                echo "  WARNING: Replacing tag $_tag!"
+                echo "  Renaming $_readlink_tag's tag to $_tag_date."
+                echo " "
+                # Link new tag to jail, and relink old jail to new tag.
+                __set_jail_prop "tag=$_tag_date" "$_readlink_tag"
+                ln -shf $_mountpoint $iocroot/tags/$_tag
+                ln -s $_readlink_mount $iocroot/tags/$_tag_date
             fi
         fi
     else
