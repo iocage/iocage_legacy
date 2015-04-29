@@ -11,163 +11,168 @@ __export_props () {
 
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
-    local name="$2"
-    local property="$1"
+    local _name _property _dataset _pname _pval _found _CONF
+    _name="$2"
+    _property="$1"
 
-    if [ -z "$name" ] || [ -z "$property" ] ; then
-        echo "  ERROR: missing property or UUID"
+    if [ -z "$_name" ] || [ -z "$_property" ] ; then
+        echo "  ERROR: Missing property or UUID!"
         exit 1
     fi
 
-    local dataset="$(__find_jail $name)"
+    _dataset="$(__find_jail $_name)"
 
-    if [ -z "$dataset" ] ; then
-        echo "  ERROR: $name not found"
+    if [ -z "$_dataset" ] ; then
+        echo "  ERROR: $_name not found."
         exit 1
     fi
 
-    if [ "$dataset" == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+    if [ "$_dataset" == "multiple" ] ; then
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
-    local pname="$(echo $property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    local pval="$(echo $property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _pname="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
+    _pval="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
-    if [ -z "$pname" ] || [ -z "$pval" ] ; then
-        echo "  ERROR: set failed, incorrect property syntax!"
+    if [ -z "$_pname" ] || [ -z "$_pval" ] ; then
+        echo "  ERROR: Set failed, incorrect property syntax!"
         exit 1
     fi
 
-    local found="0"
+    _found="0"
 
-    local CONF="$CONF_NET
-                $CONF_JAIL
-                $CONF_RCTL
-                $CONF_CUSTOM
-                $CONF_SYNC"
+    _CONF="$CONF_NET
+           $CONF_JAIL
+           $CONF_RCTL
+           $CONF_CUSTOM
+           $CONF_SYNC"
 
-    for prop in $CONF ; do
-        if [ "$prop" == "$pname" ] ; then
-            found=1
-            zfs set org.freebsd.iocage:${prop}="${pval}" $dataset
-            if [ "$pname" == "tag" ] ; then
-                __unlink_tag $dataset
-                __link_tag $dataset
+    for prop in $_CONF ; do
+        if [ "$_prop" == "$_pname" ] ; then
+            _found=1
+            zfs set org.freebsd.iocage:${_prop}="${_pval}" $_dataset
+            if [ "$_pname" == "_tag" ] ; then
+                __unlink_tag $_dataset
+                __link_tag $_dataset
             fi
         fi
     done
 
     for prop in $CONF_ZFS ; do
-        if [ "$prop" == "$pname" ] ; then
-            zfs set $prop="$pval" $dataset
+        if [ "$_prop" == "$_pname" ] ; then
+            zfs set $_prop="$_pval" $_dataset
             found=1
         fi
     done
 
-    if [ $found -ne "1" ] ; then
-        echo "  ERROR: unsupported property: $pname !"
+    if [ $_found -ne "1" ] ; then
+        echo "  ERROR: Unsupported property: $_pname!"
         exit 1
     fi
 }
 
 __console () {
-    local name=$1
+    local _name _dataset _fulluuid _login_flags
+    _name=$1
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+    if [ -z $_name ] ; then
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
+    _dataset=$(__find_jail $_name)
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+    if [ -z $_dataset ] ; then
+        echo "  ERROR: $_name not found."
         exit 1
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+    if [ $_dataset == "multiple" ] ; then
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
-    local fulluuid="$(__check_name $name)"
+    _fulluuid="$(__check_name $_name)"
 
-    local login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
-                       $pool/iocage/jails/$fulluuid)
+    _login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
+                  $pool/iocage/jails/$_fulluuid)
 
-    jexec ioc-${fulluuid} login $login_flags
+    jexec ioc-${_fulluuid} login $_login_flags
 }
 
 __exec () {
-    local jexecopts=
+    local _jexecopts _name _dataset _fulluuid
+    _jexecopts=
 
     # check for -U or -u to pass to jexec
     while getopts u:U: opt "$@"; do
         case "$opt" in
-            [uU]) jexecopts="$jexecopts -$opt $OPTARG";;
-            ?)    echo "  ERROR: invalid exec option: $opt"
+            [uU]) _jexecopts="$_jexecopts -$opt $OPTARG";;
+            ?)    echo "  ERROR: Invalid exec option: $opt"
                   exit 1
                   ;;
         esac
     done
     shift $(expr $OPTIND - 1)
 
-    local name=$1
+    _name=$1
     shift
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+    if [ -z $_name ] ; then
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
+    _dataset=$(__find_jail $_name)
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+    if [ -z $_dataset ] ; then
+        echo "  ERROR: $_name not found."
         exit 1
     fi
 
-    if [ $dataset == "multiple" ] ; then
+    if [ $_dataset == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
-    local fulluuid="$(__check_name $name)"
+    _fulluuid="$(__check_name $_name)"
 
-    jexec $jexecopts ioc-${fulluuid} "$@"
+    jexec $_jexecopts ioc-${_fulluuid} "$@"
 }
 
 
 __chroot () {
-    local name="$1"
-    local command="$2"
+    local _name _command
+    _name="$1"
+    _command="$2"
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+    if [ -z $_name ] ; then
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
+    _dataset=$(__find_jail $_name)
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+    if [ -z $_dataset ] ; then
+        echo "  ERROR: $_name not found."
         exit 1
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+    if [ $_dataset == "multiple" ] ; then
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
-    local fulluuid="$(__check_name $name)"
+    _fulluuid="$(__check_name $_name)"
 
-    chroot $iocroot/jails/${fulluuid}/root $command
+    chroot $iocroot/jails/${_fulluuid}/root $_command
 }
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local exist=$(zfs list | grep -w ^$pool/iocage)
+    local _exist _download_exist _rel_exist 
+    _exist=$(zfs list | grep -w ^$pool/iocage)
     __print_release
     echo -n "Please select a release [$release]: "
     read answer
@@ -190,18 +195,18 @@ __fetch_release () {
         exit 1
     fi
 
-    local exist=$(zfs list | grep -w ^$pool/iocage)
-    local download_exist=$(zfs list | grep -w ^$pool/iocage/download/$release)
-    local rel_exist=$(zfs list | grep -w ^$pool/iocage/releases/$release)
+    _exist=$(zfs list | grep -w ^$pool/iocage)
+    _download_exist=$(zfs list | grep -w ^$pool/iocage/download/$release)
+    _rel_exist=$(zfs list | grep -w ^$pool/iocage/releases/$release)
 
-    if [ -z "$exist" ] ; then
+    if [ -z "$_exist" ] ; then
         zfs create -o compression=lz4 $pool/iocage
         zfs set mountpoint=$iocroot $pool/iocage
         zfs create -o compression=lz4 $pool/iocage/jails
         zfs mount -a
     fi
 
-    if [ -z "$download_exist" ] ; then
+    if [ -z "$_download_exist" ] ; then
         zfs create -o compression=lz4 -p $pool/iocage/download/$release
     fi
 
@@ -214,7 +219,7 @@ __fetch_release () {
         fi
     done
 
-    if [ -z "$rel_exist" ] ; then
+    if [ -z "$_rel_exist" ] ; then
         zfs create -o compression=lz4 -p $pool/iocage/releases/$release/root
     fi
 
@@ -256,33 +261,35 @@ __fetch_release () {
 # reads tag property from given jail dataset
 # creates symlink from $iocroot/tags/<tag> to $iocroot/jails/<uuid>
 __link_tag () {
-    local dataset=$1
-    local mountpoint
-    local tag
+    local _dataset _mountpoint _tag
+    _dataset=$1
+    _mountpoint
+    _tag
 
-    if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
-        if tag=$(zfs get -H -o value org.freebsd.iocage:tag $dataset); then
+    if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
+        if _tag=$(zfs get -H -o value org.freebsd.iocage:tag $_dataset); then
             mkdir -p $iocroot/tags
-            if [ ! -e $iocroot/tags/$tag ] ; then
-                ln -s $mountpoint $iocroot/tags/$tag
+            if [ ! -e $iocroot/tags/$_tag ] ; then
+                ln -s $_mountpoint $iocroot/tags/$_tag
             else
-                echo "  ERROR: tag already exists, can not symlink: $tag"
+                echo "  ERROR: Tag already exists, can not symlink: $_tag."
                 exit 1
             fi
         fi
     else
-        echo "  ERROR: no such dataset: $dataset"
+        echo "  ERROR: No such dataset: $_dataset!"
         exit 1
     fi
 }
 
 # removes all symlinks found in $iocroot/tags pointing to the given jail dataset
 __unlink_tag () {
-    local dataset=$1
-    local mountpoint
+    local _dataset _mountpoint
+    _dataset=$1
+    _mountpoint
 
-    if mountpoint=$(zfs get -H -o value mountpoint $dataset) ; then
-        find $iocroot/tags -type l -lname "${mountpoint}*" -exec rm -f \{\} \;
+    if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
+        find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \;
     fi
 }
 
