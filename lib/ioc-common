@@ -266,13 +266,13 @@ __link_tag () {
 
     if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
         if _tag=$(zfs get -H -o value org.freebsd.iocage:tag $_dataset); then
+            _readlink_mount="$(readlink $iocroot/tags/$_tag)"
+            _readlink_tag="$(readlink $iocroot/tags/$_tag | cut -d \/ -f 4)"
+            _tag_date=$(date "+%F@%T")
             mkdir -p $iocroot/tags
             if [ ! -e $iocroot/tags/$_tag ] ; then
                 ln -s $_mountpoint $iocroot/tags/$_tag
-            elif [ -e $iocroot/tags/$_tag ] ; then
-                _readlink_tag="$(readlink $iocroot/tags/$_tag | cut -d \/ -f 4)"
-                _readlink_mount="$(readlink $iocroot/tags/$_tag)"
-                _tag_date=$(date "+%F@%T")
+            elif [ -e $iocroot/tags/$_tag ] && [ "$_readlink_mount" != "$_mountpoint" ] ; then
                 echo " "
                 echo "  WARNING: Replacing tag $_tag!"
                 echo "  Renaming $_readlink_tag's tag to $_tag_date."
