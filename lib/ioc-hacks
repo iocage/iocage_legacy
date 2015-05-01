@@ -18,3 +18,19 @@ __hack88_mount () {
         __set_jail_prop mountpoint=${iocroot}/jails/${_fulluuid} ${_fulluuid}
     fi
 }
+
+# check if .defaults & jails dataset exists, if not create it
+# fixes https://github.com/iocage/iocage/issues/80
+__check_defaults () {
+    zfs get -H creation ${pool}${iocroot}/.defaults > /dev/null 2>&1
+    if [ $? -ne 0 ] ; then
+        echo "  INFO: Creating ${pool}${iocroot}/.defaults."
+        zfs create -p ${pool}${iocroot}/.defaults
+    fi
+
+    zfs get -H creation ${pool}${iocroot}/jails > /dev/null 2>&1
+    if [ $? -ne 0 ] ; then
+        echo "  INFO: Creating ${pool}${iocroot}/jails."
+        zfs create -p ${pool}${iocroot}/jails
+    fi
+}
