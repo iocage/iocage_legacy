@@ -19,7 +19,7 @@ __hack88_mount () {
     fi
 }
 
-# check if .defaults & jails dataset exists, if not create it
+# check if our datasets exists, if not create them
 # fixes https://github.com/iocage/iocage/issues/80
 __check_filesystems () {
 
