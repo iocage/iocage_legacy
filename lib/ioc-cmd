@@ -47,7 +47,7 @@ __parse_cmd () {
             help)       __help
                         exit
                 ;;
-            inuse)      __rctl_used "$2"
+            inuse)      __rctl_inuse "$2"
                         exit
                 ;;
             import)     __export_props "$@"
@@ -107,6 +107,9 @@ __parse_cmd () {
                         exit
                 ;;
             stop)       __stop_jail "$2"
+                        exit
+                ;;
+            top)        __top "$2"
                         exit
                 ;;
             uncap)      __rctl_uncap "$2"

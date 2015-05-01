@@ -25,7 +25,8 @@ SYNOPSIS
   iocage cap UUID|TAG
   iocage limits [UUID|TAG]
   iocage uncap UUID|TAG
-  iocage inuse UUID|TAG
+  iocage inuse [UUID|TAG]
+  iocage top UUID|TAG
   iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname
@@ -232,9 +233,14 @@ SUBCOMMANDS
 
     Release all resource limits, disable limits on the fly.
 
-  inuse UUID|TAG
+  inuse [UUID|TAG]
 
-    Display consumed resources for a jail.
+    Display consumed resources for a jail. Without UUID or TAG dump all resources
+    for all running jails in a comma delimited form.
+
+  top UUID|TAG
+
+    Run top(1) and display processes running inside the jail.
 
   snapshot UUID|TAG [UUID|TAG@snapshotname]
 
@@ -1266,17 +1272,19 @@ HINTS
 
   For more information please visit:
 
-    http://pannon.github.io/iocage/
+    https://github.com/iocage/iocage
 
 SEE ALSO
   jail(8), ifconfig(8), epair(4), bridge(4), jexec(8), zfs(8), zpool(8),
   rctl(8), cpuset(1), freebsd-update(8), sysctl(8)
 BUGS
   In case of bugs/issues/feature requests, please open an issue at
-  https://github.com/pannon/iocage/issues
+  https://github.com/iocage/iocage/issues
 AUTHORS
-  Peter Toth <peter.toth198@gmail.com>
-  Brandon Schneider <brandonschneider89@gmail.com>
+
+    Peter Toth <peter.toth198@gmail.com>
+    Brandon Schneider <brandonschneider89@gmail.com>
+
 SPECIAL THANKS
   Sichendra Bista - for his ever willing attitude and ideas.
 EOT
@@ -1319,7 +1327,8 @@ __usage () {
     echo "  iocage cap UUID|TAG"
     echo "  iocage limits UUID|TAG"
     echo "  iocage uncap UUID|TAG"
-    echo "  iocage inuse UUID|TAG"
+    echo "  iocage inuse [UUID|TAG]"
+    echo "  iocage top UUID|TAG"
     echo "  iocage snapshot UUID|TAG@snapshotname"
     echo "  iocage snaplist UUID|TAG"
     echo "  iocage snapremove UUID|TAG@snapshotname"

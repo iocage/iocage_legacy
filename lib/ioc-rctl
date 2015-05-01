@@ -95,12 +95,12 @@ __rctl_uncap () {
 }
 
 
-__rctl_used () {
+__rctl_inuse () {
     local name="$1"
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
-        exit 1
+        __rctl_inuse_all
+        exit 0
     fi
 
     local dataset=$(__find_jail $name)
@@ -122,3 +122,57 @@ __rctl_used () {
     rctl -hu jail:ioc-${fulluuid}
 }
 
+__rctl_inuse_all () {
+    local _jails _fulluuid _tag _print_head\
+          _line _res _jail _header
+
+    _jails="$(__find_jail ALL)"
+    _print_head=1
+
+    for _jail in $(echo $_jails) ; do
+        _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jail)"
+        _tag="$(zfs get -H -o value org.freebsd.iocage:tag $_jail)"
+        _resources="$(rctl -hu jail:ioc-${_fulluuid})"
+        _state="$(__is_running ${_fulluuid})"
+
+        for _res in $(echo ${_resources}) ; do
+            _value="$(echo ${_res}|cut -f2 -d=)"
+            _header="$(echo ${_res}|cut -f1 -d=)"
+            _line="${_line},${_value}"
+        done
+
+        if [ ${_print_head} -eq 1 ] ; then
+            echo -n "UUID,TAG,cputime,datasize,stacksize,coredumpsize,memoryuse,"
+            echo -n "memorylocked,maxproc,openfiles,vmemoryuse,pseudoterminals,"
+            echo -n "swapuse,nthr,msgqqueued,msgqsize,nmsgq,nsem,nsemop,nshm,"
+            echo    "shmsize,wallclock,pcpu"
+            _print_head=0
+        fi
+
+        if [ ${_state} -gt 0 ] ; then
+            echo "${_fulluuid},${_tag}${_line}"
+        fi
+
+        unset _line
+    done
+}
+
+__top () {
+    local _jail _fulluuid _state
+    _jail="$1"
+
+    if [ ! -z ${_jail} ] ; then
+        _fulluuid="$(__check_name $_jail)"
+    else
+        echo "  ERROR: missing UUID or TAG"
+        exit 1
+    fi
+
+    _state="$(__is_running ${_fulluuid})"
+
+    if [ ${_state} -gt 0 ] ; then
+        top -J ioc-${_fulluuid}
+    else
+        echo "  ERROR: jail ${_jail} is down"
+    fi
+}

@@ -383,3 +383,11 @@ __check_name () {
     echo "$uuid"
 
 }
+
+__is_running () {
+    local _fulluuid _state
+    _fulluuid="$1"
+    _running="$(jls -n| grep ioc-${_fulluuid} | wc -l)"
+
+    echo "${_running}"
+}
