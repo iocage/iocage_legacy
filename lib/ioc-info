@@ -220,6 +220,8 @@ __find_mypool () {
 
             if [ -z "$answer" ] ; then
                 answer=$i
+            else
+                answer="$(echo $answer|awk 'BEGIN { FS = "/" } ; { print $1 }')"
             fi
 
             zpool set comment=iocage $answer
