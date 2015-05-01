@@ -166,16 +166,18 @@ __chroot () {
 
     _fulluuid="$(__check_name $_name)"
 
-    chroot $iocroot/jails/${_fulluuid}/root $_command
+    chroot ${iocroot}/jails/${_fulluuid}/root $_command
 }
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local _exist _download_exist _rel_exist 
-    _exist=$(zfs list | grep -w ^$pool/iocage)
+    local _rel_exist 
+
     __print_release
+
     echo -n "Please select a release [$release]: "
     read answer
+
     if [ ! -z "$answer" ] ; then
         release="$answer"
     else
@@ -195,39 +197,27 @@ __fetch_release () {
         exit 1
     fi
 
-    _exist=$(zfs list | grep -w ^$pool/iocage)
-    _download_exist=$(zfs list | grep -w ^$pool/iocage/download/$release)
-    _rel_exist=$(zfs list | grep -w ^$pool/iocage/releases/$release)
+    _rel_exist=$(zfs list | grep -w ^${pool}${iocroot}/releases/${release})
 
-    if [ -z "$_exist" ] ; then
-        zfs create -o compression=lz4 $pool/iocage
-        zfs set mountpoint=$iocroot $pool/iocage
-        zfs create -o compression=lz4 $pool/iocage/jails
-        zfs mount -a
-    fi
-
-    if [ -z "$_download_exist" ] ; then
-        zfs create -o compression=lz4 -p $pool/iocage/download/$release
+    if [ -z "$_rel_exist" ] ; then
+        zfs create -o compression=lz4 -p ${pool}${iocroot}/releases/${release}/root
+        zfs create -o compression=lz4 -p ${pool}${iocroot}/download/${release}
     fi
 
     ftpdir="/pub/FreeBSD/releases/amd64/$release"
 
-    cd $iocroot/download/$release
+    cd ${iocroot}/download/${release}
     for file in $ftpfiles ; do
         if [ ! -e "$file" ] ; then
-            fetch http://$ftphost$ftpdir/$file
+            fetch http://${ftphost}${ftpdir}/${file}
         fi
     done
-
-    if [ -z "$_rel_exist" ] ; then
-        zfs create -o compression=lz4 -p $pool/iocage/releases/$release/root
-    fi
 
     for file in $(echo $ftpfiles) ; do
         if [ -e "$file" ] ; then
             echo "Extracting: $file"
-            chflags -R noschg $iocroot/releases/$release/root
-            tar -C $iocroot/releases/$release/root -xf $file
+            chflags -R noschg ${iocroot}/releases/${release}/root
+            tar -C ${iocroot}/releases/${release}/root -xf $file
         fi
     done
 

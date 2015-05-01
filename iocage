@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.6.0 (2015/04/28)"
+    echo "iocage 1.6.0 (2015/05/01)"
     exit 0
 fi
 
@@ -89,5 +89,5 @@ if [ "$1" == "help" ] ; then
 fi
 
 __find_mypool
-__check_defaults
+__check_filesystems
 __parse_cmd "$@"
