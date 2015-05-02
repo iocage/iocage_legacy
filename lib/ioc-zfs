@@ -276,7 +276,7 @@ __destroy_all () {
     done
 }
 
-# check if our datasets exists, if not create them
+# check if our datasets exist, if not create them
 # fixes https://github.com/iocage/iocage/issues/80
 __check_filesystems () {
 
