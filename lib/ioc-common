@@ -62,7 +62,7 @@ __set_jail_prop () {
     for prop in $CONF_ZFS ; do
         if [ "$prop" == "$_pname" ] ; then
             zfs set $prop="$_pval" $_dataset
-            found=1
+            _found=1
         fi
     done
 

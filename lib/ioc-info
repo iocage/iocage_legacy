@@ -232,9 +232,10 @@ __find_mypool () {
 
 # Get jail properties
 __get_jail_prop () {
-    local _value
+    local _value _found
     local name="$2"
     local property="$1"
+    _found="0"
 
     if [ -z "$property" ] ; then
         echo "  ERROR: get failed, incorrect property syntax!"
@@ -258,7 +259,6 @@ __get_jail_prop () {
         exit 1
     fi
 
-    local found="0"
 
     local CONF="$CONF_NET
                 $CONF_JAIL
@@ -268,7 +268,7 @@ __get_jail_prop () {
 
     for prop in $CONF ; do
         if [ $prop == $property ] ; then
-            found=1
+            _found=1
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
                          $dataset)"
             # Fix nonexistent property problem (zfs get returns "-")
@@ -280,7 +280,7 @@ __get_jail_prop () {
             fi
 
         elif [ $property == "all" ] ; then
-            found=1
+            _found=1
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
                          $dataset)"
             echo "$prop:$_value"
@@ -289,13 +289,13 @@ __get_jail_prop () {
 
     for prop in $CONF_ZFS ; do
         if [ $prop == $property ] ; then
-            found=1
+            _found=1
             _value="$(zfs get -H -o value $prop $dataset)"
             echo "$_value"
         fi
     done
 
-    if [ $found -ne "1" ] ; then
+    if [ $_found -ne "1" ] ; then
         echo "  ERROR: unsupported property: $property !"
         exit 1
     fi
