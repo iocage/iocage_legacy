@@ -127,7 +127,7 @@ Get all properties:
 
 Or to display all supported properties run:
 
-```iocage get all 26e8e027``
+``iocage get all 26e8e027``
 
 System wide defaults
 --------------------

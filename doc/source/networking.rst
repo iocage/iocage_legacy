@@ -2,7 +2,7 @@
 Networking
 ==========
 
-Inro
+Intro
 ----
 
 Jails have multiple networking options based on what features are desired. Traditionally jails
