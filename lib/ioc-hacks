@@ -14,11 +14,13 @@ __hack88_mount () {
         echo "  INFO: truncating jail mountpoint"
         zfs umount -f ${iocroot}/jails/${_fulluuid}
         __set_jail_prop mountpoint=${iocroot}/jails/${_shortuuid} ${_fulluuid}
-        zfs mount -a
+        zfs list -rH -o name ${pool}${iocroot}/jails/${_fulluuid} | \
+        xargs -L 1 zfs mount
     elif [ "$_hack88" != "1" ] && [ "$_mount_len" -lt "37" ] ; then
         echo "  INFO: restoring jail mountpoint"
         zfs umount -f ${iocroot}/jails/${_shortuuid}
         __set_jail_prop mountpoint=${iocroot}/jails/${_fulluuid} ${_fulluuid}
-        zfs mount -a
+        zfs list -rH -o name ${pool}${iocroot}/jails/${_shortuuid} | \
+        xargs -L 1 zfs mount
     fi
 }
