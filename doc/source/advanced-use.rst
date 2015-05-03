@@ -200,7 +200,7 @@ Check limits:
 Resetting a jail's properties
 +++++++++++++++++++++++++++++
 
-If you have many properties on a jail you would like to reset back to defaults iocage easily allows that!
+If you have many properties on a jail that you would like to reset back to defaults, iocage easily allows that!
 
 To reset to defaults:
 
