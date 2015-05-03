@@ -22,12 +22,12 @@ To install using binary packages, simply run: `pkg install iocage`
 - Shared IP based jails (non vnet)
 - Resource limits (CPU, MEMORY, etc.)
 - Filesystem quotas and reservations
-- dedicated ZFS datasets inside jails
+- Dedicated ZFS datasets inside jails
 - Transparent ZFS snapshot management
 - Binary updates
 - Differential jail packaging
 - Export and import
-- and many more!
+- And many more!
 
 **QUICK HOWTO:**
 
