@@ -1,3 +1,4 @@
+==========
 Jail types
 ==========
 
@@ -11,16 +12,18 @@ iocage supports five different jail types:
 
 All types have their pros & cons and serves different needs.
 
-**Thick**
+Full (thick)
+------------
 
-Thick jail is the default type and it is created with the following command:
+Full (thick) jail is the default type and it is created with the following command:
 
 ``iocage create``
 
-A thick jail has a fully independent ZFS dataset suitable for network replication
+A full jail has a fully independent ZFS dataset suitable for network replication
 (ZFS send/recv).
 
-**Thin**
+Clone (thin)
+------------
 
 Thin jails are lightweight clones created with:
 
@@ -29,7 +32,8 @@ Thin jails are lightweight clones created with:
 Thin jails are cloned from the appropriate RELEASE at creation time and consume
 only a fraction of space, preserving only the changing data.
 
-**Base**
+Base
+----
 
 The original basejail concept based on nullfs mounts got popularized by ezjail.
 iocage basejails use independent read-only ZFS filesystem clones to achieve the
@@ -42,7 +46,8 @@ To create a basejail execute:
 Basejails re-clone their base filesystems at each startup. They are ideal for
 environments where patching or upgrades are required at once to multiple jails.
 
-**Template**
+Template
+--------
 
 Template is just another jail where the "template" property is set to "yes".
 
@@ -60,7 +65,8 @@ To deploy a jail from this template, execute:
 
 Templates can be converted back and forth with setting the "template" property.
 
-**Empty**
+Empty
+-----
 
 Empty jails are intended for unsupported jail setups or testing.
 To create an empty jail run:

@@ -17,9 +17,10 @@ These are some generic guidelines for working with iocage managed jails.
   Set the ``notes`` property to something meaningful, especially for templates
   and jails you might use only once in a while.
 
-**Use VNET!**
+**VNET**
 
   ``VNET`` will give you more control and isolation. Also allows to run per jail firewalls.
+  See know issues about VNET.
 
 **Don't mix RELEASES!**
 

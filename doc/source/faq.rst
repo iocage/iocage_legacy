@@ -45,9 +45,6 @@ FAQ
 **Is there a way to display resource consumption?**
     Yes, ``iocage inuse UUID | TAG``
 
-**Is i386 supported?**
-    It is 2014 - All recent servers are 64bit capable for years now!
-
 **Is NAT supported for the jails?**
     Yes. This is built into FreeBSD. Treat your server as a core
     router/firewall. Check documentation section on NAT.
@@ -57,4 +54,3 @@ FAQ
 
 **Is ZFS jailing supported?**
     Yes, please refer to man page.
-

@@ -3,46 +3,46 @@ Known Issues
 
 This is a short list of known issues.
 
-**88 character mount path limitation**
+88 character mount path limitation
+----------------------------------
 
-There is a know mountpoint path length issue on FreeBSD which is set to a historical 88 character
-limit.
+There is a know mountpoint path length limitation issue on FreeBSD which is set to a historical 88 character limit.
 
 This issue does not affect iocage jails from functioning properly, but can present challenges
 when diving into ZFS snapshots (cd into .zfs/snapshots, tar, etc.).
 
 ZFS snapshot creation and rollback is not affected.
 
-To workaround this issue iocage allows short paths to be set (starting with version 1.5.0).
+To workaround this issue iocage 1.6.0 introduced a ``hack88`` property.
 
 Example:
 
 Shut down jail:
 
-``iocage stop b863254d-d19b-11e4-9e7e-90b8d01b7245``
+``iocage stop myjail``
 
-Get the current mount path.
+Set the ``hack88`` property to "1":
 
-``iocage get mountpoint b863254d-d19b-11e4-9e7e-90b8d01b7245``
+``iocage set hack88=1``
 
-``/iocage/jails/b863254d-d19b-11e4-9e7e-90b8d01b7245``
+Start jail:
 
-Set short path:
+``iocage start myjail``
 
-``iocage set mountpoint=/iocage/jails/b863254d b863254d``
+To revert back to full paths repeat the procedure but set ``hack88=0``.
 
-Verify mountpoint:
+To create a system wide default (introduced in 1.6.0) for all newly created jails use:
 
-``iocage get mountpoint b863254d-d19b-11e4-9e7e-90b8d01b7245``
+``iocage set hack88=1 default``
 
-``/iocage/jails/b863254d``
-
-**Property validation**
+Property validation
+-------------------
 
 iocage does not validate properties right now. Please refer to man page to see what is supported
 for each property. By default iocage pre-configures each property with a safe default.
 
-**VNET/VIMAGE issues**
+VNET/VIMAGE issues
+------------------
 
 VNET/VIMAGE can cause unexpected system crashes when VNET enabled jails are destroyed - that is when the
 jail process is killed, removed, stopped.
@@ -57,4 +57,3 @@ Example:
 FreeBSD 10.1-RELEASE is stable enough to run with VNET and warm restarts.
 There are production machines with iocage and VNET jails running well beyond 100 days of uptime
 running both PF and IPFW.
-
