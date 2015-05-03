@@ -97,7 +97,7 @@ Start the jail:
 **OTHER CONSIDERATIONS**
 - For resource limiting please read rctl(8)
 - For the explanations on jail properties read jail(8)
-- Create bridge0 and bridge1 interfaces 
+- Create bridge0 and bridge1 interfaces
 
 **HINTS**
 - Use iocage set/get to modify properties

@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-=============================
-iocage - FreeBSD jail manager
-=============================
+===============================
+iocage - A FreeBSD jail manager
+===============================
 
 iocage is a zero dependency drop in jail/container manager amalgamating some
 of the best features and technologies FreeBSD operating system has to offer.
@@ -14,40 +14,21 @@ syntax.
 
 **FEATURES:**
 
-- rapid thin provisioning (within seconds!)
-
-- templating
-
-- base jails
-
-- automatic package installation
-
-- ease of use (also supports shortened UUIDs)
-
-- zero configuration files
-
-- virtual networking stacks (vnet)
-
-- shared IP based jails (non vnet)
-
-- fully writable clones
-
-- resource limits (CPU, MEMORY, etc.)
-
-- filesystem quotas and reservations
-
-- ZFS jailing inside jails
-
-- transparent snapshot management
-
-- binary updates
-
-- differential jail packaging
-
-- export and import
-
+- Templates, clones, basejails, fully independent jails
+- Ease of use
+- Zero configuration files
+- Rapid thin provisioning within seconds
+- Automatic package installation
+- Virtual networking stacks (vnet)
+- Shared IP based jails (non vnet)
+- Resource limits (CPU, MEMORY, etc.)
+- Filesystem quotas and reservations
+- dedicated ZFS datasets inside jails
+- Transparent ZFS snapshot management
+- Binary updates
+- Differential jail packaging
+- Export and import
 - and many more!
-
 
 Documentation:
 --------------
@@ -55,33 +36,21 @@ Documentation:
 .. toctree::
    :maxdepth: 2
 
-   faq
-   jailtypes
-   pre-flight-checklist
-   best-practices
-   using-uuids
-   auto-boot
-   automatic-package-installation
-   configure-interfaces
-   shared-ip
-   help-no-internet
-   jail-package
-   clones
-   destroy
-   templates
-   resource-limit
-   snapshots
-   thin-thick
-   updating
-   upgrading
-   real-world
-   debian
+   basic-use
    networking
+   jailtypes
+   best-practices
+   advanced-use
+   templates
+   automatic-package-installation
+   jail-package
+   debian
    known-issues
+   faq
 
 Indices and tables
 ==================
- 
+
  * :ref:`genindex`
  * :ref:`modindex`
  * :ref:`search`
