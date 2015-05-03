@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Known Issues &mdash; iocage 1.6.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="iocage 1.6.0 documentation" href="index.html" />
+    <link rel="next" title="FAQ" href="faq.html" />
+    <link rel="prev" title="Create a Debian Squeeze jail (GNU/kFreeBSD)" href="debian.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="faq.html" title="FAQ"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="debian.html" title="Create a Debian Squeeze jail (GNU/kFreeBSD)"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">iocage 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="known-issues">
+<h1>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h1>
+<p>This is a short list of known issues.</p>
+<div class="section" id="character-mount-path-limitation">
+<h2>88 character mount path limitation<a class="headerlink" href="#character-mount-path-limitation" title="Permalink to this headline">¶</a></h2>
+<p>There is a know mountpoint path length limitation issue on FreeBSD which is set to a historical 88 character limit.</p>
+<p>This issue does not affect iocage jails from functioning properly, but can present challenges
+when diving into ZFS snapshots (cd into .zfs/snapshots, tar, etc.).</p>
+<p>ZFS snapshot creation and rollback is not affected.</p>
+<p>To workaround this issue iocage 1.6.0 introduced a <tt class="docutils literal"><span class="pre">hack88</span></tt> property.</p>
+<p>Example:</p>
+<p>Shut down jail:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">stop</span> <span class="pre">myjail</span></tt></p>
+<p>Set the <tt class="docutils literal"><span class="pre">hack88</span></tt> property to &#8220;1&#8221;:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">hack88=1</span></tt></p>
+<p>Start jail:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">start</span> <span class="pre">myjail</span></tt></p>
+<p>To revert back to full paths repeat the procedure but set <tt class="docutils literal"><span class="pre">hack88=0</span></tt>.</p>
+<p>To create a system wide default (introduced in 1.6.0) for all newly created jails use:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">hack88=1</span> <span class="pre">default</span></tt></p>
+</div>
+<div class="section" id="property-validation">
+<h2>Property validation<a class="headerlink" href="#property-validation" title="Permalink to this headline">¶</a></h2>
+<p>iocage does not validate properties right now. Please refer to man page to see what is supported
+for each property. By default iocage pre-configures each property with a safe default.</p>
+</div>
+<div class="section" id="vnet-vimage-issues">
+<h2>VNET/VIMAGE issues<a class="headerlink" href="#vnet-vimage-issues" title="Permalink to this headline">¶</a></h2>
+<p>VNET/VIMAGE can cause unexpected system crashes when VNET enabled jails are destroyed - that is when the
+jail process is killed, removed, stopped.</p>
+<p>As a workaround iocage allows a warm restart without destroying the jail.
+By default the restart sub-command will execute a warm restart.</p>
+<p>Example:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">restart</span> <span class="pre">UUID</span></tt></p>
+<p>FreeBSD 10.1-RELEASE is stable enough to run with VNET and warm restarts.
+There are production machines with iocage and VNET jails running well beyond 100 days of uptime
+running both PF and IPFW.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Known Issues</a><ul>
+<li><a class="reference internal" href="#character-mount-path-limitation">88 character mount path limitation</a></li>
+<li><a class="reference internal" href="#property-validation">Property validation</a></li>
+<li><a class="reference internal" href="#vnet-vimage-issues">VNET/VIMAGE issues</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="debian.html"
+                        title="previous chapter">Create a Debian Squeeze jail (GNU/kFreeBSD)</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="faq.html"
+                        title="next chapter">FAQ</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/known-issues.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="faq.html" title="FAQ"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="debian.html" title="Create a Debian Squeeze jail (GNU/kFreeBSD)"
+             >previous</a> |</li>
+        <li><a href="index.html">iocage 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Peter Toth.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

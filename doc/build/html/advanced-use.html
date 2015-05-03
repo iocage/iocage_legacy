@@ -1,0 +1,273 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Advanced usage &mdash; iocage 1.6.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="iocage 1.6.0 documentation" href="index.html" />
+    <link rel="next" title="How to create and use templates" href="templates.html" />
+    <link rel="prev" title="Best practices" href="best-practices.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="templates.html" title="How to create and use templates"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="best-practices.html" title="Best practices"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">iocage 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="advanced-usage">
+<h1>Advanced usage<a class="headerlink" href="#advanced-usage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="clones">
+<h2>Clones<a class="headerlink" href="#clones" title="Permalink to this headline">¶</a></h2>
+<p>When a jail is cloned, iocage creates a ZFS clone filesystem.
+In a nutshell clones are cheap lightweight writable snapshots.</p>
+<p>A clone depends on its source snapshot and filesystem.
+If you&#8217;d like to destroy the source jail and preserve its clones
+you need to promote the clone first, otherwise the source jail cannot be destroyed.</p>
+<div class="section" id="promoting-a-clone">
+<h3>Promoting a clone<a class="headerlink" href="#promoting-a-clone" title="Permalink to this headline">¶</a></h3>
+<p><strong>To promote a cloned jail, simply run:</strong></p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">promote</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p>The above step will reverse the clone and source jail relationship.
+Basically the clone will become the source and the source jail will be demoted to a clone.</p>
+<p><strong>Now you can remove the demoted jail with:</strong></p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">destroy</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+</div>
+</div>
+<div class="section" id="updating-jails">
+<h2>Updating jails<a class="headerlink" href="#updating-jails" title="Permalink to this headline">¶</a></h2>
+<p>Updates are handled with the freebsd-update(8) utility. Jails can be updated
+while they are stopped or running.</p>
+<p>To update a jail to latest patch level run:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">update</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p>This will create a back-out snapshot of the jail automatically.</p>
+<p>When finished with updating and the jail is working OK, simply remove the snapshot:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">snapremove</span> <span class="pre">UUID|TAG&#64;snapshotname</span></tt></p>
+<p>In case the update breaks the jail, simply revert back to the snapshot:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">rollback</span> <span class="pre">UUID|TAG&#64;snapshotname</span></tt></p>
+<p>If you&#8217;d like to test updating without affecting a jail, create a clone and
+update the clone the same way as outlined above.</p>
+<p>To clone run:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">clone</span> <span class="pre">UUID|TAG</span> <span class="pre">tag=testupdate</span></tt></p>
+</div>
+<div class="section" id="upgrading-jails">
+<h2>Upgrading jails<a class="headerlink" href="#upgrading-jails" title="Permalink to this headline">¶</a></h2>
+<p>Upgrades are handled with the freebsd-update(8) utility.
+By default the upgrade command will try to upgrade the jail
+to the hosts RELEASE version (uname -r).</p>
+<p>Based on the jail &#8220;type&#8221; property, upgrades are handled differently
+for basejails and non basejails.</p>
+<div class="section" id="upgrade-non-basejail">
+<h3>Upgrade non-basejail<a class="headerlink" href="#upgrade-non-basejail" title="Permalink to this headline">¶</a></h3>
+<p>To upgrade a normal jail (non basejail) to the hosts RELEASE run:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">upgrade</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+<p>This will upgrade the jail to the same RELEASE as the host.</p>
+<p>To upgrade to a specific release run:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">upgrade</span> <span class="pre">UUID|TAG</span> <span class="pre">release=10.1-RELEASE</span></tt></p>
+</div>
+<div class="section" id="upgrade-basejail">
+<h3>Upgrade basejail<a class="headerlink" href="#upgrade-basejail" title="Permalink to this headline">¶</a></h3>
+<p>To upgrade a basejail:</p>
+<p>Verify whether the jail is a basejail:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">get</span> <span class="pre">type</span> <span class="pre">UUID|TAG</span></tt></p>
+<p>Should return type &#8220;basejail&#8221;.</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">release=10.1-RELEASE</span> <span class="pre">UUID|TAG</span></tt></p>
+<p>This will cause the jail to re-clone its filesystems from 10.1-RELEASE on next jail start. This will not update the jails /etc files with changes from the next RELEASE.</p>
+<p>Also the upgrade can be forced while the jail is online with executing:</p>
+<blockquote>
+<div><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">upgrade</span> <span class="pre">UUID|TAG</span></tt></div></blockquote>
+<p>This will forcibly re-clone the basejail filesystems while the jail is running (no downtime) and update the jails /etc with the changes from the new RELEASE.</p>
+</div>
+</div>
+<div class="section" id="auto-boot">
+<h2>Auto boot<a class="headerlink" href="#auto-boot" title="Permalink to this headline">¶</a></h2>
+<p>Make sure <tt class="docutils literal"><span class="pre">iocage_enable=&quot;YES&quot;</span></tt> is set in <tt class="docutils literal"><span class="pre">/etc/rc.conf</span></tt>.</p>
+<p>To enable a jail to auto-boot during a boot, simply run:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">boot=on</span> <span class="pre">UUID|TAG</span></tt></p>
+<div class="section" id="boot-priority">
+<h3>Boot priority<a class="headerlink" href="#boot-priority" title="Permalink to this headline">¶</a></h3>
+<p>Boot order can be specified by setting the priority value:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">priority=20</span> <span class="pre">UUID|TAG</span></tt></p>
+<p>Lower value means higher boot priority.</p>
+</div>
+</div>
+<div class="section" id="snapshot-management">
+<h2>Snapshot management<a class="headerlink" href="#snapshot-management" title="Permalink to this headline">¶</a></h2>
+<p>iocage supports transparent ZFS snapshot management out of the box.
+Snapshots are point-in-time copies of data, a safety point to which a jail can be reverted at any time.
+Initially snapshots take up almost no space as only changing data is recorded.</p>
+<p>List snapshots for a jail with:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">snaplist</span> <span class="pre">UUID|TAG</span></tt></p>
+<p>To create a new snapshot run:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">snapshot</span> <span class="pre">UUID|TAG</span></tt></p>
+<p>This will create a snapshot based on current time.</p>
+<p>If you&#8217;d like to create a snapshot with custom naming run:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">snapshot</span> <span class="pre">UUID|TAG&#64;mysnapshotname</span></tt></p>
+</div>
+<div class="section" id="resource-limits">
+<h2>Resource limits<a class="headerlink" href="#resource-limits" title="Permalink to this headline">¶</a></h2>
+<p>iocage can enable optional resource limits for a jail. The outlined procedure should provide enough for
+a decent starting point.</p>
+<div class="section" id="limit-core-or-thread">
+<h3>Limit core or thread<a class="headerlink" href="#limit-core-or-thread" title="Permalink to this headline">¶</a></h3>
+<p>Limit a jail to a single thread or core number 1:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">cpuset=1</span> <span class="pre">UUID|TAG</span></tt>
+<tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">start</span> <span class="pre">UUID|TAG</span></tt></p>
+</div>
+<div class="section" id="list-applied-rules">
+<h3>List applied rules<a class="headerlink" href="#list-applied-rules" title="Permalink to this headline">¶</a></h3>
+<p>List applied limits:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">limits</span> <span class="pre">UUID|TAG</span></tt></p>
+</div>
+<div class="section" id="limit-dram-use">
+<h3>Limit DRAM use<a class="headerlink" href="#limit-dram-use" title="Permalink to this headline">¶</a></h3>
+<p>Limit a jail to 4G DRAM memory use (limit RSS memory use can be done on-the-fly):</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">memoryuse=4G:deny</span> <span class="pre">UUID|TAG</span></tt></p>
+</div>
+<div class="section" id="turn-on-resource-limits">
+<h3>Turn on resource limits<a class="headerlink" href="#turn-on-resource-limits" title="Permalink to this headline">¶</a></h3>
+<p>Turn on resource limiting for jail:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">rlimits=on</span> <span class="pre">UUID|TAG</span></tt></p>
+</div>
+<div class="section" id="apply-limits">
+<h3>Apply limits<a class="headerlink" href="#apply-limits" title="Permalink to this headline">¶</a></h3>
+<p>Apply limit on-the-fly:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">cap</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+</div>
+<div class="section" id="check-limits">
+<h3>Check limits<a class="headerlink" href="#check-limits" title="Permalink to this headline">¶</a></h3>
+<p>Check active limits:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">limits</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+</div>
+<div class="section" id="limit-cpu-use-by">
+<h3>Limit CPU use by %<a class="headerlink" href="#limit-cpu-use-by" title="Permalink to this headline">¶</a></h3>
+<p>Limit CPU execution to 20%:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">set</span> <span class="pre">pcpu=20:deny</span> <span class="pre">UUID|TAG</span></tt>
+<tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">cap</span> <span class="pre">UUID|TAG</span></tt></p>
+<p>Check limits:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">limits</span> <span class="pre">UUID</span> <span class="pre">|</span> <span class="pre">TAG</span></tt></p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Advanced usage</a><ul>
+<li><a class="reference internal" href="#clones">Clones</a><ul>
+<li><a class="reference internal" href="#promoting-a-clone">Promoting a clone</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#updating-jails">Updating jails</a></li>
+<li><a class="reference internal" href="#upgrading-jails">Upgrading jails</a><ul>
+<li><a class="reference internal" href="#upgrade-non-basejail">Upgrade non-basejail</a></li>
+<li><a class="reference internal" href="#upgrade-basejail">Upgrade basejail</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#auto-boot">Auto boot</a><ul>
+<li><a class="reference internal" href="#boot-priority">Boot priority</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#snapshot-management">Snapshot management</a></li>
+<li><a class="reference internal" href="#resource-limits">Resource limits</a><ul>
+<li><a class="reference internal" href="#limit-core-or-thread">Limit core or thread</a></li>
+<li><a class="reference internal" href="#list-applied-rules">List applied rules</a></li>
+<li><a class="reference internal" href="#limit-dram-use">Limit DRAM use</a></li>
+<li><a class="reference internal" href="#turn-on-resource-limits">Turn on resource limits</a></li>
+<li><a class="reference internal" href="#apply-limits">Apply limits</a></li>
+<li><a class="reference internal" href="#check-limits">Check limits</a></li>
+<li><a class="reference internal" href="#limit-cpu-use-by">Limit CPU use by %</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="best-practices.html"
+                        title="previous chapter">Best practices</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="templates.html"
+                        title="next chapter">How to create and use templates</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/advanced-use.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="templates.html" title="How to create and use templates"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="best-practices.html" title="Best practices"
+             >previous</a> |</li>
+        <li><a href="index.html">iocage 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Peter Toth.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

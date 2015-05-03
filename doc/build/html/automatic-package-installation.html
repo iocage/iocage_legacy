@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Automatic package installation &mdash; iocage 1.6.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="iocage 1.6.0 documentation" href="index.html" />
+    <link rel="next" title="Create a jail package!" href="jail-package.html" />
+    <link rel="prev" title="How to create and use templates" href="templates.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="jail-package.html" title="Create a jail package!"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="templates.html" title="How to create and use templates"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">iocage 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="automatic-package-installation">
+<h1>Automatic package installation<a class="headerlink" href="#automatic-package-installation" title="Permalink to this headline">¶</a></h1>
+<p>Packages can be installed automatically at creation time!</p>
+<p>Specify the <tt class="docutils literal"><span class="pre">pkglist</span></tt> property at creation time, which should point to a text file
+containing one package name per line. Please note you need to have Internet
+connection for this to work as <tt class="docutils literal"><span class="pre">pkg</span> <span class="pre">install</span></tt> will try to get the packages from
+online repositories.</p>
+<p><strong>Example:</strong></p>
+<p>Create a pkgs.txt file and add package names to it.</p>
+<p><tt class="docutils literal"><span class="pre">pkgs.txt</span></tt>:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span class="n">nginx</span>
+<span class="n">tmux</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Now simply create a jail and supply the pkgs.txt file:</p>
+<p><tt class="docutils literal"><span class="pre">iocage</span> <span class="pre">create</span> <span class="pre">pkglist=/path-to/pkgs.txt</span> <span class="pre">tag=myjail</span></tt></p>
+<p>This will install <tt class="docutils literal"><span class="pre">nginx</span></tt> and <tt class="docutils literal"><span class="pre">tmux</span></tt> in the newly created jail.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="templates.html"
+                        title="previous chapter">How to create and use templates</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="jail-package.html"
+                        title="next chapter">Create a jail package!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/automatic-package-installation.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="jail-package.html" title="Create a jail package!"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="templates.html" title="How to create and use templates"
+             >previous</a> |</li>
+        <li><a href="index.html">iocage 1.6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Peter Toth.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
