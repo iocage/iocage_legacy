@@ -2,7 +2,7 @@
 
 # truncate mountpoint to work around 88 char mount limit on FreeBSD
 __hack88_mount () {
-    local _fulluuid _shortuuid
+    local _fulluuid _shortuuid _mountpoint _mount_len _hack88
 
     _fulluuid="$1"
     _shortuuid="$(echo $_fulluuid|cut -f1 -d\-)"
