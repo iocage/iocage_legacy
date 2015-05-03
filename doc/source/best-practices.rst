@@ -22,11 +22,6 @@ These are some generic guidelines for working with iocage managed jails.
   ``VNET`` will give you more control and isolation. Also allows to run per jail firewalls.
   See known issues about VNET.
 
-**Don't mix RELEASEs!**
-
-  As best practice only run jails with the same ``RELEASE`` as the host
-  system.
-
 **Don't overuse resource limiting!**
 
   Unless really needed, let the OS decide how to do it best. Set limits with

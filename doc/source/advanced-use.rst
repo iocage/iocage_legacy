@@ -87,15 +87,15 @@ Verify whether the jail is a basejail:
 
 Should return type "basejail".
 
-``iocage set release=10.1-RELEASE UUID|TAG``
-
-This will cause the jail to re-clone its filesystems from 10.1-RELEASE on next jail start. This will not update the jails /etc files with changes from the next RELEASE.
-
-Also the upgrade can be forced while the jail is online with executing:
+The upgrade can be forced while the jail is online with executing:
 
   ``iocage upgrade UUID|TAG``
 
 This will forcibly re-clone the basejail filesystems while the jail is running (no downtime) and update the jails /etc with the changes from the new RELEASE.
+
+``iocage set release=10.1-RELEASE UUID|TAG``
+
+This will cause the jail to re-clone its filesystems from 10.1-RELEASE on next jail start. This will not update the jails /etc files with changes from the next RELEASE.
 
 Auto boot
 ---------
@@ -196,3 +196,18 @@ Limit CPU execution to 20%:
 Check limits:
 
 ``iocage limits UUID | TAG``
+
+Resetting a jail's properties
++++++++++++++++++++++++++++++
+
+If you have many properties on a jail you would like to reset back to defaults iocage easily allows that!
+
+To reset to defaults:
+
+``iocage reset UUID | TAG``
+
+You can also reset every jail to the default properties:
+
+``iocage reset ALL``
+
+Resetting a jail will retain the jails UUID and TAG. Everything else will be lost. Make sure to set any custom properties back that you need. If you have set anything via ``iocage set PROPERTY default`` You have nothing left to do!
