@@ -32,8 +32,8 @@ __networking () {
             local brmtu=$(ifconfig $memberif | head -n1 |cut -d' ' -f6)
             epair_a=$(ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
-            mac_epair_a=__get_next_mac $mac_base $mac_offset
-            mac_epair_b=__get_next_mac $mac_base $mac_offset+1
+            mac_epair_a=$(__get_next_mac $mac_base $mac_offset)
+            mac_epair_b=$(__get_next_mac $mac_base $mac_offset+1)
             ifconfig ${epair_a} name ${nic}:${jid} mtu $brmtu
             ifconfig ${nic}:${jid} description "associated with jail: $name"
             ifconfig $epair_b vnet ioc-${2}
