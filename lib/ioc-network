@@ -3,8 +3,10 @@
 __get_next_mac () {
     local mac_base="$(echo $1 | tr '[a-z]' '[A-Z]')"
     local mac_offset="$(echo "obase=16; $2" | bc)"
+    mac_prefix="02ff60"
     calc_mac=$(echo "obase=16; ibase=16; $mac_base + $mac_offset" | bc)
-    mac=$(echo $calc_mac | awk '{print substr($0, length($0)-5, length($0))}')
+    mac_postfix=$(echo $calc_mac | awk '{print substr($0, length($0)-5, length($0))}')
+    mac="${mac_prefix}${mac_postfix}"
     echo $mac
 }
 
@@ -35,9 +37,11 @@ __networking () {
             mac_epair_a=$(__get_next_mac $mac_base $mac_offset)
             mac_epair_b=$(__get_next_mac $mac_base $mac_offset+1)
             ifconfig ${epair_a} name ${nic}:${jid} mtu $brmtu
+            ifconfig ${nic}:${jid} link ${mac_epair_a}
             ifconfig ${nic}:${jid} description "associated with jail: $name"
             ifconfig $epair_b vnet ioc-${2}
             jexec ioc-${2} ifconfig $epair_b name $nic mtu $brmtu
+            jexec ioc-${2} ifconfig ${nic} link ${mac_epair_b}
             ifconfig $bridge addm ${nic}:${jid} up
             ifconfig ${nic}:${jid} up
             let mac_offset=mac_offset + 2
