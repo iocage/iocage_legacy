@@ -1,5 +1,15 @@
 #!/bin/sh
 
+__get_next_mac () {
+    local mac_base="$(echo $1 | tr '[a-z]' '[A-Z]')"
+    local mac_offset="$(echo "obase=16; $2" | bc)"
+    mac_prefix="02ff60"
+    calc_mac=$(echo "obase=16; ibase=16; $mac_base + $mac_offset" | bc)
+    mac_postfix=$(echo $calc_mac | awk '{print substr($0, length($0)-5, length($0))}')
+    mac="${mac_prefix}${mac_postfix}"
+    echo $mac
+}
+
 __networking () {
     action="$1"
     local name="$2"
@@ -12,8 +22,11 @@ __networking () {
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
     local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
+    local uuid="$(__get_jail_prop host_hostuuid $name)"
+    local mac_base=$(echo $uuid | awk '{print substr($0, 0, 6)}')
 
     if [ $action == "start" ] ; then
+        local mac_offset=0
         for i in $nics ; do
             local nic=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')
             local bridge=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')
@@ -21,12 +34,17 @@ __networking () {
             local brmtu=$(ifconfig $memberif | head -n1 |cut -d' ' -f6)
             epair_a=$(ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
+            mac_epair_a=$(__get_next_mac $mac_base $mac_offset)
+            mac_epair_b=$(__get_next_mac $mac_base $mac_offset+1)
             ifconfig ${epair_a} name ${nic}:${jid} mtu $brmtu
+            ifconfig ${nic}:${jid} link ${mac_epair_a}
             ifconfig ${nic}:${jid} description "associated with jail: $name"
             ifconfig $epair_b vnet ioc-${2}
             jexec ioc-${2} ifconfig $epair_b name $nic mtu $brmtu
+            jexec ioc-${2} ifconfig ${nic} link ${mac_epair_b}
             ifconfig $bridge addm ${nic}:${jid} up
             ifconfig ${nic}:${jid} up
+            let mac_offset=mac_offset + 2
         done
 
         if [ "$ip4" != "none" ] ; then
