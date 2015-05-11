@@ -1,32 +1,66 @@
 #!/bin/sh
 
+# used for mac address randomization for VNET jails
 __get_next_mac () {
-    local mac_base="$(echo $1 | tr '[a-z]' '[A-Z]')"
-    local mac_offset="$(echo "obase=16; $2" | bc)"
-    mac_prefix="02ff60"
-    calc_mac=$(echo "obase=16; ibase=16; $mac_base + $mac_offset" | bc)
-    mac_postfix=$(echo $calc_mac | awk '{print substr($0, length($0)-5, length($0))}')
-    mac="${mac_prefix}${mac_postfix}"
-    echo $mac
+    local _mac_base _mac_offset _calc_mac _mac _mac_postfix
+
+    _mac_base="$(echo $1 | tr '[a-z]' '[A-Z]')"
+    _mac_offset="$(echo "obase=16; $2" | bc)"
+    _calc_mac=$(echo "obase=16; ibase=16; ${_mac_base} + ${_mac_offset}" | bc)
+    _mac_postfix=$(echo ${_calc_mac} | awk '{print substr($0, length($0)-5, length($0))}')
+    _mac="${mac_prefix}${_mac_postfix}"
+
+    echo ${_mac}
 }
 
+# Expects input: _nic _mac_offset _epair_leg _uuid
+# outputs a single mac address
+# Example: __validate_mac ${nic} ${_mac_offset} a ${_uuid}
+__validate_mac () {
+    local _nic _uuid _mac _mac_base _mac_offset \
+          _mac_epair_a _mac_epair_b _return
+
+    _nic="$1"
+    _mac_offset="$2"
+    _epair_leg="$3"
+    _uuid="$4"
+    _mac="$(__get_jail_prop ${_nic}_mac ${_uuid})"
+    _mac_base="$(echo ${_uuid} | awk '{print substr($0, 0, 6)}')"
+    _mac_epair_a="$(__get_next_mac ${_mac_base} ${_mac_offset})"
+    _mac_epair_b="$(__get_next_mac ${_mac_base} ${_mac_offset}+1)"
+
+    if [ ${_mac} == "none" ] ; then
+        __set_jail_prop ${_nic}_mac="${_mac_epair_a},${_mac_epair_b}" ${_uuid}
+    fi
+
+    if [ ${_epair_leg} == "a" ] ; then
+        _return="$(__get_jail_prop ${_nic}_mac ${_uuid}|cut -f1 -d,)"
+    elif [ ${_epair_leg} == "b" ] ; then
+        _return="$(__get_jail_prop ${_nic}_mac ${_uuid}|cut -f2 -d,)"
+    fi
+
+    echo ${_return}
+}
+
+# Expects $1 for action and $2 for UUID
 __networking () {
-    action="$1"
-    local name="$2"
-    local jid="$(jls -j ioc-$name jid)"
-    local ip4="$(__get_jail_prop ip4_addr $name)"
-    local ip6="$(__get_jail_prop ip6_addr $name)"
-    local defaultgw="$(__get_jail_prop defaultrouter $name)"
-    local defaultgw6="$(__get_jail_prop defaultrouter6 $name)"
-    local nics="$(__get_jail_prop interfaces $name \
+    local _action _uuid _jid _mac_epair_a mac_epair_b \
+          _mac_offset
+
+    _action="$1"
+    _uuid="$2"
+    _jid="$(jls -j ioc-${_uuid} jid)"
+    local ip4="$(__get_jail_prop ip4_addr ${_uuid})"
+    local ip6="$(__get_jail_prop ip6_addr ${_uuid})"
+    local defaultgw="$(__get_jail_prop defaultrouter ${_uuid})"
+    local defaultgw6="$(__get_jail_prop defaultrouter6 ${_uuid})"
+    local nics="$(__get_jail_prop interfaces ${_uuid} \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
     local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
-    local uuid="$(__get_jail_prop host_hostuuid $name)"
-    local mac_base=$(echo $uuid | awk '{print substr($0, 0, 6)}')
 
-    if [ $action == "start" ] ; then
-        local mac_offset=0
+    if [ ${_action} == "start" ] ; then
+        _mac_offset=0
         for i in $nics ; do
             local nic=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')
             local bridge=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')
@@ -34,17 +68,17 @@ __networking () {
             local brmtu=$(ifconfig $memberif | head -n1 |cut -d' ' -f6)
             epair_a=$(ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
-            mac_epair_a=$(__get_next_mac $mac_base $mac_offset)
-            mac_epair_b=$(__get_next_mac $mac_base $mac_offset+1)
-            ifconfig ${epair_a} name ${nic}:${jid} mtu $brmtu
-            ifconfig ${nic}:${jid} link ${mac_epair_a}
-            ifconfig ${nic}:${jid} description "associated with jail: $name"
+            ifconfig ${epair_a} name ${nic}:${_jid} mtu $brmtu
+            _mac_epair_a="$(__validate_mac ${nic} ${_mac_offset} a ${_uuid})"
+            ifconfig ${nic}:${_jid} link ${_mac_epair_a}
+            ifconfig ${nic}:${_jid} description "associated with jail: ${_uuid}"
             ifconfig $epair_b vnet ioc-${2}
             jexec ioc-${2} ifconfig $epair_b name $nic mtu $brmtu
-            jexec ioc-${2} ifconfig ${nic} link ${mac_epair_b}
-            ifconfig $bridge addm ${nic}:${jid} up
-            ifconfig ${nic}:${jid} up
-            let mac_offset=mac_offset + 2
+            _mac_epair_b="$(__validate_mac ${nic} ${_mac_offset} b ${_uuid})"
+            jexec ioc-${2} ifconfig ${nic} link ${_mac_epair_b}
+            ifconfig $bridge addm ${nic}:${_jid} up
+            ifconfig ${nic}:${_jid} up
+            let _mac_offset=_mac_offset + 2
         done
 
         if [ "$ip4" != "none" ] ; then
@@ -71,10 +105,10 @@ __networking () {
             jexec ioc-${2} route add -6 default "${defaultgw6}" >/dev/null
         fi
 
-    elif [ $action == "stop" ] ; then
+    elif [ ${_action} == "stop" ] ; then
         for if in $nics ; do
             local nic="$(echo $if | cut -f 1 -d:)"
-            ifconfig ${nic}:${jid} destroy
+            ifconfig ${nic}:${_jid} destroy
         done
     fi
 }

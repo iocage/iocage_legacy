@@ -30,6 +30,11 @@ ip6_saddrsel="1"
 ip6="new"
 defaultrouter="none"
 defaultrouter6="none"
+mac_prefix="02ff60"
+vnet0_mac="none"
+vnet1_mac="none"
+vnet2_mac="none"
+vnet3_mac="none"
 
 # Standard jail properties
 devfs_ruleset="4"
@@ -161,7 +166,11 @@ CONF_NET="interfaces
           ip6
           defaultrouter
           defaultrouter6
-          exec_fib"
+          exec_fib
+          vnet0_mac
+          vnet1_mac
+          vnet2_mac
+          vnet3_mac"
 
 # Native jail properties
 CONF_JAIL="devfs_ruleset
