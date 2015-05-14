@@ -5,6 +5,7 @@ cat << 'EOT' | less
 NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
+  iocage activate ZPOOL
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
@@ -81,6 +82,11 @@ DESCRIPTION
         options         RCTL
 
 SUBCOMMANDS
+
+  activate ZPOOL
+
+    Intended for automation tools. The pool can be activated for iocage jails
+    without requiring user input.
 
   fetch [release=RELEASE | ftphost=ftp.hostname.org]
 

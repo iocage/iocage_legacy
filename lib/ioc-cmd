@@ -4,6 +4,9 @@
 __parse_cmd () {
     while [ $# -gt 0 ] ; do
         case "$1" in
+            activate)   __activate "$2"
+                        exit
+                ;;
             cap)        __rctl_limits "$2"
                         exit
                 ;;
