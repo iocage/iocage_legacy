@@ -1313,6 +1313,7 @@ __show () {
 
 __usage () {
     echo "usage:"
+    echo "  iocage activate ZPOOL"
     echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]"
     echo "  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone UUID|TAG@snapshot [property=value]"
