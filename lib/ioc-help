@@ -148,6 +148,16 @@ SUBCOMMANDS
 
     The keyword "ALL" will destroy all jails and templates irreversibly!
 
+  reset UUID|TAG|ALL
+
+    This will reset a jail's properties back to the defaults. 
+
+    It reads from the defaults set on the "default" dataset. TAG, UUID and generated 
+    vnet mac addresses are carried forward.
+
+    Those will retain their values even if you reset the jail.
+    You can also reset every jail to the default properties by using the keyword "ALL".
+
   list [-t|-r]
 
     List all jails, if -t is specified list only templates, with -r list downloaded
