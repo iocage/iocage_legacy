@@ -10,6 +10,7 @@ SYNOPSIS
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage destroy [-f] UUID|TAG|ALL
+  iocage reset UUID|TAG|ALL
   iocage list [-t|-r]
   iocage start UUID|TAG
   iocage stop UUID|TAG
