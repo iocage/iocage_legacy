@@ -5,10 +5,12 @@ cat << 'EOT' | less
 NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
+  iocage activate ZPOOL
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage destroy [-f] UUID|TAG|ALL
+  iocage reset UUID|TAG|ALL
   iocage list [-t|-r]
   iocage start UUID|TAG
   iocage stop UUID|TAG
@@ -82,6 +84,11 @@ DESCRIPTION
 
 SUBCOMMANDS
 
+  activate ZPOOL
+
+    Intended for automation tools. The pool can be activated for iocage jails
+    without requiring user input.
+
   fetch [release=RELEASE | ftphost=ftp.hostname.org]
 
     Used for downloading and updating/patching releases.
@@ -140,6 +147,16 @@ SUBCOMMANDS
     With -f the jail will be destroyed without confirmation.
 
     The keyword "ALL" will destroy all jails and templates irreversibly!
+
+  reset UUID|TAG|ALL
+
+    This will reset a jail's properties back to the defaults. 
+
+    It reads from the defaults set on the "default" dataset. TAG, UUID and generated 
+    vnet mac addresses are carried forward.
+
+    Those will retain their values even if you reset the jail.
+    You can also reset every jail to the default properties by using the keyword "ALL".
 
   list [-t|-r]
 
@@ -1307,6 +1324,7 @@ __show () {
 
 __usage () {
     echo "usage:"
+    echo "  iocage activate ZPOOL"
     echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]"
     echo "  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone UUID|TAG@snapshot [property=value]"

@@ -1,5 +1,18 @@
 #!/bin/sh
 
+# activate pool for iocage
+# intended for automation tool
+__activate () {
+    local _pool
+    _pool="$1"
+
+    if [ ! -z ${_pool} ] ; then
+        zpool set comment=iocage ${_pool}
+    fi
+
+    exit 0
+}
+
 __create_basejail () {
     local _release
 
