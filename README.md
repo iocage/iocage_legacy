@@ -47,10 +47,12 @@ Start the jail:
 `iocage start myjail`
 
 **USAGE:**
+-  iocage activate ZPOOL
 -  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
 -  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
 -  iocage clone UUID|TAG@snapshot [property=value]
 -  iocage destroy [-f] UUID|TAG|ALL
+-  iocage reset UUID|TAG|ALL
 -  iocage list [-t]
 -  iocage start UUID|TAG
 -  iocage stop UUID|TAG
