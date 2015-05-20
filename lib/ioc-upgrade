@@ -35,10 +35,12 @@ __update () {
         __snapshot ${fulluuid}@ioc-update_${date}
 
         echo "* Updating jail.."
-        env UNAME_r="$release" /usr/sbin/freebsd-update \
+        env UNAME_r="$release" env PAGER="/bin/cat" \
+            /usr/sbin/freebsd-update \
             -b ${mountpoint}/root \
             -d ${mountpoint}/root/var/db/freebsd-update/ fetch
-        env UNAME_r="$release" /usr/sbin/freebsd-update \
+        env UNAME_r="$release" env PAGER="/bin/cat" \
+            /usr/sbin/freebsd-update \
             -b ${mountpoint}/root \
             -d ${mountpoint}/root/var/db/freebsd-update/ install
 
@@ -106,17 +108,19 @@ __upgrade () {
 
     echo "* Upgrading jail.."
 
-    env UNAME_r=${oldrelease} /usr/sbin/freebsd-update \
-    -b ${mountpoint}/root \
-    -d ${mountpoint}/root/var/db/freebsd-update/ \
-    -r $release upgrade
+    env UNAME_r=${oldrelease} env PAGER="/bin/cat" \
+        /usr/sbin/freebsd-update \
+        -b ${mountpoint}/root \
+        -d ${mountpoint}/root/var/db/freebsd-update/ \
+        -r $release upgrade
 
     if [ $? -eq 0 ] ; then
         while [ $? -eq 0 ] ; do
-        env UNAME_r=${oldrelease} /usr/sbin/freebsd-update \
-        -b ${mountpoint}/root \
-        -d ${mountpoint}/root/var/db/freebsd-update/ \
-        -r $release install
+            env UNAME_r=${oldrelease} env PAGER="/bin/cat" \
+            /usr/sbin/freebsd-update \
+            -b ${mountpoint}/root \
+            -d ${mountpoint}/root/var/db/freebsd-update/ \
+            -r $release install
     done
 
     # Set jail's zfs property to new release
