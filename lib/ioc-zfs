@@ -202,7 +202,7 @@ __destroy_jail () {
         echo " "
         echo "  Please make sure all jails are stopped before continuing."
         echo " "
-        echo -n "  Are you sure ? Y[n]: "
+        echo -n "  Are you sure ? y[N]: "
         read _answer
 
         if [ "$_answer" == "Y" ]; then
@@ -213,6 +213,10 @@ __destroy_jail () {
             rm -f ${iocroot}/tags/*
 
             exit 0
+        elif [ "$_answer" == "y" ]; then
+            echo "  Please use a Y"
+            echo "  No action will be taken."
+            exit 1
         else
             echo "  Command not confirmed.  No action taken."
             exit 1
@@ -239,21 +243,26 @@ __destroy_jail () {
     local jail_release="$(__get_jail_prop release $fulluuid)"
 
     if [ "$_force" -ne "1" ] ; then
-        echo " "
-        echo "  WARNING: this will destroy jail $fulluuid"
-        echo "  Dataset: $dataset"
-        echo " "
-        echo -n "  Are you sure ? Y[n]: "
-        read _answer
+            echo " "
+            echo "  WARNING: this will destroy jail $fulluuid"
+            echo "  Dataset: $dataset"
+            echo " "
+            echo -n "  Are you sure ? y[N]: "
+            read _answer
 
-        __destroy_func
+        if [ "$_answer" == "Y" ]; then
+            __destroy_func
+        elif [ "$_answer" == "y" ]; then
+            echo "  Please use a Y"
+            echo "  No action will be taken."
+            exit 1
 
-    elif [ "$_force" -eq "1" ] ; then
-        __destroy_func
-    else
-        echo "  Command not confirmed.  No action taken."
-        echo $_force
-        exit 1
+        elif [ "$_force" -eq "1" ] ; then
+            __destroy_func
+        else
+            echo "  Command not confirmed.  No action taken."
+            exit 1
+        fi
     fi
 }
 

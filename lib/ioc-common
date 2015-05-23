@@ -224,10 +224,12 @@ __fetch_release () {
         echo "* Updating base jail.."
         sleep 2
 
-        env UNAME_r="$release" /usr/sbin/freebsd-update \
+        env UNAME_r="$release" env PAGER="/bin/cat" \
+            /usr/sbin/freebsd-update \
             -b $iocroot/releases/$release/root \
             -d $iocroot/releases/$release/root/var/db/freebsd-update/ fetch
-        env UNAME_r="$release" /usr/sbin/freebsd-update \
+        env UNAME_r="$release" env PAGER="/bin/cat" \
+            /usr/sbin/freebsd-update \
             -b $iocroot/releases/$release/root \
             -d $iocroot/releases/$release/root/var/db/freebsd-update/ install
 

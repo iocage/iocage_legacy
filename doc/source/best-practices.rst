@@ -32,7 +32,7 @@ These are some generic guidelines for working with iocage managed jails.
 
   Templates will make your life easy, try them!
 
-**Use the `restart` command instead of `start` `stop`**
+**Use the restart command instead of start/stop**
 
   If you wish to restart a jail use the ``restart`` command which performs a
   soft restart and it leaves the ``VNET`` stack alone, less stressful for the
@@ -49,9 +49,8 @@ These are some generic guidelines for working with iocage managed jails.
 
   Remove snapshots you don't need, especially from jails where data is changing a lot!
 
-**Use the `chroot` sub-command**
+**Use the chroot sub-command**
  
   In case you need to access or modify files in a template or a jail which is in a
   stopped state, use ``iocage chroot UUID | TAG``. This way you don't need to spin up the
   jail or convert the template.
-

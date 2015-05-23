@@ -12,6 +12,17 @@ A clone depends on its source snapshot and filesystem.
 If you'd like to destroy the source jail and preserve its clones
 you need to promote the clone first, otherwise the source jail cannot be destroyed.
 
+Create a clone
+++++++++++++++
+
+To clone www01 to www02 run:
+
+``iocage clone www01 tag=www02``
+
+To clone a jail from an existing snapshot:
+
+``iocage clone www01@snapshotname tag=www03``
+
 Promoting a clone
 +++++++++++++++++
 
@@ -211,3 +222,30 @@ You can also reset every jail to the default properties:
 ``iocage reset ALL``
 
 Resetting a jail will retain the jails UUID and TAG. Everything else will be lost. Make sure to set any custom properties back that you need. If you have set anything via ``iocage set PROPERTY default`` You have nothing left to do!
+
+Automatic package installation
+------------------------------
+
+Packages can be installed automatically at creation time!
+
+Specify the ``pkglist`` property at creation time, which should point to a text file
+containing one package name per line. Please note you need to have Internet
+connection for this to work as ``pkg install`` will try to get the packages from
+online repositories.
+
+**Example:**
+
+Create a pkgs.txt file and add package names to it.
+
+``pkgs.txt``:
+
+    ::
+
+        nginx
+        tmux
+
+Now simply create a jail and supply the pkgs.txt file:
+
+``iocage create pkglist=/path-to/pkgs.txt tag=myjail``
+
+This will install ``nginx`` and ``tmux`` in the newly created jail.
