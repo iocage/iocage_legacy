@@ -209,7 +209,9 @@ __fetch_release () {
         zfs create -o compression=lz4 -p ${pool}${iocroot}/download/${release}
     fi
 
-    ftpdir="/pub/FreeBSD/releases/amd64/$release"
+    if [ -z "$ftpdir" ] ; then
+	ftpdir="/pub/FreeBSD/releases/amd64/$release"
+    fi
 
     cd ${iocroot}/download/${release}
     for file in $ftpfiles ; do
