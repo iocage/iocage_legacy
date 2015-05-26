@@ -5,6 +5,7 @@ __export_props () {
     for i in "$@" ; do
         if [ "$(echo $i | grep -e ".*=.*")" ] ; then
             export "$i"
+            export "iocset_${i}"
         fi
     done
 }
@@ -172,30 +173,34 @@ __chroot () {
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
     local _rel_exist 
+    local _default_rel
+    _default_rel=$(uname -r|cut -f 1,2 -d'-')
 
-    __print_release
+    if [ -z "$iocset_release" ] ; then
+	__print_release
 
-    echo -n "Please select a release [$release]: "
-    read answer
+	echo -n "Please select a release [$release]: "
+	read answer
 
-    if [ ! -z "$answer" ] ; then
-        release="$answer"
-    else
-        answer="$release"
+	if [ -z "$answer" ] ; then
+		answer="$release"
+	else
+		release="$answer"
+		for rel in $(echo $supported) ; do
+			if [ "$answer" == "$rel" ] ; then
+				release="$rel"
+				match="1"
+				break
+			fi
+		done
+
+		if [ -z $match ] ; then
+			echo "Invalid release $release specified, exiting.."
+			exit 1
+		fi
+	fi
     fi
 
-    for rel in $(echo $supported) ; do
-        if [ "$answer" == "$rel" ] ; then
-            release="$rel"
-            match="1"
-            break
-        fi
-    done
-
-    if [ -z $match ] ; then
-        echo "Invalid release $release specified, exiting.."
-        exit 1
-    fi
 
     _rel_exist=$(zfs list | grep -w ^${pool}${iocroot}/releases/${release})
 
@@ -210,6 +215,10 @@ __fetch_release () {
     for file in $ftpfiles ; do
         if [ ! -e "$file" ] ; then
             fetch http://${ftphost}${ftpdir}/${file}
+            if [ $? -ne 0 ] ; then
+		echo "Failed fetching $file.."
+		exit 1
+            fi
         fi
     done
 
