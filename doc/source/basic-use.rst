@@ -23,6 +23,10 @@ In case a specific download mirror is required simply run:
 
 ``iocage fetch ftphost=ftp.hostname.org``
 
+You can also specify a ftp directory to fetch the base files from:
+
+``iocage fetch ftpdir=/dir/``
+
 Create a jail
 -------------
 

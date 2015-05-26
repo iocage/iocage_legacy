@@ -152,10 +152,10 @@ SUBCOMMANDS
 
     This will reset a jail's properties back to the defaults. 
 
-    It reads from the defaults set on the "default" dataset. TAG, UUID and generated 
+    It reads from the properties set on the "default" dataset. TAG, UUID and generated 
     vnet mac addresses are carried forward.
 
-    Those will retain their values even if you reset the jail.
+    Those will retain their values, even if you reset the jail.
     You can also reset every jail to the default properties by using the keyword "ALL".
 
   list [-t|-r]
@@ -244,7 +244,7 @@ SUBCOMMANDS
   limits [UUID|TAG]
 
     Display active resource limits for a jail or all jails. With no UUID supplied
-    display all limits active for all jail.
+    display all limits active for all jails.
 
   uncap UUID|TAG
 
