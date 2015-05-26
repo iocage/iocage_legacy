@@ -172,8 +172,7 @@ __chroot () {
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local _rel_exist 
-    local _default_rel
+    local _rel_exist _default_rel
     _default_rel=$(uname -r|cut -f 1,2 -d'-')
 
     if [ -z "$iocset_release" ] ; then
