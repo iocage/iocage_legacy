@@ -6,7 +6,7 @@ NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
 SYNOPSIS
   iocage activate ZPOOL
-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
+  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/]
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage destroy [-f] UUID|TAG|ALL
@@ -89,7 +89,7 @@ SUBCOMMANDS
     Intended for automation tools. The pool can be activated for iocage jails
     without requiring user input.
 
-  fetch [release=RELEASE | ftphost=ftp.hostname.org]
+  fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/]
 
     Used for downloading and updating/patching releases.
 
@@ -1325,7 +1325,7 @@ __show () {
 __usage () {
     echo "usage:"
     echo "  iocage activate ZPOOL"
-    echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]"
+    echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/]"
     echo "  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone UUID|TAG@snapshot [property=value]"
     echo "  iocage destroy [-f] UUID|TAG|ALL"
