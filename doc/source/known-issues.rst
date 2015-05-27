@@ -57,3 +57,23 @@ Example:
 FreeBSD 10.1-RELEASE is stable enough to run with VNET and warm restarts.
 There are production machines with iocage and VNET jails running well beyond 100 days of uptime
 running both PF and IPFW.
+
+VNET/VIMAGE issues w/ ALTQ
+--------------------------
+
+As recent as FreeBSD 10.1-RELEASE-p10, there is some *interesting* interaction between VNET/VIMAGE and ALTQ,
+which is an ALTernate Queueing system used by PF and other routing software.  Should you compile a kernel, make
+that you do not have any of the following lines in your kernconf (unless you want to disable VNET):
+
+::
+
+  options     ALTQ
+  options     ALTQ_CBQ
+  options     ALTQ_RED
+  options     ALTQ_RIO
+  options     ALTQ_HFSC
+  options     ALTQ_CDNR
+  options     ALTQ_PRIQ
+
+Otherwise, should you try to start a jail with VNET support enabled, your host system will more than likely crash.
+You can read a little more at the mailing list post `here <http://lists.freebsd.org/pipermail/freebsd-jail/2014-July/002635.html>`_.
