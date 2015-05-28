@@ -44,5 +44,5 @@ you do almost anything you want with your jails.
 
 If you wish to install a Linux only Debian jail you can follow this tutorial:
 `debian-linux-freebsd-jail-zfs
-<http://devil-detail.blogspot.co.nz/2013/08/debian-linux-freebsd-jail-zfs.html/>`_
+<http://devil-detail.blogspot.co.nz/2013/08/debian-linux-freebsd-jail-zfs.html>`_
 
