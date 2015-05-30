@@ -123,15 +123,15 @@ __exec () {
     if [ -z $_name ] ; then
         echo "  ERROR: Missing UUID!"
         exit 1
-
     elif [ $_name == ALL ]; then
         local _jails _fulluuid
         _jails="$(__find_jail ALL)"
 
-    for jail in $_jails ; do
-        _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
-        jexec $_jexecopts ioc-${_fulluuid} "$@"
+        for jail in $_jails ; do
+            _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
+            jexec $_jexecopts ioc-${_fulluuid} "$@"
         done
+
         exit 0
     fi
 
