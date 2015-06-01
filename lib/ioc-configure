@@ -2,16 +2,16 @@
 
 # Configure properties -------------------------------------------------
 __configure_jail () {
-    local _value _default_value
+    local _value _default_value _CONF
 
-    local CONF="$CONF_NET
-                $CONF_JAIL
-                $CONF_RCTL
-                $CONF_CUSTOM
-                $CONF_SYNC"
+    _CONF="$CONF_NET
+           $CONF_JAIL
+           $CONF_RCTL
+           $CONF_CUSTOM
+           $CONF_SYNC"
 
     echo "Configuring jail.."
-    for prop in $CONF ; do
+    for prop in $_CONF ; do
         prop_name=$prop
         eval prop="\$${prop}"
         if [ ! -z "$prop" ] ; then
@@ -114,12 +114,12 @@ __resolv_conf () {
 }
 
 __pkg_install () {
-    local chrootdir="$1"
+    local _chrootdir="$1"
 
     if [ -e $pkglist ] ; then
         echo "* Installing extra packages.."
         for i in $(cat $pkglist) ; do
-            pkg -c $chrootdir install -qy $i
+            pkg -c $_chrootdir install -qy $i
         done
     fi
 }
