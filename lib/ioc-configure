@@ -151,8 +151,7 @@ __reset_jail_props () {
         echo " "
         echo -n "  Are you sure? Y[n]: "
         read answer
-
-        if [ "$answer" == "Y" ]; then
+        if [ "$answer" == "Y" ] || [ "$answer" == "y" ] ; then
             echo "  Resetting all jails."
 
             __reset_jail_props_all
@@ -163,7 +162,6 @@ __reset_jail_props () {
             exit 1
         fi
     fi
-
     # Cache properties to set again later
     uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
     tag="$(zfs get -H -o value org.freebsd.iocage:tag $_dataset)"

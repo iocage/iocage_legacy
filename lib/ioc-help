@@ -142,7 +142,7 @@ SUBCOMMANDS
   destroy [-f] UUID|TAG|ALL
 
     Destroy given jail. This is irreversible, use with caution. If the jail is
-    running destroy action will fail. Also a capital "Y" is required for confirmation.
+    running destroy action will fail.
 
     With -f the jail will be destroyed without confirmation.
 
