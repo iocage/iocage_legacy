@@ -5,7 +5,7 @@ How to create and use templates
 
 Set up a jail any way you like, and create a template from it. All packages and pre-configured settings will be available for deployment next time within seconds.
 
-Any jail can be converted to a template and back to a jail again as required. In fact a template is just another jail which has the property ``template`` set to "yes". The difference is that templates are not started by iocage, they ar$
+Any jail can be converted to a template and back to a jail again as required. In fact a template is just another jail which has the property ``template`` set to "yes". The difference is that templates are not started by iocage.
 
 **Here is how to create a template with iocage:**
 
