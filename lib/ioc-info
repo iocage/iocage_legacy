@@ -215,17 +215,10 @@ __find_mypool () {
             echo "ERROR: No pool for iocage jails found on boot ..exiting"
             exit 1
         else
-            echo -n "  please select a pool for iocage jails [$i]: "
-            read answer
-
-            if [ -z "$answer" ] ; then
-                answer=$i
-            else
-                answer="$(echo $answer|awk 'BEGIN { FS = "/" } ; { print $1 }')"
-            fi
-
-            zpool set comment=iocage $answer
-            export pool=$answer
+            echo "Setting up zpool [$i] for iocage usage..."
+	    echo "If you wish to change zpool, use 'iocage activate'"
+            zpool set comment=iocage $i
+            export pool=$i
         fi
     fi
 }
