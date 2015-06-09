@@ -13,19 +13,27 @@ __print_release () {
 
 # Print defaults set in this script.
 __print_defaults () {
-    CONF="$CONF_NET
-          $CONF_JAIL
-          $CONF_RCTL
-          $CONF_CUSTOM
-          $CONF_ZFS
-          $CONF_SYNC
-          $CONF_FTP"
+    local _prop _prop_name _saved_default
 
-    for prop in $(echo $CONF)  ; do
-        prop_name=$prop
-        eval prop="\$${prop}"
-        if [ ! -z "$prop" ] ; then
-            echo "$prop_name=$prop"
+    _CONF="$CONF_NET
+           $CONF_JAIL
+           $CONF_RCTL
+           $CONF_CUSTOM
+           $CONF_ZFS
+           $CONF_SYNC
+           $CONF_FTP"
+
+    for _prop in $(echo $_CONF)  ; do
+        _prop_name=$_prop
+        eval _prop="\$${_prop}"
+
+        if [ ! -z "${_prop}" ] ; then
+            _saved_default="$(__get_jail_prop ${_prop_name} default)"
+            if [ "${_saved_default}" != "none" ] ; then
+                echo "${_prop_name}=${_saved_default}"
+            else
+                echo "${_prop_name}=${_prop}"
+            fi
         fi
     done
 }
@@ -257,7 +265,8 @@ __get_jail_prop () {
                 $CONF_JAIL
                 $CONF_RCTL
                 $CONF_CUSTOM
-                $CONF_SYNC"
+                $CONF_SYNC
+                $CONF_FTP"
 
     for prop in $CONF ; do
         if [ $prop == $property ] ; then
