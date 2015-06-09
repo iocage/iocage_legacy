@@ -134,6 +134,10 @@ __start_jail () {
         fi
     fi
 
+    if [ $jzfs == "on" ] ; then
+        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
+    fi
+
     echo -n "  + Starting services"
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
      >> $iocroot/log/${fulluuid}-console.log 2>&1
@@ -142,10 +146,6 @@ __start_jail () {
         echo "        FAILED"
     else
         echo "        OK"
-    fi
-
-    if [ $jzfs == "on" ] ; then
-        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
     fi
 
     zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
