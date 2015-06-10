@@ -75,7 +75,7 @@ __set_jail_prop () {
 }
 
 __console () {
-    local _name _dataset _fulluuid _login_flags
+    local _name _dataset _fulluuid _login_flags _jexec _exec_fib
     _name=$1
 
     if [ -z $_name ] ; then
@@ -100,11 +100,19 @@ __console () {
     _login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
                   $pool/iocage/jails/$_fulluuid)
 
-    jexec ioc-${_fulluuid} login $_login_flags
+    _exec_fib=$(zfs get -H -o value org.freebsd.iocage:exec_fib \
+                  $pool/iocage/jails/$_fulluuid)
+
+    _jexec="jexec"
+    if [ $_exec_fib -ne "0" ] ; then
+        _jexec="setfib $_exec_fib jexec"
+    fi
+
+    $_jexec ioc-${_fulluuid} login $_login_flags
 }
 
 __exec () {
-    local _jexecopts _name _dataset _fulluuid
+    local _jexecopts _name _dataset _fulluuid _jexec _exec_fib
     _jexecopts=
 
     # check for -U or -u to pass to jexec
@@ -150,7 +158,15 @@ __exec () {
 
     _fulluuid="$(__check_name $_name)"
 
-    jexec $_jexecopts ioc-${_fulluuid} "$@"
+    _exec_fib=$(zfs get -H -o value org.freebsd.iocage:exec_fib \
+                  $pool/iocage/jails/$_fulluuid)
+
+    _jexec="jexec"
+    if [ $_exec_fib -ne "0" ] ; then
+        _jexec="setfib $_exec_fib jexec"
+    fi
+
+    $_jexec $_jexecopts ioc-${_fulluuid} "$@"
 }
 
 __chroot () {
