@@ -78,7 +78,7 @@ __networking () {
             jexec ioc-${2} ifconfig ${nic} link ${_mac_epair_b}
             ifconfig $bridge addm ${nic}:${_jid} up
             ifconfig ${nic}:${_jid} up
-            let _mac_offset=_mac_offset + 2
+            let _mac_offset="_mac_offset + 2" > /dev/null
         done
 
         if [ "$ip4" != "none" ] ; then
