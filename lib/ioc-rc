@@ -384,7 +384,7 @@ __stop_jail () {
             echo "        OK"
         fi
     else
-        # don't try to tier down networking if we have "inherit" set
+        # don't try to tear down networking if we have "inherit" set
         if [ "$ip4" != 'inherit' ] ; then
             __stop_legacy_networking $name
         fi
