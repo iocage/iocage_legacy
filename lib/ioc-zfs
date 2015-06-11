@@ -158,12 +158,20 @@ __clone_jail () {
         zfs snapshot -r ${dataset}@${uuid}
         for fs in $fs_list ; do
             cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
-            zfs clone $fs@$uuid $cfs
+            if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
+                zfs clone -o mountpoint=none -o jailed=on $fs@$uuid $cfs 
+            else
+                zfs clone $fs@$uuid $cfs
+            fi
         done
     else
         for fs in $fs_list ; do
             cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
-            zfs clone $fs@$snapshot $cfs
+            if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
+                zfs clone -o mountpoint=none -o jailed=on $fs@$snapshot $cfs
+            else
+                zfs clone $fs@$snapshot $cfs
+            fi
         done
     fi
 
