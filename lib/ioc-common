@@ -10,17 +10,25 @@ __export_props () {
     done
 }
 
-# Set properties ------------------------------------------------------
-__set_jail_prop () {
-    local _name _property _dataset _pname _pval _found _CONF
-    _name="$2"
-    _property="$1"
+# Ensure the given name in $1 isn't empty, die otherwise --------------
+__require_name () {
+    local _name
 
-    if [ -z "$_name" ] || [ -z "$_property" ] ; then
-        echo "  ERROR: Missing property or UUID!"
+    _name="$1"
+
+    if [ -z "$_name" ] ; then
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
+    echo "$_name"
+}
+
+# Report the dataset of the jail identified by $1, die otherwise ------
+__require_dataset () {
+    local _name _dataset
+
+    _name="$1"
     _dataset="$(__find_jail $_name)"
 
     if [ -z "$_dataset" ] ; then
@@ -33,6 +41,22 @@ __set_jail_prop () {
         exit 1
     fi
 
+    echo "$_dataset"
+}
+
+# Set properties ------------------------------------------------------
+__set_jail_prop () {
+    local _name _property _dataset _pname _pval _found _CONF
+
+    _property="$1"
+
+    if [ -z "$_property" ] ; then
+        echo "  ERROR: Missing property!"
+        exit 1
+    fi
+
+    _name="$(__require_name $2)"
+    _dataset="$(__require_dataset $_name)"
     _pname="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
     _pval="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
