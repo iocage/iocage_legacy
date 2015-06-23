@@ -311,12 +311,17 @@ __check_filesystems () {
                   ${iocroot}/releases"
 
     for _fs in $(echo ${_filesystems}) ; do
-        zfs get -H creation ${pool}${_fs} > /dev/null 2>&1
+        _result=$(zfs get -H creation ${pool}${_fs})
         if [ $? -ne 0 ] ; then
-            _missing=1
-            echo "  INFO: Creating ${pool}${_fs}"
-            zfs create -p ${pool}${_fs}
-            zfs set mountpoint=${_fs} ${pool}${_fs}
+            if [ ${_result} == "cannot open '${pool}${_fs}': dataset does not exist" ] ; then
+                echo "  ERROR: Can't find zfs ${pool} pool, exiting"
+                exit 1
+            else
+                _missing=1
+                echo "  INFO: Creating ${pool}${_fs}"
+                zfs create -p ${pool}${_fs}
+                zfs set mountpoint=${_fs} ${pool}${_fs}
+            fi
         fi
     done
 
