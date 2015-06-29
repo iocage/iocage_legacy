@@ -159,7 +159,7 @@ __clone_jail () {
         for fs in $fs_list ; do
             cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
             if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
-                zfs clone -o mountpoint=none -o jailed=on $fs@$uuid $cfs 
+                zfs clone -o mountpoint=none -o jailed=on $fs@$uuid $cfs
             else
                 zfs clone $fs@$uuid $cfs
             fi
@@ -256,12 +256,12 @@ __destroy_jail () {
 
         if [ "$_answer" == "Y" ] || [ "$_answer" == "y" ] ; then
             __destroy_func
-        elif [ "$_force" -eq "1" ] ; then
-            __destroy_func
         else
             echo "  Command not confirmed.  No action taken."
             exit 1
         fi
+    else
+        __destroy_func
     fi
 }
 
