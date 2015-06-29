@@ -224,7 +224,7 @@ __find_mypool () {
             exit 1
         else
             echo "Setting up zpool [$i] for iocage usage..."
-	    echo "If you wish to change zpool, use 'iocage activate'"
+            echo "If you wish to change zpool, use 'iocage activate'"
             zpool set comment=iocage $i
             export pool=$i
         fi
