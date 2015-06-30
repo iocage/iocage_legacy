@@ -29,7 +29,7 @@ __configure_jail () {
             elif [ "$prop_name" = "host_hostuuid" ] ; then
                 _value="$uuid"
             elif [ "$prop_name" = "jail_zfs_dataset" ] ; then
-                _value="iocage/jails/${uuid}/root/data"
+                _value="${jail_zfs_dataset}"
             elif [ "$prop_name" = "vnet0_mac" ] ; then
                 case "$vnet0_mac" in
                     "-")
