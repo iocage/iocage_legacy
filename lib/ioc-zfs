@@ -109,6 +109,9 @@ __create_jail () {
     __configure_jail $pool/iocage/jails/$uuid
     touch $iocroot/jails/$uuid/fstab
 
+    # remove any residual clone snapshots carried over from the RELEASE datasets
+    __snapremove ${uuid}@ALL
+
     # at create time set the default rc.conf
     if [ "${2}" != "-e" ] ; then
         echo "hostname=\"${hostname}\"" > $iocroot/jails/${uuid}/root/etc/rc.conf

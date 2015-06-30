@@ -32,7 +32,7 @@ SYNOPSIS
   iocage top UUID|TAG
   iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
   iocage snaplist UUID|TAG
-  iocage snapremove UUID|TAG@snapshotname
+  iocage snapremove UUID|TAG@snapshotname[ALL]
   iocage rollback UUID|TAG@snapshotname
   iocage promote UUID|TAG
   iocage runtime UUID|TAG
@@ -280,9 +280,10 @@ SUBCOMMANDS
         RSIZE   - referenced size
         USED    - used space
 
-  snapremove UUID|TAG@snapshotname
+  snapremove UUID|TAG@snapshotname[ALL]
 
-    Destroy specified jail snapshot.
+    Destroy specified jail snapshot. If the keyword ALL is specified all snapshots
+    will be destroyed for the jail.
 
   rollback UUID|TAG@snapshotname
 
@@ -1357,7 +1358,7 @@ __usage () {
     echo "  iocage top UUID|TAG"
     echo "  iocage snapshot UUID|TAG@snapshotname"
     echo "  iocage snaplist UUID|TAG"
-    echo "  iocage snapremove UUID|TAG@snapshotname"
+    echo "  iocage snapremove UUID|TAG@snapshotname[ALL]"
     echo "  iocage rollback UUID|TAG@snapshotname"
     echo "  iocage promote UUID|TAG"
     echo "  iocage runtime UUID|TAG"
