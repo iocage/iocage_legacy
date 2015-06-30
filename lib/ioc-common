@@ -192,8 +192,9 @@ __chroot () {
     fi
 
     _fulluuid="$(__check_name $_name)"
+    _jailroot="$(zfs get -Ho value mountpoint $_dataset)"
 
-    chroot ${iocroot}/jails/${_fulluuid}/root $_command
+    chroot ${_jailroot}/root $_command
 }
 
 # Fetch release and prepare base ZFS filesystems-----------
