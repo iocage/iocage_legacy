@@ -50,6 +50,9 @@ __parse_cmd () {
             help)       __help
                         exit
                 ;;
+            init-host)  __init_host "$2" "$3"
+                        exit
+                ;;
             inuse)      __rctl_inuse "$2"
                         exit
                 ;;

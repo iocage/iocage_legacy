@@ -7,6 +7,7 @@ NAME
 SYNOPSIS
   iocage activate ZPOOL
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/]
+  iocage init-host IP
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage destroy [-f] UUID|TAG|ALL
@@ -109,6 +110,12 @@ SUBCOMMANDS
     This example will apply latest patches to 10.1-RELEASE base.
     Newly created jails or basejails will automatically have the latest
     latest updates applied.
+
+  init-host IP
+
+    Initialize a remote host for iocage. iocage will send all required ZFS
+    filesystems over the network to the host. This requires SSH working keys
+    installed for root.
 
   create [-b|-c|-e] [release=RELEASE] [property=value] [property=value]
 
@@ -1326,6 +1333,7 @@ __usage () {
     echo "usage:"
     echo "  iocage activate ZPOOL"
     echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/]"
+    echo "  iocage init-host IP"
     echo "  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone UUID|TAG@snapshot [property=value]"
     echo "  iocage destroy [-f] UUID|TAG|ALL"

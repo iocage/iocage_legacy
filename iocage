@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.6.3 (2015/06/09)"
+    echo "iocage 1.6.4 (2015/06/30)"
     exit 0
 fi
 
@@ -68,6 +68,7 @@ fi
 . "${LIB}/ioc-help"
 . "${LIB}/ioc-common"
 . "${LIB}/ioc-zfs"
+. "${LIB}/ioc-send"
 . "${LIB}/ioc-snapshot"
 . "${LIB}/ioc-upgrade"
 . "${LIB}/ioc-image"
