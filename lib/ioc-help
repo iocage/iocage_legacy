@@ -23,7 +23,7 @@ SYNOPSIS
   iocage chroot UUID|TAG [command]
   iocage df
   iocage show property
-  iocage get [property | all ] UUID|TAG
+  iocage get property|all UUID|TAG
   iocage set property=value UUID|TAG
   iocage cap UUID|TAG
   iocage limits [UUID|TAG]
@@ -32,7 +32,7 @@ SYNOPSIS
   iocage top UUID|TAG
   iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
   iocage snaplist UUID|TAG
-  iocage snapremove UUID|TAG@snapshotname[ALL]
+  iocage snapremove UUID|TAG@snapshotname|ALL
   iocage rollback UUID|TAG@snapshotname
   iocage promote UUID|TAG
   iocage runtime UUID|TAG
@@ -280,7 +280,7 @@ SUBCOMMANDS
         RSIZE   - referenced size
         USED    - used space
 
-  snapremove UUID|TAG@snapshotname[ALL]
+  snapremove UUID|TAG@snapshotname|ALL
 
     Destroy specified jail snapshot. If the keyword ALL is specified all snapshots
     will be destroyed for the jail.
@@ -1338,7 +1338,7 @@ __usage () {
     echo "  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone UUID|TAG@snapshot [property=value]"
     echo "  iocage destroy [-f] UUID|TAG|ALL"
-    echo "  iocage list [-t]"
+    echo "  iocage list [-t|-r]"
     echo "  iocage start UUID|TAG"
     echo "  iocage stop UUID|TAG"
     echo "  iocage restart UUID|TAG"
@@ -1349,7 +1349,7 @@ __usage () {
     echo "  iocage chroot UUID|TAG [command]"
     echo "  iocage df"
     echo "  iocage show property"
-    echo "  iocage get [property | all] UUID|TAG"
+    echo "  iocage get property|all UUID|TAG"
     echo "  iocage set property=value UUID|TAG"
     echo "  iocage cap UUID|TAG"
     echo "  iocage limits UUID|TAG"
@@ -1358,7 +1358,7 @@ __usage () {
     echo "  iocage top UUID|TAG"
     echo "  iocage snapshot UUID|TAG@snapshotname"
     echo "  iocage snaplist UUID|TAG"
-    echo "  iocage snapremove UUID|TAG@[snapshotname | ALL]"
+    echo "  iocage snapremove UUID|TAG@snapshotname|ALL"
     echo "  iocage rollback UUID|TAG@snapshotname"
     echo "  iocage promote UUID|TAG"
     echo "  iocage runtime UUID|TAG"
