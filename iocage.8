@@ -22,7 +22,7 @@
 \fBiocage\fP \fIchroot\fP UUID|TAG [\fIcommand\fP]
 \fBiocage\fP \fIdf\fP
 \fBiocage\fP \fIshow\fP \fIproperty\fP
-\fBiocage\fP \fIget\fP [\fIproperty\fP | \fIall\fP ] UUID|TAG
+\fBiocage\fP \fIget\fP \fIproperty\fP|\fIall\fP UUID|TAG
 \fBiocage\fP \fIset\fP \fIproperty=value\fP UUID|TAG
 \fBiocage\fP \fIcap\fP UUID|TAG
 \fBiocage\fP \fIlimits\fP [UUID|TAG]
@@ -31,7 +31,7 @@
 \fBiocage\fP \fItop\fP UUID|TAG
 \fBiocage\fP \fIsnapshot\fP UUID|TAG [UUID|TAG@snapshotname]
 \fBiocage\fP \fIsnaplist\fP UUID|TAG
-\fBiocage\fP \fIsnapremove\fP UUID|TAG@snapshotname
+\fBiocage\fP \fIsnapremove\fP UUID|TAG@snapshotnam|ALL
 \fBiocage\fP \fIrollback\fP UUID|TAG@snapshotname
 \fBiocage\fP \fIpromote\fP UUID|TAG
 \fBiocage\fP \fIruntime\fP UUID|TAG
@@ -407,7 +407,7 @@ latest updates applied.
 
 .fam T
 .fi
-\fIsnapremove\fP \fIUUID\fP|TAG@snapshotname
+\fIsnapremove\fP \fIUUID\fP|TAG@snapshotname|ALL
 .PP
 .nf
 .fam C

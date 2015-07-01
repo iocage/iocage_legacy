@@ -3,6 +3,7 @@ NAME
 SYNOPSIS
   iocage activate ZPOOL
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/]
+  iocage init-host IP zpool
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage destroy [-f] UUID|TAG|ALL
@@ -18,7 +19,7 @@ SYNOPSIS
   iocage chroot UUID|TAG [command]
   iocage df
   iocage show property
-  iocage get [property | all ] UUID|TAG
+  iocage get property|all UUID|TAG
   iocage set property=value UUID|TAG
   iocage cap UUID|TAG
   iocage limits [UUID|TAG]
@@ -27,7 +28,7 @@ SYNOPSIS
   iocage top UUID|TAG
   iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
   iocage snaplist UUID|TAG
-  iocage snapremove UUID|TAG@snapshotname
+  iocage snapremove UUID|TAG@snapshotname|ALL
   iocage rollback UUID|TAG@snapshotname
   iocage promote UUID|TAG
   iocage runtime UUID|TAG
@@ -106,6 +107,12 @@ SUBCOMMANDS
     Newly created jails or basejails will automatically have the latest
     latest updates applied.
 
+  init-host IP zpool
+
+    Initialize a remote host for iocage. iocage will send all required ZFS
+    filesystems over the network to the host. This requires SSH working keys
+    installed for root.
+
   create [-b|-c|-e] [release=RELEASE] [property=value] [property=value]
 
     By default create will deploy a new jail based on the host operating
@@ -138,7 +145,7 @@ SUBCOMMANDS
   destroy [-f] UUID|TAG|ALL
 
     Destroy given jail. This is irreversible, use with caution. If the jail is
-    running destroy action will fail. Also a capital "Y" is required for confirmation.
+    running destroy action will fail.
 
     With -f the jail will be destroyed without confirmation.
 
@@ -269,9 +276,10 @@ SUBCOMMANDS
         RSIZE   - referenced size
         USED    - used space
 
-  snapremove UUID|TAG@snapshotname
+  snapremove UUID|TAG@snapshotname|ALL
 
-    Destroy specified jail snapshot.
+    Destroy specified jail snapshot. If the keyword ALL is specified all snapshots
+    will be destroyed for the jail.
 
   rollback UUID|TAG@snapshotname
 
