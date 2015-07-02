@@ -241,8 +241,10 @@ __destroy_jail () {
     local state="$(jls | grep ${jail_path} | wc -l)"
     local jail_type="$(__get_jail_prop type $fulluuid)"
     local jail_release="$(__get_jail_prop release $fulluuid)"
-
-    if [ "$_force" -ne "1" ] ; then
+    
+    if [ "$_force" -eq "1" ] ; then
+        __destroy_func
+    else
             echo " "
             echo "  WARNING: this will destroy jail $fulluuid"
             echo "  Dataset: $dataset"
@@ -256,9 +258,6 @@ __destroy_jail () {
             echo "  Please use a Y"
             echo "  No action will be taken."
             exit 1
-
-        elif [ "$_force" -eq "1" ] ; then
-            __destroy_func
         else
             echo "  Command not confirmed.  No action taken."
             exit 1
