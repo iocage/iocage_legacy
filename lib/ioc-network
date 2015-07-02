@@ -56,7 +56,7 @@ __networking () {
     local defaultgw6="$(__get_jail_prop defaultrouter6 ${_uuid})"
     local nics="$(__get_jail_prop interfaces ${_uuid} \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
-    local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
+    #local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
     local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
 
     if [ ${_action} == "start" ] ; then
@@ -82,11 +82,16 @@ __networking () {
         done
 
         if [ "$ip4" != "none" ] ; then
-            for i in $ip4_list ; do
+            local oIFS=$IFS
+            local IFS=","
+            for i in $ip4 ; do
+                local IFS=$oIFS
                 iface="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }')"
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
                 jexec ioc-${2} ifconfig $iface $ip up
+                local IFS=","
             done
+            local IFS=$oIFS
         fi
 
         if [ "$ip6" != "none" ] ; then
