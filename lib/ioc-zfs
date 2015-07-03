@@ -126,6 +126,9 @@ __create_jail () {
     zfs set mountpoint=none ${pool}/$jail_zfs_dataset
     zfs set jailed=on ${pool}/$jail_zfs_dataset
 
+    # configure the jail mountpoint
+    __hack88_mount ${uuid}
+
     # Install extra packages
     # this requires working resolv.conf in jail
     if [ "$pkglist" != "none" ] ; then
