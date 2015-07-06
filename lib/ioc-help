@@ -29,7 +29,6 @@ SYNOPSIS
   iocage limits [UUID|TAG]
   iocage uncap UUID|TAG
   iocage inuse [UUID|TAG]
-  iocage top UUID|TAG
   iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
@@ -261,10 +260,6 @@ SUBCOMMANDS
 
     Display consumed resources for a jail. Without UUID or TAG dump all resources
     for all running jails in a comma delimited form.
-
-  top UUID|TAG
-
-    Run top(1) and display processes running inside the jail.
 
   snapshot UUID|TAG [UUID|TAG@snapshotname]
 

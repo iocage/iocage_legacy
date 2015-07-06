@@ -115,9 +115,6 @@ __parse_cmd () {
             stop)       __stop_jail "$2"
                         exit
                 ;;
-            top)        __top "$2"
-                        exit
-                ;;
             uncap)      __rctl_uncap "$2"
                         exit
                 ;;

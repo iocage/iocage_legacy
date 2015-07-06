@@ -70,7 +70,6 @@ Start the jail:
 -  iocage limits UUID|TAG
 -  iocage uncap UUID|TAG
 -  iocage inuse [UUID|TAG]
--  iocage top UUID|TAG
 -  iocage snapshot UUID|TAG@snapshotname
 -  iocage snaplist UUID|TAG
 -  iocage snapremove UUID|TAG@snapshotname|ALL
