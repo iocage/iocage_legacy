@@ -72,6 +72,13 @@ __parse_cmd () {
             promote)    __promote "$2"
                         exit
                 ;;
+            pull)       __export_props "$@"
+                        __pull "$@"
+                        exit
+                ;;
+            push)       __push "$2"
+                        exit
+                ;;
             rcboot)     __rc_jails boot
                         exit
                 ;;

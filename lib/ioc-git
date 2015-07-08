@@ -1,0 +1,45 @@
+#!/bin/sh
+__pull () {
+    local _github
+    # TODO: Make this a ZFS prop for default
+    _github="https://github.com/iocage/cages"
+
+    # Make sure git is installed.
+    if [ ! -e "/usr/local/bin/git" ] ; then
+        echo "  ERROR: Git is not installed. Please install git first."
+        exit 1
+    fi
+
+    # Create an empty jail structure that we clone the git repo into
+    # simulates __create_jail -e but without creating directories
+    # git clone complains about that.
+    zfs create -o compression=lz4 -p ${pool}/iocage/jails/$uuid/root
+    zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
+    zfs set mountpoint=none ${pool}/$jail_zfs_dataset
+    zfs set jailed=on ${pool}/$jail_zfs_dataset
+    __configure_jail ${pool}/iocage/jails/$uuid
+
+    # Begin git clone process
+    cd $iocroot/jails/${uuid}/root
+    git clone -b "$2" --depth 1 $_github .
+    echo "  WARNING: Pushing will be disabled, please set your own branch."
+    git branch --unset-upstream
+    touch $iocroot/jails/$uuid/fstab
+
+    # Check for rc.conf and resolv.conf, create them if they don't exist.
+    if [ ! -e "$iocroot/jails/${uuid}/root/etc/rc.conf" ] ; then
+        echo "hostname=\"${hostname}\"" > \
+        $iocroot/jails/${uuid}/root/etc/rc.conf
+        __jail_rc_conf >> \
+        $iocroot/jails/${uuid}/root/etc/rc.conf
+    fi
+
+    if [ ! -e "$iocroot/jails/${uuid}/root/etc/resolv.conf" ] ; then
+        __resolv_conf > $iocroot/jails/${uuid}/root/etc/resolv.conf
+    fi
+}
+
+__push () {
+  echo "  PLACEHOLDER"
+  exit 0
+}
