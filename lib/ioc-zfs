@@ -323,6 +323,9 @@ __check_filesystems () {
             echo "  INFO: Creating ${pool}${_fs}"
             zfs create -p ${pool}${_fs}
             zfs set mountpoint=${_fs} ${pool}${_fs}
+            if [ ${_fs} == "${iocroot}/.defaults" ] ; then
+                __reset_jail_props default
+            fi
         fi
     done
 
