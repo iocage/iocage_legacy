@@ -134,6 +134,10 @@ sync_tgt_zpool="none"
 ftphost="ftp.freebsd.org"
 ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
+# Github properties
+github="https://github.com/iocage/cages"
+custom_github="no"
+
 # Resource limits
 CONF_RCTL="memoryuse
            memorylocked
@@ -248,6 +252,9 @@ CONF_SYNC="sync_stat
 
 # ftp properties
 CONF_FTP="ftphost ftpdir"
+
+# git properties
+CONF_GITHUB="github"
 
 # Basejail filesystems
 bfs_list="bin

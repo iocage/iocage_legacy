@@ -21,7 +21,8 @@ __print_defaults () {
            $CONF_CUSTOM
            $CONF_ZFS
            $CONF_SYNC
-           $CONF_FTP"
+           $CONF_FTP
+           $CONF_GITHUB"
 
     for _prop in $(echo $_CONF)  ; do
         _prop_name=$_prop

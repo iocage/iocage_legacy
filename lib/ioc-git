@@ -1,8 +1,9 @@
 #!/bin/sh
 __pull () {
     local _github
-    # TODO: Make this a ZFS prop for default
-    _github="https://github.com/iocage/cages"
+
+    _github="$(zfs get -H -o value org.freebsd.iocage:github \
+               ${pool}${iocroot}/.defaults)"
 
     # Make sure git is installed.
     if [ ! -e "/usr/local/bin/git" ] ; then
@@ -22,9 +23,16 @@ __pull () {
     # Begin git clone process
     cd $iocroot/jails/${uuid}/root
     git clone -b "$2" --depth 1 $_github .
-    echo "  WARNING: Pushing will be disabled, please set your own branch."
-    git branch --unset-upstream
-    touch $iocroot/jails/$uuid/fstab
+
+    # Check if user has a custom github URL set
+    if [ "$_github" != "https://github.com/iocage/cages" ] ; then
+        touch $iocroot/jails/$uuid/fstab
+    else
+        echo "  WARNING: Pushing will be disabled, please set a custom repo."
+        echo "  You can do this by issuing: iocage set github=URL default"
+        git branch --unset-upstream
+        touch $iocroot/jails/$uuid/fstab
+    fi
 
     # Check for rc.conf and resolv.conf, create them if they don't exist.
     if [ ! -e "$iocroot/jails/${uuid}/root/etc/rc.conf" ] ; then
