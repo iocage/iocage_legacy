@@ -41,6 +41,8 @@ __configure_jail () {
                 _value="${ip4_autostart}"
             elif [ "$prop_name" = "ip4_autoend" ] ; then
                 _value="${ip4_autoend}"
+            elif [ "$prop_name" = "github" ] ; then
+                _value="${github}"
             elif [ "$prop_name" = "vnet0_mac" ] ; then
                 case "$vnet0_mac" in
                     "-")
@@ -210,7 +212,7 @@ __reset_jail_props () {
      $_dataset)"
     ip4_autoend="$(zfs get -H -o value org.freebsd.iocage:ip4_autoend\
      $_dataset)"
-
+    github="$(zfs get -H -o value org.freebsd.iocage:github $_dataset)"
     __configure_jail $_dataset
 }
 
