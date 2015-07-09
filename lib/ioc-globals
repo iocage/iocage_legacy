@@ -136,7 +136,6 @@ ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
 # Github properties
 github="https://github.com/iocage/cages"
-custom_github="no"
 
 # Resource limits
 CONF_RCTL="memoryuse
