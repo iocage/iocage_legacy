@@ -30,6 +30,10 @@ __configure_jail () {
                 _value="$uuid"
             elif [ "$prop_name" = "jail_zfs_dataset" ] ; then
                 _value="${jail_zfs_dataset}"
+            elif [ "$prop_name" = "release" ] ; then
+                _value="${release}"
+            elif [ "$prop_name" = "hack88" ] ; then
+                _value="${hack88}"
             elif [ "$prop_name" = "vnet0_mac" ] ; then
                 case "$vnet0_mac" in
                     "-")
@@ -162,13 +166,17 @@ __reset_jail_props () {
             exit 1
         fi
     fi
+    
     # Cache properties to set again later
     uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
-    tag="$(zfs get -H -o value org.freebsd.iocage:tag $_dataset)"
-    vnet0_mac="$(zfs get -H -o value org.freebsd.iocage:vnet0_mac $_dataset)"
-    vnet1_mac="$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_dataset)"
-    vnet2_mac="$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_dataset)"
-    vnet3_mac="$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_dataset)"
+    tag="$iocset_tag"
+    vnet0_mac="$iocset_vnet0_mac"
+    vnet1_mac="$iocset_vnet1_mac"
+    vnet2_mac="$iocset_vnet2_mac"
+    vnet3_mac="$iocset_vnet3_mac"
+    release="$iocset_release"
+    hack88="$iocset_hack88"
+    jail_zfs_dataset="$iocset_jail_zfs_dataset"
 
     __configure_jail $_dataset
 }

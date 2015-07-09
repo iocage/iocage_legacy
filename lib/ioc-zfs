@@ -311,8 +311,8 @@ __check_filesystems () {
     _missing=0
 
     _filesystems="${iocroot}
-                  ${iocroot}/.defaults
                   ${iocroot}/jails
+                  ${iocroot}/.defaults
                   ${iocroot}/download
                   ${iocroot}/releases"
 
