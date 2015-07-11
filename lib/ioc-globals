@@ -30,6 +30,7 @@ ip6_saddrsel="1"
 ip6="new"
 defaultrouter="none"
 defaultrouter6="none"
+resolver="none"
 mac_prefix="02ff60"
 vnet0_mac="none"
 vnet1_mac="none"
@@ -166,6 +167,7 @@ CONF_NET="interfaces
           ip6
           defaultrouter
           defaultrouter6
+          resolver
           exec_fib
           vnet0_mac
           vnet1_mac

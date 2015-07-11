@@ -138,6 +138,8 @@ __start_jail () {
         zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
     fi
 
+    __resolv_conf ${fulluuid} > ${iocroot}/jails/${fulluuid}/root/etc/resolv.conf
+
     echo -n "  + Starting services"
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
      >> $iocroot/log/${fulluuid}-console.log 2>&1

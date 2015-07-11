@@ -113,8 +113,20 @@ EOT
 }
 
 # This is mostly for pkg autoinstall
+# expects fulluuid to be passed in as $1
 __resolv_conf () {
-    cat /etc/resolv.conf
+    local _name _resolver _resolver_default _fulluuid
+    _fulluuid="$1"
+    _default_resolver="$(__get_default_prop resolver)"
+    _resolver="$(__get_jail_prop resolver $_fulluuid)"
+
+    if [ "${_resolver}" != "none" ] ; then
+        echo "${_resolver}" | tr \; \\n
+    elif [ "${_resolver}" == "none" ] && [ "${_default_resolver}" != "none" ] ; then
+        echo "${_default_resolver}" | tr \; \\n
+    else
+        cat /etc/resolv.conf
+    fi
 }
 
 __pkg_install () {

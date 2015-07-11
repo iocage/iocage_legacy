@@ -429,6 +429,14 @@ PROPERTIES
     Setting this property to anything other than none will try to configure a
     default IPv6 route inside a VNET jail.
 
+  resolver=none | nameserver IP;nameserver IP;search domain.local
+
+    Sets the jail's resolver (resolv.conf). Fields must be ; delimited
+    which are translated to newlines in resolv.conf.
+
+    If the resolver is set to none (default) the jail will inherit
+    the hosts resolv.conf file.
+
   ip6.addr, ip6.saddrsel, ip6
     A set of IPv6 options for the prison, the counterparts to
     ip4.addr, ip4.saddrsel and ip4 above.
