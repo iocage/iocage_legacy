@@ -331,8 +331,8 @@ SUBCOMMANDS
 
     Import full jail images or differential packages. Images need to be
     present in /iocage/images and packages in /iocage/packages along with
-    along with checksum files. You can use short UUIDs - do not specify the
-    the full filename only the UUID.
+    checksum files. You can use short UUIDs - do not specify the full filename
+    only the UUID.
 
   defaults
 
@@ -424,6 +424,14 @@ PROPERTIES
 
     Setting this property to anything other than none will try to configure a
     default IPv6 route inside a VNET jail.
+
+  resolver=none | nameserver IP;nameserver IP;search domain.local
+
+    Sets the jail's resolver (resolv.conf). Fields must be ; delimited
+    which are translated to newlines in resolv.conf.
+
+    If the resolver is set to none (default) the jail will inherit
+    the hosts resolv.conf file.
 
   ip6.addr, ip6.saddrsel, ip6
     A set of IPv6 options for the prison, the counterparts to
@@ -833,7 +841,7 @@ PROPERTIES
 
   notes="any string"
 
-    Custom notes for miscelanious tagging.
+    Custom notes for miscellaneous tagging.
 
     Default: none
     Source: local
