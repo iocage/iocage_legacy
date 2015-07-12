@@ -56,11 +56,6 @@ else
     exit 1
 fi
 
-if [ "$(whoami)" != "root" ] ; then
-    echo "* Only root can manage jails!"
-    exit 1
-fi
-
 # Source the libs needed to use the script
 . "${LIB}/ioc-cmd"
 . "${LIB}/ioc-globals"
@@ -87,6 +82,11 @@ fi
 if [ "$1" == "help" ] ; then
     __help
     exit 0
+fi
+
+if [ "$(whoami)" != "root" ] ; then
+    echo "* Only root can manage jails!"
+    exit 1
 fi
 
 # work around zpool activation chicken-egg problem
