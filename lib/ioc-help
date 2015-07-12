@@ -335,8 +335,8 @@ SUBCOMMANDS
 
     Import full jail images or differential packages. Images need to be
     present in /iocage/images and packages in /iocage/packages along with
-    along with checksum files. You can use short UUIDs - do not specify the
-    the full filename only the UUID.
+    checksum files. You can use short UUIDs - do not specify the full filename
+    only the UUID.
 
   defaults
 
@@ -845,7 +845,7 @@ PROPERTIES
 
   notes="any string"
 
-    Custom notes for miscelanious tagging.
+    Custom notes for miscellaneous tagging.
 
     Default: none
     Source: local
