@@ -77,3 +77,22 @@ that you do not have any of the following lines in your kernconf (unless you wan
 
 Otherwise, should you try to start a jail with VNET support enabled, your host system will more than likely crash.
 You can read a little more at the mailing list post `here <http://lists.freebsd.org/pipermail/freebsd-jail/2014-July/002635.html>`_.
+
+IPv6 host bind failures
+-----------------------
+
+In some cases a jail with an ip6 address may take too long adding the address
+to the interface, and services defined to bind specifically to that address
+may fail. In such cases, adding the following sysctl do disable DAD (duplicate
+address detection) probe packets.
+
+To set, ``sysctl net.inet6.ip6.dad_count=0``. To make it permanent, add the
+setting to sysctl.conf.
+
+::
+
+    # disable duplicated address detection probe packets for jails
+    net.inet6.ip6.dad_count=0
+
+You can read a little more about this `here <https://github.com/iocage/iocage/issues/119>`_ and at the mailing list post `here <https://lists.freebsd.org/pipermail/freebsd-jail/2013-July/002347.html>`_.
+
