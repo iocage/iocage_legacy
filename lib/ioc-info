@@ -244,7 +244,8 @@ __get_jail_prop () {
            $CONF_RCTL
            $CONF_CUSTOM
            $CONF_SYNC
-           $CONF_FTP"
+           $CONF_FTP
+           $CONF_GITHUB"
 
     if [ -z "$_property" ] ; then
         echo "  ERROR: get failed, incorrect property syntax!"

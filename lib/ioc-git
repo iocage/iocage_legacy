@@ -22,7 +22,7 @@ __pull () {
 
     # Begin git clone process
     cd $iocroot/jails/${uuid}/root
-    git clone -b "$2" --depth 1 $_github .
+    git clone -b "$2" --depth 1 "$_github" .
 
     # Check if user has a custom github URL set
     if [ "$_github" != "https://github.com/iocage/cages" ] ; then
