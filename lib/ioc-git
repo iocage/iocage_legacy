@@ -1,5 +1,10 @@
 #!/bin/sh
 __pull () {
+    local _github
+
+    _github="$(zfs get -H -o value org.freebsd.iocage:github \
+               ${pool}${iocroot}/.defaults)"
+
     # Make sure git is installed.
     if [ ! -e "/usr/local/bin/git" ] ; then
         echo "  ERROR: Git is not installed. Please install git first."
@@ -20,7 +25,7 @@ __pull () {
     git clone -b "$2" --depth 1 $_github .
 
     # Check if user has a custom github URL set
-    if [ "$iocset_github" != "https://github.com/iocage/cages" ] ; then
+    if [ "$_github" != "https://github.com/iocage/cages" ] ; then
         touch $iocroot/jails/$uuid/fstab
     else
         echo "  WARNING: Pushing will be disabled, please set a custom repo."
