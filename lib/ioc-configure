@@ -10,7 +10,7 @@ __configure_jail () {
            $CONF_CUSTOM
            $CONF_SYNC"
 
-    echo "Configuring jail.."
+    #echo "Configuring jail.."
     for prop in $_CONF ; do
         prop_name=$prop
         eval prop="\$${prop}"
@@ -66,11 +66,15 @@ __configure_jail () {
                 _value="$prop"
             fi
 
-            echo "** $prop_name=$_value"
-            zfs set org.freebsd.iocage:$prop_name="$_value" $1
-            unset _value
-            if [ "$prop_name" == "tag" ] ; then
-                __link_tag $1
+            if [ "$1" != "generate" ] ; then
+                echo "** $prop_name=$_value"
+                zfs set org.freebsd.iocage:$prop_name="$_value" $1
+                unset _value
+                if [ "$prop_name" == "tag" ] ; then
+                    __link_tag $1
+                fi
+            elif [ "$1" == "generate" ] ; then
+                echo -n "-o org.freebsd.iocage:$prop_name=\"$_value\" "
             fi
         fi
     done
@@ -87,8 +91,12 @@ __configure_jail () {
                 _value="$prop"
             fi
 
-            echo "** $prop_name=$_value"
-            zfs set $prop_name="$_value" $1
+            if [ "$1" != "generate" ] ; then
+                echo "** $prop_name=$_value"
+                zfs set $prop_name="$_value" $1
+            elif [ "$1" == "generate" ] ; then
+                echo -n "-o $prop_name=\"$_value\" "
+            fi
         fi
     done
 }
