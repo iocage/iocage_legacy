@@ -191,15 +191,16 @@ __reset_jail_props () {
 
     # Cache properties to set again later
     uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
-    tag="$iocset_tag"
-    vnet0_mac="$iocset_vnet0_mac"
-    vnet1_mac="$iocset_vnet1_mac"
-    vnet2_mac="$iocset_vnet2_mac"
-    vnet3_mac="$iocset_vnet3_mac"
-    release="$iocset_release"
-    hack88="$iocset_hack88"
-    jail_zfs_dataset="$iocset_jail_zfs_dataset"
-    resolver="$iocset_resolver"
+    tag="$(zfs get -H -o value org.freebsd.iocage:tag $_dataset)"
+    vnet0_mac="$(zfs get -H -o value org.freebsd.iocage:vnet0_mac $_dataset)"
+    vnet1_mac="$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_dataset)"
+    vnet2_mac="$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_dataset)"
+    vnet3_mac="$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_dataset)"
+    release="$(zfs get -H -o value org.freebsd.iocage:release $_dataset)"
+    hack88="$(zfs get -H -o value org.freebsd.iocage:hack88 $_dataset)"
+    jail_zfs_dataset="$(zfs get -H -o value org.freebsd.iocage:jail_zfs_dataset\
+     $_dataset)"
+    resolver="$(zfs get -H -o value org.freebsd.iocage:resolver $_dataset)"
 
     __configure_jail $_dataset
 }
