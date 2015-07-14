@@ -43,7 +43,7 @@ __pull () {
     fi
 
     if [ ! -e "$iocroot/jails/${uuid}/root/etc/resolv.conf" ] ; then
-        __resolv_conf > $iocroot/jails/${uuid}/root/etc/resolv.conf
+        __resolv_conf ${uuid} > $iocroot/jails/${uuid}/root/etc/resolv.conf
     fi
 }
 
