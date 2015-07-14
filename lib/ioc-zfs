@@ -80,33 +80,33 @@ __create_jail () {
         zfs snapshot -r $pool/iocage/releases/$release@$uuid
         for fs in $fs_list ; do
             cfs=$(echo $fs | sed s#/releases/$release#/jails/$uuid#g)
-            #echo "cloning $fs into $cfs"
-            echo "zfs clone ${_zfsconfig} $fs@$uuid $cfs" | sh
+            eval "zfs clone ${_zfsconfig} \"$fs@$uuid\" \"$cfs\""
         done
+        exit 1
         _configured="1"
     elif [ "${2}" = "-e" ] ; then
         _zfsconfig="$(__configure_jail generate)"
-        echo "zfs create -p ${_zfsconfig} $pool/iocage/jails/$uuid" | sh
+        eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
         zfs create -p $pool/iocage/jails/$uuid/root
         _configured="1"
     elif [ "${2}" = "-b" ] ; then
-       export type=basejail
-       _zfsconfig="$(__configure_jail generate)"
-       zfs snapshot -r $pool/iocage/base@$uuid
-       echo "zfs create -p ${_zfsconfig} $pool/iocage/jails/$uuid" | sh
-       zfs create -o compression=lz4 -p $pool/iocage/jails/$uuid/root/usr
+        export type=basejail
+        _zfsconfig="$(__configure_jail generate)"
+        zfs snapshot -r $pool/iocage/base@$uuid
+        eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
+        zfs create -o compression=lz4 -p $pool/iocage/jails/$uuid/root/usr
 
-       for fs in $bfs_list ; do
-           zfs clone -o compression=lz4 -o readonly=on \
-           $pool/iocage/base/${release}/root/$fs@$uuid \
-           $pool/iocage/jails/$uuid/root/$fs
-       done
+        for fs in $bfs_list ; do
+            zfs clone -o compression=lz4 -o readonly=on \
+            $pool/iocage/base/${release}/root/$fs@$uuid \
+            $pool/iocage/jails/$uuid/root/$fs
+        done
 
-       for dir in $bdir_list ; do
-           cp -a $iocroot/base/${release}/root/$dir \
-                 $iocroot/jails/$uuid/root/$dir
-       done
-       _configured="1"
+        for dir in $bdir_list ; do
+            cp -a $iocroot/base/${release}/root/$dir \
+                  $iocroot/jails/$uuid/root/$dir
+        done
+        _configured="1"
     else
         zfs snapshot -r $pool/iocage/releases/$release@$uuid
         zfs send     -R $pool/iocage/releases/$release@$uuid | \
@@ -181,7 +181,7 @@ __clone_jail () {
             if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
                 zfs clone -o mountpoint=none -o jailed=on $fs@$uuid $cfs
             else
-                echo "zfs clone ${_zfsconfig} $fs@$uuid $cfs" | sh
+                eval "zfs clone ${_zfsconfig} \"$fs@$uuid\" \"$cfs\""
             fi
         done
     else
@@ -190,7 +190,7 @@ __clone_jail () {
             if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
                 zfs clone -o mountpoint=none -o jailed=on $fs@$snapshot $cfs
             else
-                echo "zfs clone ${_zfsconfig} $fs@$snapshot $cfs" | sh
+                eval "zfs clone ${_zfsconfig} \"$fs@$snapshot\" \"$cfs\""
             fi
         done
     fi

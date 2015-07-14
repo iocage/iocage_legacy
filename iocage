@@ -47,10 +47,10 @@ if [ "$(uname -K)" -lt "903000" ]; then
 fi
 
 # Check if libs are available
-if [ -e "/usr/local/lib/iocage" ] ; then
-    LIB="/usr/local/lib/iocage"
-elif [ -e "./lib" ] ; then
+if [ -e "./lib/ioc-common" ] ; then
     LIB="./lib"
+elif [ -e "/usr/local/lib/iocage" ] ; then
+    LIB="/usr/local/lib/iocage"
 else
     echo "ERROR: missing libraries"
     exit 1
