@@ -82,7 +82,6 @@ __create_jail () {
             cfs=$(echo $fs | sed s#/releases/$release#/jails/$uuid#g)
             eval "zfs clone ${_zfsconfig} \"$fs@$uuid\" \"$cfs\""
         done
-        exit 1
         _configured="1"
     elif [ "${2}" = "-e" ] ; then
         _zfsconfig="$(__configure_jail generate)"
