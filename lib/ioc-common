@@ -203,28 +203,28 @@ __fetch_release () {
     _default_rel=$(uname -r|cut -f 1,2 -d'-')
 
     if [ -z "$iocset_release" ] ; then
-	__print_release
+  __print_release
 
-	echo -n "Please select a release [$release]: "
-	read answer
+  echo -n "Please select a release [$release]: "
+  read answer
 
-	if [ -z "$answer" ] ; then
-		answer="$release"
-	else
-		release="$answer"
-		for rel in $(echo $supported) ; do
-			if [ "$answer" == "$rel" ] ; then
-				release="$rel"
-				match="1"
-				break
-			fi
-		done
+  if [ -z "$answer" ] ; then
+    answer="$release"
+  else
+    release="$answer"
+    for rel in $(echo $supported) ; do
+      if [ "$answer" == "$rel" ] ; then
+        release="$rel"
+        match="1"
+        break
+      fi
+    done
 
-		if [ -z $match ] ; then
-			echo "Invalid release $release specified, exiting.."
-			exit 1
-		fi
-	fi
+    if [ -z $match ] ; then
+      echo "Invalid release $release specified, exiting.."
+      exit 1
+    fi
+  fi
     fi
 
 
@@ -236,7 +236,7 @@ __fetch_release () {
     fi
 
     if [ -z "$ftpdir" ] ; then
-	ftpdir="/pub/FreeBSD/releases/amd64/$release"
+        ftpdir="/pub/FreeBSD/releases/amd64/$release"
     fi
 
     cd ${iocroot}/download/${release}
@@ -244,8 +244,8 @@ __fetch_release () {
         if [ ! -e "$file" ] ; then
             fetch http://${ftphost}${ftpdir}/${file}
             if [ $? -ne 0 ] ; then
-		echo "Failed fetching $file.."
-		exit 1
+                echo "Failed fetching $file.."
+                exit 1
             fi
         fi
     done
