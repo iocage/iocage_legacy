@@ -48,6 +48,36 @@ __pull () {
 }
 
 __push () {
-  echo "  PLACEHOLDER"
-  exit 0
+  local _github _gitrepo _answer _match
+
+  _github="$(zfs get -H -o value org.freebsd.iocage:github \
+             ${pool}${iocroot}/.defaults)"
+
+  # Make sure git is installed.
+  if [ ! -e "/usr/local/bin/git" ] ; then
+      echo "  ERROR: Git is not installed. Please install git first."
+      exit 1
+  fi
+
+  # Check if user has a custom github URL set
+  if [ "$_github" != "https://github.com/iocage/cages" ] ; then
+      # Will add all files and open a dialog for a git commit"
+      git commit -a
+      git push
+  else
+      echo -n "Please enter a git repo to push to: "
+      read _answer
+      if [ -z "$_answer" ] ; then
+          _answer="$_gitrepo"
+      else
+          _gitrepo="$_answer"
+          _match="1"
+          git commit -a
+          git push -u "$2"
+    if [ -z $_match ] ; then
+        echo "Invalid repo $_gitrepo specified. Exiting."
+        exit 1
+    fi
+  fi
+fi
 }
