@@ -63,7 +63,7 @@ VNET/VIMAGE issues w/ ALTQ
 
 As recent as FreeBSD 10.1-RELEASE-p10, there is some *interesting* interaction between VNET/VIMAGE and ALTQ,
 which is an ALTernate Queueing system used by PF and other routing software.  Should you compile a kernel, make
-that you do not have any of the following lines in your kernconf (unless you want to disable VNET):
+sure that you do not have any of the following lines in your kernconf (unless you want to disable VNET):
 
 ::
 
