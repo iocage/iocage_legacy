@@ -232,46 +232,44 @@ __find_mypool () {
 
 # Get jail properties
 __get_jail_prop () {
-    local _value _found
-    local name="$2"
-    local property="$1"
-    _found="0"
+    local _value _found _name _property _dataset _CONF
 
-    if [ -z "$property" ] ; then
+    _name="$2"
+    _property="$1"
+    _found="0"
+    _dataset="$(__find_jail $_name)"
+    _CONF="$CONF_NET
+           $CONF_JAIL
+           $CONF_RCTL
+           $CONF_CUSTOM
+           $CONF_SYNC
+           $CONF_FTP"
+
+    if [ -z "$_property" ] ; then
         echo "  ERROR: get failed, incorrect property syntax!"
         exit 1
     fi
 
-    if [ -z "$name" ] ; then
-        echo "  ERROR: missing UUID!"
+    if [ -z "$_name" ] ; then
+        echo "  ERROR: missing UUID or property!"
         exit 1
     fi
 
-    local dataset="$(__find_jail $name)"
-
-    if [ -z "$dataset" ] ; then
-        echo "  ERROR: jail $name not found!"
+    if [ -z "$_dataset" ] ; then
+        echo "  ERROR: jail $_name not found!"
         exit 1
     fi
 
-    if [ "$dataset" == "multiple" ] ; then
+    if [ "$_dataset" == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
-
-    local CONF="$CONF_NET
-                $CONF_JAIL
-                $CONF_RCTL
-                $CONF_CUSTOM
-                $CONF_SYNC
-                $CONF_FTP"
-
-    for prop in $CONF ; do
-        if [ $prop == $property ] ; then
+    for prop in $_CONF ; do
+        if [ $prop == $_property ] ; then
             _found=1
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
-                         $dataset)"
+                         $_dataset)"
             # Fix nonexistent property problem (zfs get returns "-")
             # info: https://github.com/iocage/iocage/issues/76
             if [ "$_value" == '-' ] ; then
@@ -280,24 +278,24 @@ __get_jail_prop () {
                 echo "$_value"
             fi
 
-        elif [ $property == "all" ] ; then
+        elif [ $_property == "all" ] ; then
             _found=1
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
-                         $dataset)"
+                         $_dataset)"
             echo "$prop:$_value"
         fi
     done
 
     for prop in $CONF_ZFS ; do
-        if [ $prop == $property ] ; then
+        if [ $prop == $_property ] ; then
             _found=1
-            _value="$(zfs get -H -o value $prop $dataset)"
+            _value="$(zfs get -H -o value $prop $_dataset)"
             echo "$_value"
         fi
     done
 
     if [ $_found -ne "1" ] ; then
-        echo "  ERROR: unsupported property: $property !"
+        echo "  ERROR: unsupported property: $_property !"
         exit 1
     fi
 }

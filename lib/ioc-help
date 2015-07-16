@@ -1320,18 +1320,20 @@ EOT
 }
 
 __show () {
-    local jails=$(__find_jail ALL)
-    local prop="$1"
+    local _jails _prop _name _tag _value
+
+    _jails=$(__find_jail ALL)
+    _prop="$1"
 
     {
-        printf "%s\t%s\t%s\n" "UUID" "TAG" "$prop"
-        for jail in $jails ; do
-            local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+        printf "%s\t%s\t%s\n" "UUID" "TAG" "$_prop"
+        for jail in $_jails ; do
+            _name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                         $jail)"
-            local tag="$(__get_jail_prop tag $name)"
-            local value="$(__get_jail_prop $prop $name)"
+            _tag="$(__get_jail_prop tag $_name)"
+            _value="$(__get_jail_prop $_prop $_name)"
 
-            printf "%s\t%s\t%s\n" "$name"  "$tag" "$value"
+            printf "%s\t%s\t%s\n" "$_name"  "$_tag" "$_value"
         done
     } | column -s $'\t' -t
 }
