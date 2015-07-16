@@ -48,7 +48,7 @@ Start the jail:
 
 **USAGE:**
 -  iocage activate ZPOOL
--  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
+-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
 -  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
 -  iocage clone UUID|TAG@snapshot [property=value]
 -  iocage destroy [-f] UUID|TAG|ALL
