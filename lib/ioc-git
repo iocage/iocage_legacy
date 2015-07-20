@@ -81,3 +81,15 @@ __push () {
   fi
 fi
 }
+
+__search_github () {
+  local _github _cutgithub _search_results
+
+  _github="$(zfs get -H -o value org.freebsd.iocage:github \
+             ${pool}${iocroot}/.defaults)"
+  _cutgithub="$(echo "$_github" | cut -d / -f 4 -f 5)"
+  _search_results="$(curl -s https://api.github.com/repos/$_cutgithub/branches \
+                   | grep name | grep "$2" | cut -d\" -f 4 | grep -v master)"
+
+  echo $_search_results
+}

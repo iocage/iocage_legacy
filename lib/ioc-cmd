@@ -100,6 +100,9 @@ __parse_cmd () {
             runtime)    __runtime "$2"
                         exit
                 ;;
+            search)     __search_github "$@"
+                        exit
+                ;;
             set)        __export_props "$@"
                         __set_jail_prop "$2" "$3"
                         exit
