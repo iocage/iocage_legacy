@@ -70,7 +70,7 @@ __start_jail () {
     fi
 
     if [ "$procfs" == "1" ] ; then
-        mount -t procfs proc $iocroot/jails/${fulluuid}/root/proc
+        mount -t procfs proc ${jail_path}/root/proc
     fi
 
     local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"
@@ -138,7 +138,7 @@ __start_jail () {
         zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
     fi
 
-    __resolv_conf ${fulluuid} > ${iocroot}/jails/${fulluuid}/root/etc/resolv.conf
+    __resolv_conf ${fulluuid} > ${jail_path}/root/etc/resolv.conf
 
     echo -n "  + Starting services"
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
