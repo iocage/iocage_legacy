@@ -91,5 +91,5 @@ __search_github () {
   _search_results="$(curl -s https://api.github.com/repos/$_cutgithub/branches \
                    | grep name | grep "$2" | cut -d\" -f 4 | grep -v master)"
 
-  echo $_search_results
+  printf "\n$_search_results\n"
 }
