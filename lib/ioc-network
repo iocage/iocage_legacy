@@ -45,12 +45,13 @@ __validate_mac () {
 # Expects $1 for action and $2 for UUID
 __networking () {
     local _action _uuid _jid _mac_epair_a mac_epair_b \
-          _mac_offset
+          _mac_offset _ip4_auto
 
     _action="$1"
     _uuid="$2"
     _jid="$(jls -j ioc-${_uuid} jid)"
     local ip4="$(__get_jail_prop ip4_addr ${_uuid})"
+    _ip4_auto="$(__get_jail_prop ip4_auto ${_uuid})"
     local ip6="$(__get_jail_prop ip6_addr ${_uuid})"
     local defaultgw="$(__get_jail_prop defaultrouter ${_uuid})"
     local defaultgw6="$(__get_jail_prop defaultrouter6 ${_uuid})"
@@ -81,7 +82,7 @@ __networking () {
             let _mac_offset="_mac_offset + 2" > /dev/null
         done
 
-        if [ "$ip4" != "none" ] ; then
+        if [ "$ip4" != "none" -a "$_ip4_auto" != yes ] ; then
             local oIFS=$IFS
             local IFS=","
             for i in $ip4 ; do
@@ -92,6 +93,30 @@ __networking () {
                 local IFS=","
             done
             local IFS=$oIFS
+        fi
+
+        if [ "$_ip4_auto" == "yes" ] ; then
+            local _autobase _autostart _autoend _autoip
+            _autobase=$(netstat -f inet -nrW | grep '^default' |\
+                        awk '{ print $2 }' | cut -d '.' -f 1-3)
+            _autostart="$(__get_jail_prop ip4_autostart default |\
+                          cut -d '.' -f 4))"
+            _autoend="$(__get_jail_prop ip4_autoend default) |\
+                        cut -d '.' -f 4)"
+            _autoip="$(expr $_autostart + 1)"
+            iface="$(netstat -f inet -nrW | grep '^default' |\
+                     awk '{ print $6 }')"
+            ip="$(_autobase.${_autoip})"
+            if [ "${ip}" -gt "${_autoend}" ] ; then
+              echo "  ERROR: $ip is higher then $_autoend!"
+              echo "  Please increase $_autoend."
+              return
+            fi
+            __set_jail_prop "ip4_addr=$iface|$ip" $_uuid
+            __set_jail_prop "ip4_auto=no" $_uuid
+            __set_jail_prop "autostart=$_autoip" default
+
+            jexec ioc-${2} ifconfig $iface $ip up
         fi
 
         if [ "$ip6" != "none" ] ; then
@@ -149,4 +174,3 @@ __stop_legacy_networking () {
         done
     fi
 }
-
