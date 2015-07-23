@@ -135,7 +135,7 @@ ftphost="ftp.freebsd.org"
 ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
 # Github properties
-github="https://github.com/iocage/cages"
+github="https://github.com"
 
 # Resource limits
 CONF_RCTL="memoryuse
