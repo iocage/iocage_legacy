@@ -1,8 +1,8 @@
 #!/bin/sh
 __pull () {
-    local _github
+    local _gitlocation
 
-    _github="$(zfs get -H -o value org.freebsd.iocage:github \
+    _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
                ${pool}${iocroot}/.defaults)"
 
     # Make sure git is installed.
@@ -22,14 +22,14 @@ __pull () {
 
     # Begin git clone process
     cd $iocroot/jails/${uuid}/root
-    git clone --depth 1 "$_github/$2" .
+    git clone --depth 1 "$_gitlocation/$2" .
 
-    # Check if user has a custom github URL set
-    if [ "$_github" != "https://github.com/iocage/cages" ] ; then
+    # Check if user has a custom git location set
+    if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
         touch $iocroot/jails/$uuid/fstab
     else
         echo "  WARNING: Pushing will be disabled, please set a custom repo."
-        echo "  You can do this by issuing: iocage set github=URL default"
+        echo "  You can do this by issuing: iocage set gitlocation=URL default"
         git branch --unset-upstream
         touch $iocroot/jails/$uuid/fstab
     fi
@@ -48,9 +48,9 @@ __pull () {
 }
 
 __push () {
-  local _github _gitrepo _answer _match
+  local _gitlocation _gitrepo _answer _match
 
-  _github="$(zfs get -H -o value org.freebsd.iocage:github \
+  _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
              ${pool}${iocroot}/.defaults)"
 
   # Make sure git is installed.
@@ -59,8 +59,8 @@ __push () {
       exit 1
   fi
 
-  # Check if user has a custom github URL set
-  if [ "$_github" != "https://github.com/iocage/cages" ] ; then
+  # Check if user has a custom git location set
+  if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
       # Will add all files and open a dialog for a git commit"
       git commit -a
       git push
@@ -80,16 +80,4 @@ __push () {
     fi
   fi
 fi
-}
-
-__search_github () {
-  local _github _cutgithub _search_results
-
-  _github="$(zfs get -H -o value org.freebsd.iocage:github \
-             ${pool}${iocroot}/.defaults)"
-  _cutgithub="$(echo "$_github" | cut -d / -f 4 -f 5)"
-  _search_results="$(curl -s https://api.github.com/repos/$_cutgithub/branches \
-                   | grep name | grep "$2" | cut -d\" -f 4 | grep -v master)"
-
-  printf "\n$_search_results\n"
 }
