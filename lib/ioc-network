@@ -81,7 +81,6 @@ __networking () {
             ifconfig ${nic}:${_jid} up
             let _mac_offset="_mac_offset + 2" > /dev/null
         done
-    fi
         if [ "$ip4" != "none" -a "$_ip4_auto" != yes ] ; then
             local oIFS=$IFS
             local IFS=","
@@ -111,28 +110,12 @@ __networking () {
             jexec ioc-${2} route add -6 default "${defaultgw6}" >/dev/null
         fi
 
-    if [ "$_ip4_auto" == "yes" ] ; then
-        local _autobase _autostart _autoend _autoip
-        _autobase=$(netstat -f inet -nrW | grep '^default' |\
-                    awk '{ print $2 }' | cut -d '.' -f 1-3)
-        _autostart="$(__get_jail_prop ip4_autostart default |\
-                      cut -d '.' -f 4))"
-        _autoend="$(__get_jail_prop ip4_autoend default) |\
-                    cut -d '.' -f 4)"
-        _autoip="$(expr $_autostart + 1)"
-        iface="$(netstat -f inet -nrW | grep '^default' |\
-                 awk '{ print $6 }')"
-        ip="$(_autobase.${_autoip})"
-        if [ "${ip}" -gt "${_autoend}" ] ; then
-          echo "  ERROR: $ip is higher then $_autoend!"
-          echo "  Please increase $_autoend."
-          return
+        if [ "$_ip4_auto" == "yes" ] ; then
+	    __get_autoip4
+            __set_jail_prop "ip4_addr=$iface|${auto_ip4}/24" $_uuid
+            __set_jail_prop "ip4_auto=no" $_uuid
+            jexec ioc-${2} ifconfig $iface $ip up
         fi
-        __set_jail_prop "ip4_addr=$iface|$ip" $_uuid
-        __set_jail_prop "ip4_auto=no" $_uuid
-        __set_jail_prop "autostart=$_autoip" default
-
-        jexec ioc-${2} ifconfig $iface $ip up
     fi
 
     if [ ${_action} == "stop" ] ; then
@@ -141,6 +124,39 @@ __networking () {
             ifconfig ${nic}:${_jid} destroy
         done
     fi
+}
+
+__get_autoip4 () {
+     local _autobase _autostart _autoend _autoip
+     unset _auto_ip4
+     _autobase=$(netstat -f inet -nrW | grep '^default' |\
+		awk '{ print $2 }' | cut -d '.' -f 1-3)
+     _autostart=$(__get_jail_prop ip4_autostart default)
+     _autoend=$(__get_jail_prop ip4_autoend default)
+
+     # KPM - 2015-07-24
+     # !!Brandon!! - This needs to be re-worked so instead
+     # of just blindly taking the next IP address, we should
+     # search through the jails and get the next available
+     # ip address. So that we can re-use IPs when jails
+     # using them are deleted
+
+     _autoip="$(expr $_autostart + 1)"
+     if [ ${_autoip} -gt ${_autoend} ] ; then
+       echo "  ERROR: $_autoip is higher then $_autoend!"
+       echo "  Please increase $_autoend."
+       exit 1
+     fi
+
+     # Set our new ip address
+     auto_ip4="${_autobase}.${_autoip}"
+
+     # Set the default interface
+     # BRANDON!! - This should be changed also. So if I specify
+     # DEFAULT as the interface, that doesn't change, but DEFAULT
+     # is replaced with this value at jail startup
+     iface="$(netstat -f inet -nrW | grep '^default' |\
+		awk '{ print $6 }')"
 }
 
 __stop_legacy_networking () {

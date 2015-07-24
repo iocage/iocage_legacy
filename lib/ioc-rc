@@ -208,6 +208,7 @@ __legacy_start () {
     local name="$1"
     local jail_path="$(__get_jail_prop mountpoint $name)"
     local ip4_addr="$(__get_jail_prop ip4_addr $name)"
+    local ip4_auto="$(__get_jail_prop ip4_auto ${name})"
     local ip6_addr="$(__get_jail_prop ip6_addr $name)"
     local ip4="$(__get_jail_prop ip4 $name)"
 
@@ -238,6 +239,13 @@ __legacy_start () {
     else
         ip4_addr_propline="ip4.addr=$ip4_addr"
         ip6_addr_propline="ip6.addr=$ip6_addr"
+    fi
+
+    if [ "$ip4_auto" == "yes" ] ; then
+        __get_autoip4
+        __set_jail_prop "ip4_addr=$iface|${auto_ip4}/24" $name
+        __set_jail_prop "ip4_auto=no" $name
+        ip4_addr_propline="ip4.addr=${iface}|${auto_ip4}/24"
     fi
 
     if [ $ipv6 == "on" ] ; then
