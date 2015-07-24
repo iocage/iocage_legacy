@@ -81,7 +81,7 @@ __networking () {
             ifconfig ${nic}:${_jid} up
             let _mac_offset="_mac_offset + 2" > /dev/null
         done
-
+    fi
         if [ "$ip4" != "none" -a "$_ip4_auto" != yes ] ; then
             local oIFS=$IFS
             local IFS=","
@@ -93,30 +93,6 @@ __networking () {
                 local IFS=","
             done
             local IFS=$oIFS
-        fi
-
-        if [ "$_ip4_auto" == "yes" ] ; then
-            local _autobase _autostart _autoend _autoip
-            _autobase=$(netstat -f inet -nrW | grep '^default' |\
-                        awk '{ print $2 }' | cut -d '.' -f 1-3)
-            _autostart="$(__get_jail_prop ip4_autostart default |\
-                          cut -d '.' -f 4))"
-            _autoend="$(__get_jail_prop ip4_autoend default) |\
-                        cut -d '.' -f 4)"
-            _autoip="$(expr $_autostart + 1)"
-            iface="$(netstat -f inet -nrW | grep '^default' |\
-                     awk '{ print $6 }')"
-            ip="$(_autobase.${_autoip})"
-            if [ "${ip}" -gt "${_autoend}" ] ; then
-              echo "  ERROR: $ip is higher then $_autoend!"
-              echo "  Please increase $_autoend."
-              return
-            fi
-            __set_jail_prop "ip4_addr=$iface|$ip" $_uuid
-            __set_jail_prop "ip4_auto=no" $_uuid
-            __set_jail_prop "autostart=$_autoip" default
-
-            jexec ioc-${2} ifconfig $iface $ip up
         fi
 
         if [ "$ip6" != "none" ] ; then
@@ -135,7 +111,31 @@ __networking () {
             jexec ioc-${2} route add -6 default "${defaultgw6}" >/dev/null
         fi
 
-    elif [ ${_action} == "stop" ] ; then
+    if [ "$_ip4_auto" == "yes" ] ; then
+        local _autobase _autostart _autoend _autoip
+        _autobase=$(netstat -f inet -nrW | grep '^default' |\
+                    awk '{ print $2 }' | cut -d '.' -f 1-3)
+        _autostart="$(__get_jail_prop ip4_autostart default |\
+                      cut -d '.' -f 4))"
+        _autoend="$(__get_jail_prop ip4_autoend default) |\
+                    cut -d '.' -f 4)"
+        _autoip="$(expr $_autostart + 1)"
+        iface="$(netstat -f inet -nrW | grep '^default' |\
+                 awk '{ print $6 }')"
+        ip="$(_autobase.${_autoip})"
+        if [ "${ip}" -gt "${_autoend}" ] ; then
+          echo "  ERROR: $ip is higher then $_autoend!"
+          echo "  Please increase $_autoend."
+          return
+        fi
+        __set_jail_prop "ip4_addr=$iface|$ip" $_uuid
+        __set_jail_prop "ip4_auto=no" $_uuid
+        __set_jail_prop "autostart=$_autoip" default
+
+        jexec ioc-${2} ifconfig $iface $ip up
+    fi
+
+    if [ ${_action} == "stop" ] ; then
         for if in $nics ; do
             local nic="$(echo $if | cut -f 1 -d:)"
             ifconfig ${nic}:${_jid} destroy
