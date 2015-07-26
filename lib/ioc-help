@@ -7,7 +7,8 @@ NAME
 
 SYNOPSIS
   iocage activate ZPOOL
-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |                     ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
+                ftpfiles="base.txz doc.txz lib32.txz src.txz"]
   iocage init-host IP zpool
   iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
