@@ -8,6 +8,12 @@ __export_props () {
             export "iocset_${i}"
         fi
     done
+
+    if [ "$tag" == 'default' ] && ([ "$1" != 'set' ] || [ "$1" != 'get' ]); then
+        tag=$(date "+%F@%T")
+        echo "  WARNING: tag value \"default\" is a reserved keyword"
+        echo "           tag was changed to: $tag"
+    fi
 }
 
 # Set properties ------------------------------------------------------
