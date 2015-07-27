@@ -36,8 +36,6 @@ __configure_jail () {
                 _value="${hack88}"
             elif [ "$prop_name" = "resolver" ] ; then
                 _value="${resolver}"
-            elif [ "$prop_name" = "ip4_auto" ] ; then
-                _value="${ip4_auto}"
             elif [ "$prop_name" = "ip4_autostart" ] ; then
                 _value="${ip4_autostart}"
             elif [ "$prop_name" = "ip4_autoend" ] ; then
@@ -207,7 +205,6 @@ __reset_jail_props () {
     jail_zfs_dataset="$(zfs get -H -o value org.freebsd.iocage:jail_zfs_dataset\
      $_dataset)"
     resolver="$(zfs get -H -o value org.freebsd.iocage:resolver $_dataset)"
-    ip4_auto="$(zfs get -H -o value org.freebsd.iocage:ip4_auto $_dataset)"
     ip4_autostart="$(zfs get -H -o value org.freebsd.iocage:ip4_autostart\
      $_dataset)"
     ip4_autoend="$(zfs get -H -o value org.freebsd.iocage:ip4_autoend\
