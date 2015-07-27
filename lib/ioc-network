@@ -60,6 +60,15 @@ __networking () {
     #local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
     local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
 
+    # Get the default and current interfaces specified
+    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
+                awk '{ print $6 }')"
+    local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
+    local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
+
+    # Change the DEFAULT tag to correct iface
+    nics=$(echo $nics | sed "s/DEFAULT/$default_iface/g")
+
     if [ ${_action} == "start" ] ; then
         _mac_offset=0
         for i in $nics ; do
@@ -86,7 +95,7 @@ __networking () {
             local IFS=","
             for i in $ip4 ; do
                 local IFS=$oIFS
-                iface="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }')"
+                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | sed "s/DEFAULT/$default_iface/g")
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
                 jexec ioc-${2} ifconfig $iface $ip up
                 local IFS=","
@@ -96,7 +105,7 @@ __networking () {
 
         if [ "$ip6" != "none" ] ; then
             for i in $ip6_list ; do
-                iface="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }')"
+                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | sed "s/DEFAULT/$default_iface/g")
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
                 jexec ioc-${2} ifconfig $iface inet6 $ip up
             done
@@ -112,9 +121,15 @@ __networking () {
 
         if [ "$_ip4_auto" == "yes" ] ; then
 	    __get_autoip4
-            __set_jail_prop "ip4_addr=$iface|${auto_ip4}/24" $_uuid
+
+            if [ -z "$cur_ip4_iface" ] ; then
+               new_iface="$default_iface"
+            else
+               new_iface="$cur_ip4_iface"
+            fi
+            __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $_uuid
             __set_jail_prop "ip4_auto=no" $_uuid
-            jexec ioc-${2} ifconfig $iface $ip up
+            jexec ioc-${2} ifconfig $new_iface ${auto_ip}/24 up
         fi
     fi
 
@@ -150,13 +165,6 @@ __get_autoip4 () {
 
      # Set our new ip address
      auto_ip4="${_autobase}.${_autoip}"
-
-     # Set the default interface
-     # BRANDON!! - This should be changed also. So if I specify
-     # DEFAULT as the interface, that doesn't change, but DEFAULT
-     # is replaced with this value at jail startup
-     iface="$(netstat -f inet -nrW | grep '^default' |\
-		awk '{ print $6 }')"
 }
 
 __stop_legacy_networking () {
@@ -164,6 +172,14 @@ __stop_legacy_networking () {
 
     local ip4_addr="$(__get_jail_prop ip4_addr $name)"
     local ip6_addr="$(__get_jail_prop ip6_addr $name)"
+
+    # Get the default and current interfaces specified
+    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
+                awk '{ print $6 }')"
+
+    # Change the DEFAULT tag to correct iface
+    ip4_addr=$(echo $ip4_addr | sed "s/DEFAULT|/$default_iface|/g")
+    ip6_addr=$(echo $ip6_addr | sed "s/DEFAULT|/$default_iface|/g")
 
     if [ $ip4_addr != "none" ] ; then
         local IFS=','

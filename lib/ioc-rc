@@ -215,6 +215,12 @@ __legacy_start () {
     local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $name)"
     local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $name)"
 
+    # Get the default and current interfaces specified
+    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
+		awk '{ print $6 }')"
+    local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
+    local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
+
     if [ "$(uname -U)" == "903000" ];
     then
       fdescfs=""
@@ -230,6 +236,10 @@ __legacy_start () {
         ip6_addr=""
     fi
 
+    # Change the DEFAULT tag to correct iface
+    ip4_addr=$(echo $ip4_addr | sed "s/DEFAULT|/$default_iface|/g")
+    ip6_addr=$(echo $ip6_addr | sed "s/DEFAULT|/$default_iface|/g")
+
     # this is mostly a temporary workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=196474
     if [ $ip4 == 'inherit' ] ; then
         ip4="inherit"
@@ -241,11 +251,19 @@ __legacy_start () {
         ip6_addr_propline="ip6.addr=$ip6_addr"
     fi
 
+    # If we are setting an automatic IP address, lets do it now
     if [ "$ip4_auto" == "yes" ] ; then
         __get_autoip4
-        __set_jail_prop "ip4_addr=$iface|${auto_ip4}/24" $name
+
+	if [ -z "$cur_ip4_iface" ] ; then
+	   new_iface="DEFAULT"
+           ip4_addr_propline="ip4.addr=$default_iface|${auto_ip4}/24"
+	else
+	   new_iface="$cur_ip4_iface"
+           ip4_addr_propline="ip4.addr=$cur_ip4_iface|${auto_ip4}/24"
+        fi
+        __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $name
         __set_jail_prop "ip4_auto=no" $name
-        ip4_addr_propline="ip4.addr=${iface}|${auto_ip4}/24"
     fi
 
     if [ $ipv6 == "on" ] ; then
