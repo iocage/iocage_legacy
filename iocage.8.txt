@@ -1,5 +1,6 @@
 NAME
   iocage - jail manager amalgamating ZFS, VNET and resource limits
+
 SYNOPSIS
   iocage activate ZPOOL
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |                     ftpfiles="base.txz doc.txz lib32.txz src.txz"]
@@ -40,10 +41,12 @@ SYNOPSIS
   iocage defaults
   iocage version | --version
   iocage help
+
 DESCRIPTION
   iocage is a system administration tool for jails designed to simplify
-  jail management tasks. It abstracts away the management of ZFS backed jails running VNET
-  or shared IP networking with optional support for resource limits.
+  jail management tasks. It abstracts away the management of ZFS backed jails
+  running VNET or shared IP networking with optional support for resource
+  limits.
 
   Both, shared IP based jails and VNET enabled jails are supported.
 
@@ -54,20 +57,21 @@ DESCRIPTION
   operator error.
 
   Partial UUID calling is supported with every operation, e.g. for
-  "adae47cb-01a8-11e4-aa78-3c970ea3222f" the use in the form of "adae47cb" or just "adae" works.
+  "adae47cb-01a8-11e4-aa78-3c970ea3222f" the use in the form of "adae47cb" or
+  just "adae" works.
   In addition to partial UUID calling, jail TAG's can be used interchangeably.
 
   To ease jail identification a TAG field is included in list mode which can
-  be set to any string (hostname, label, note, etc.). By default if unset the TAG field
-  contains the creation date and time stamp.
+  be set to any string (hostname, label, note, etc.). By default if unset the
+  TAG field contains the creation date and time stamp.
 
   Properties are stored inside ZFS custom fields. This eliminates the need for
   any configuration files and jails can be easily moved with ZFS send and
   receive preserving all of their properties automatically.
 
-  iocage relies on ZFS and at least one ZFS pool must be present on the host system.
-  To enable all the features iocage supports,
-  consider the following optional kernel options and system reqiurements:
+  iocage relies on ZFS and at least one ZFS pool must be present on the host
+  system. To enable all the features iocage supports, consider the following
+  optional kernel options and system reqiurements:
     o   FreeBSD 10.0-RELEASE amd64 or higher
     o   bridge interfaces (bridge0,bridge1) add:
 
@@ -120,8 +124,8 @@ SUBCOMMANDS
     If the -c switch is specified the jail will be cloned from the current
     hosts RELEASE (uname -r).
     Default is to create a fully independent jail set.
-    The -e switch will create an empty jail which can be used for unsupported or
-    custom jails.
+    The -e switch will create an empty jail which can be used for unsupported
+    or custom jails.
     The -b flag will create a so called "basejail" with a common shared base.
 
     Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
@@ -153,18 +157,19 @@ SUBCOMMANDS
 
   reset UUID|TAG|ALL
 
-    This will reset a jail's properties back to the defaults. 
+    This will reset a jail's properties back to the defaults.
 
-    It reads from the properties set on the "default" dataset. TAG, UUID and generated 
-    vnet mac addresses are carried forward.
+    It reads from the properties set on the "default" dataset. TAG, UUID and
+    generated vnet mac addresses are carried forward.
 
     Those will retain their values, even if you reset the jail.
-    You can also reset every jail to the default properties by using the keyword "ALL".
+    You can also reset every jail to the default properties by using the
+    keyword "ALL".
 
   list [-t|-r]
 
-    List all jails, if -t is specified list only templates, with -r list downloaded
-    releases.
+    List all jails, if -t is specified list only templates, with -r list
+    downloaded releases.
     Non iocage jail listed, only if jail in UP state.
 
   df
@@ -188,8 +193,9 @@ SUBCOMMANDS
   restart UUID|TAG
 
     Soft restart jail. Soft method will restart the jail without destroying
-    the jail's networking and the jail process itself. All processes are gracefully
-    restarted inside the jail. Useful for quick and graceful restarts.
+    the jail's networking and the jail process itself. All processes are
+    gracefully restarted inside the jail. Useful for quick and graceful
+    restarts.
 
   rcboot
 
@@ -199,7 +205,8 @@ SUBCOMMANDS
 
   rcshutdown
 
-    Stop all jails with "boot" property set to "on". Intended for full host shutdown.
+    Stop all jails with "boot" property set to "on". Intended for full host
+    shutdown.
     Jails will be stopped in an ordered fashion based on their "priority"
     property.
 
@@ -229,8 +236,8 @@ SUBCOMMANDS
 
   get property|all UUID|TAG
 
-    Get named property or if "all" keyword is specified dump all properties known to
-    iocage.
+    Get named property or if "all" keyword is specified dump all properties
+    known to iocage.
 
     To display whether resource limits are enforced for a jail:
 
@@ -246,8 +253,8 @@ SUBCOMMANDS
 
   limits [UUID|TAG]
 
-    Display active resource limits for a jail or all jails. With no UUID supplied
-    display all limits active for all jails.
+    Display active resource limits for a jail or all jails. With no UUID
+    supplied display all limits active for all jails.
 
   uncap UUID|TAG
 
@@ -255,8 +262,8 @@ SUBCOMMANDS
 
   inuse [UUID|TAG]
 
-    Display consumed resources for a jail. Without UUID or TAG dump all resources
-    for all running jails in a comma delimited form.
+    Display consumed resources for a jail. Without UUID or TAG dump all
+    resources for all running jails in a comma delimited form.
 
   snapshot UUID|TAG [UUID|TAG@snapshotname]
 
@@ -274,8 +281,8 @@ SUBCOMMANDS
 
   snapremove UUID|TAG@snapshotname|ALL
 
-    Destroy specified jail snapshot. If the keyword ALL is specified all snapshots
-    will be destroyed for the jail.
+    Destroy specified jail snapshot. If the keyword ALL is specified all
+    snapshots will be destroyed for the jail.
 
   rollback UUID|TAG@snapshotname
 
@@ -325,8 +332,8 @@ SUBCOMMANDS
 
   export UUID|TAG
 
-    Export a complete jail. An archive file is created in /iocage/images with SHA256
-    checksum. Jail must be in stopped state before exporting.
+    Export a complete jail. An archive file is created in /iocage/images with
+    SHA256 checksum. Jail must be in stopped state before exporting.
 
   import UUID [property=value]
 
@@ -346,6 +353,7 @@ SUBCOMMANDS
   help
 
     List quick help.
+
 PROPERTIES
   For more information on properties please check the relevant man page which
   is noted under each property in the form of "Source: manpage". Source "local"
@@ -353,8 +361,9 @@ PROPERTIES
 
   pkglist=none | path-to-file
 
-    A text file containing one package per line. These will be auto installed when
-    a jail is created. Works only in combination with the create subcommand.
+    A text file containing one package per line. These will be auto installed
+    when a jail is created. Works only in combination with the create
+    subcommand.
 
     Default: none
     Source: local
@@ -378,9 +387,28 @@ PROPERTIES
 
     For shared IP jails if an interface is given before
     the IP address, an alias for the address will be added to that
-    interface, as it is with the interface parameter.  If a netmask
-    in either dotted-quad or CIDR form is given after IP address, it
-    will be used when adding the IP alias.
+    interface, as it is with the interface parameter. If the DEFAULT
+    tag is used instead of an interface, the interface will be
+    automatically assigned based upon the system's default interface.
+
+    If a netmask in either dotted-quad or CIDR form is given after IP
+    address, it will be used when adding the IP alias.
+
+    If the AUTOIP4 tag is used in place of an ip-address, the IP address
+    will be automatically assigned at first start of the jail. This
+    requires that the ip4_autostart and ip4_autoend variables are set on
+    the 'default' property source. If used, the IP4 address will be set
+    to the first available based upon the given range and already created
+    jails.
+
+    Example:
+      # iocage set ip4_autostart="100" default
+      # iocage set ip4_autoend="150" default
+
+    This will result in the automatic IPv4 address being assigned in the
+    base range of the default network interface. I.E. if the local default
+    NIC is set to 192.168.0.XXX, then the new address will be
+    192.168.0.[100-150]
 
     For VNET jails the interface will be configured with the IP addresses
     listed.
@@ -435,6 +463,7 @@ PROPERTIES
     the hosts resolv.conf file.
 
   ip6.addr, ip6.saddrsel, ip6
+
     A set of IPv6 options for the prison, the counterparts to
     ip4.addr, ip4.saddrsel and ip4 above.
 
@@ -639,7 +668,8 @@ PROPERTIES
 
   login_flags="-f root"
 
-    Supply these flags to login when logging in to jails with the console function.
+    Supply these flags to login when logging in to jails with the console
+    function.
 
     Default: -f root
     Source: login(1)
@@ -877,9 +907,9 @@ PROPERTIES
 
   hostid=UUID
 
-    The UUID of the host node. Jails won't start if this property differs from the actual UUID
-    of the host node. This is to safeguard jails from being started on
-    different nodes in case they are periodically replicated across.
+    The UUID of the host node. Jails won't start if this property differs from
+    the actual UUID of the host node. This is to safeguard jails from being
+    started on different nodes in case they are periodically replicated across.
 
     Default: UUID of the host (taken from /etc/hostid)
     Source: local
@@ -895,13 +925,13 @@ PROPERTIES
 
     Controls the compression algorithm used for this dataset. The lzjb
     compression algorithm is optimized for performance while providing
-    decent data compression. Setting compression to on uses the lzjb compression
-    algorithm. The gzip compression algorithm uses the same compression
-    as the gzip(1) command. You can specify the gzip level by
-    using the value gzip-N where N is an integer from 1 (fastest) to 9
-    (best compression ratio). Currently, gzip is equivalent to gzip-6
-    (which is also the default for gzip(1)).  The zle compression algorithm
-    compresses runs of zeros.
+    decent data compression. Setting compression to on uses the lzjb
+    compression algorithm. The gzip compression algorithm uses the same
+    compression as the gzip(1) command. You can specify the gzip level by using
+    the value gzip-N where N is an integer from 1 (fastest) to 9 (best
+    compression ratio). Currently, gzip is equivalent to gzip-6 (which is also
+    the default for gzip(1)).  The zle compression algorithm compresses runs of
+    zeros.
 
     The lz4 compression algorithm is a high-performance replacement for
     the lzjb algorithm. It features significantly faster compression and
@@ -1040,10 +1070,12 @@ PROPERTIES
 
   cpuset=1 | 1,2,3,4 | 1-2 | off
 
-    Controls the jail's CPU affinity. For more details please refer to cpuset(1).
+    Controls the jail's CPU affinity. For more details please refer to
+    cpuset(1).
 
     Default: off
     Source: cpuset(1)
+
 RESOURCE LIMITS
   Resource limits (except cpuset and rlimits) use the following value
   field formatting in the property: limit:action.
@@ -1264,6 +1296,7 @@ EXAMPLES
   Get the last successful start time for all jails
 
     iocage show last_started
+
 HINTS
   iocage marks a ZFS pool in the pool's comment field and identifies the
   active pool for use based on this string.
@@ -1302,9 +1335,11 @@ HINTS
 SEE ALSO
   jail(8), ifconfig(8), epair(4), bridge(4), jexec(8), zfs(8), zpool(8),
   rctl(8), cpuset(1), freebsd-update(8), sysctl(8)
+
 BUGS
   In case of bugs/issues/feature requests, please open an issue at
   https://github.com/iocage/iocage/issues
+
 AUTHORS
 
     Peter Toth <peter.toth198@gmail.com>

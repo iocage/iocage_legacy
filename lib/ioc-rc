@@ -216,7 +216,7 @@ __legacy_start () {
 
     # Get the default and current interfaces specified
     local default_iface="$(netstat -f inet -nrW | grep '^default' |\
-		awk '{ print $6 }')"
+                         awk '{ print $6 }')"
     local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
     local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
 
@@ -253,13 +253,12 @@ __legacy_start () {
     echo "$ip4_addr" | grep -q "AUTOIP4"
     if [ $? -eq 0 ] ; then
         __get_autoip4
-
-	if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
-	   new_iface="DEFAULT"
-           ip4_addr_propline="ip4.addr=$default_iface|${auto_ip4}/24"
-	else
-	   new_iface="$cur_ip4_iface"
-           ip4_addr_propline="ip4.addr=$cur_ip4_iface|${auto_ip4}/24"
+        if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
+            new_iface="DEFAULT"
+            ip4_addr_propline="ip4.addr=$default_iface|${auto_ip4}/24"
+        else
+            new_iface="$cur_ip4_iface"
+            ip4_addr_propline="ip4.addr=$cur_ip4_iface|${auto_ip4}/24"
         fi
         __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $name
     fi
@@ -545,4 +544,3 @@ __rc_jails () {
 
     rm $boot_list
 }
-

@@ -162,7 +162,7 @@ SUBCOMMANDS
 
   reset UUID|TAG|ALL
 
-    This will reset a jail's properties back to the defaults. 
+    This will reset a jail's properties back to the defaults.
 
     It reads from the properties set on the "default" dataset. TAG, UUID and
     generated vnet mac addresses are carried forward.
@@ -392,9 +392,28 @@ PROPERTIES
 
     For shared IP jails if an interface is given before
     the IP address, an alias for the address will be added to that
-    interface, as it is with the interface parameter.  If a netmask
-    in either dotted-quad or CIDR form is given after IP address, it
-    will be used when adding the IP alias.
+    interface, as it is with the interface parameter. If the DEFAULT
+    tag is used instead of an interface, the interface will be
+    automatically assigned based upon the system's default interface.
+
+    If a netmask in either dotted-quad or CIDR form is given after IP
+    address, it will be used when adding the IP alias.
+
+    If the AUTOIP4 tag is used in place of an ip-address, the IP address
+    will be automatically assigned at first start of the jail. This
+    requires that the ip4_autostart and ip4_autoend variables are set on
+    the 'default' property source. If used, the IP4 address will be set
+    to the first available based upon the given range and already created
+    jails.
+
+    Example:
+      # iocage set ip4_autostart="100" default
+      # iocage set ip4_autoend="150" default
+
+    This will result in the automatic IPv4 address being assigned in the
+    base range of the default network interface. I.E. if the local default
+    NIC is set to 192.168.0.XXX, then the new address will be
+    192.168.0.[100-150]
 
     For VNET jails the interface will be configured with the IP addresses
     listed.
@@ -655,7 +674,7 @@ PROPERTIES
   login_flags="-f root"
 
     Supply these flags to login when logging in to jails with the console
-    function.  
+    function.
 
     Default: -f root
     Source: login(1)

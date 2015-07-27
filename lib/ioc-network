@@ -122,7 +122,7 @@ __networking () {
         # Check if the user specified they wanted to use an automatic IP4 address
         echo "$ip4_addr" | grep -q "AUTOIP4"
         if [ $? -eq 0 ] ; then
-	    __get_autoip4
+            __get_autoip4
 
             if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
                new_iface="$default_iface"
@@ -147,18 +147,18 @@ __get_autoip4 () {
      local _autobase _autostart _autoend _autoip _freeip
      unset _auto_ip4
      _autobase=$(netstat -f inet -nrW | grep '^default' |\
-		awk '{ print $2 }' | cut -d '.' -f 1-3)
+               awk '{ print $2 }' | cut -d '.' -f 1-3)
      _autostart=$(__get_jail_prop ip4_autostart default)
      _autoend=$(__get_jail_prop ip4_autoend default)
      local jails=$(__find_jail ALL)
 
      # Do some basic sanity checking
      if [ -z "$_autostart" ] ; then
-	echo "ERROR: AUTOIP4 is specified, but ip4_autostart is not set!"
+        echo "ERROR: AUTOIP4 is specified, but ip4_autostart is not set!"
         exit 1
      fi
      if [ -z "$_autoend" ] ; then
-	echo "ERROR: AUTOIP4 is specified, but ip4_autoend is not set!"
+        echo "ERROR: AUTOIP4 is specified, but ip4_autoend is not set!"
         exit 1
      fi
 
@@ -167,35 +167,36 @@ __get_autoip4 () {
      _autoip=$_autostart
      while :
      do
-       _freeip="YES"
-       _nextaddr="${_autobase}.${_autoip}"
-       # Is this address in use?
-       for jail in $jails ; do
-	  local juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
-          local jip4="$(__get_jail_prop ip4_addr ${juuid})"
-          jip4=$(echo $jip4 | cut -d '|' -f 2 | cut -d '/' -f 1)
-	  if [ "$jip4" = "$_nextaddr" ] ; then
-             _freeip="NO"
-             break
-          fi
-       done
+        _freeip="YES"
+        _nextaddr="${_autobase}.${_autoip}"
+        # Is this address in use?
+        for jail in $jails ; do
+            local juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid\
+                        $jail)
+            local jip4="$(__get_jail_prop ip4_addr ${juuid})"
+            jip4=$(echo $jip4 | cut -d '|' -f 2 | cut -d '/' -f 1)
+            if [ "$jip4" = "$_nextaddr" ] ; then
+                _freeip="NO"
+                break
+            fi
+        done
 
-       # On to the next entry to try
-       if [ "$_freeip" = "NO" ] ; then
-          _autoip=$(expr $_autoip + 1)
-          continue
-       fi
+        # On to the next entry to try
+        if [ "$_freeip" = "NO" ] ; then
+            _autoip=$(expr $_autoip + 1)
+            continue
+        fi
 
-       # Sanity check
-       if [ $_autoip -gt $_autoend ] ; then
-          echo "ERROR: IP4 Automatic Address exhaustion"
-          exit 1
-       fi
-       if [ $_autoip -gt 254 ] ; then
-          echo "ERROR: IP4 Address outside of bounds"
-          exit 1
-       fi
-       break
+        # Sanity check
+        if [ $_autoip -gt $_autoend ] ; then
+            echo "ERROR: IP4 Automatic Address exhaustion"
+            exit 1
+        fi
+        if [ $_autoip -gt 254 ] ; then
+            echo "ERROR: IP4 Address outside of bounds"
+            exit 1
+        fi
+        break
      done
 
      # Set our new ip address
