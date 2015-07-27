@@ -45,13 +45,12 @@ __validate_mac () {
 # Expects $1 for action and $2 for UUID
 __networking () {
     local _action _uuid _jid _mac_epair_a mac_epair_b \
-          _mac_offset _ip4_auto
+          _mac_offset
 
     _action="$1"
     _uuid="$2"
     _jid="$(jls -j ioc-${_uuid} jid)"
     local ip4="$(__get_jail_prop ip4_addr ${_uuid})"
-    _ip4_auto="$(__get_jail_prop ip4_auto ${_uuid})"
     local ip6="$(__get_jail_prop ip6_addr ${_uuid})"
     local defaultgw="$(__get_jail_prop defaultrouter ${_uuid})"
     local defaultgw6="$(__get_jail_prop defaultrouter6 ${_uuid})"
@@ -90,7 +89,8 @@ __networking () {
             ifconfig ${nic}:${_jid} up
             let _mac_offset="_mac_offset + 2" > /dev/null
         done
-        if [ "$ip4" != "none" -a "$_ip4_auto" != yes ] ; then
+        echo "$ip4_addr" | grep -q "AUTOIP4"
+        if [ "$ip4" != "none" -a $? -ne 0 ] ; then
             local oIFS=$IFS
             local IFS=","
             for i in $ip4 ; do
@@ -119,16 +119,18 @@ __networking () {
             jexec ioc-${2} route add -6 default "${defaultgw6}" >/dev/null
         fi
 
-        if [ "$_ip4_auto" == "yes" ] ; then
+        # Check if the user specified they wanted to use an automatic IP4 address
+        echo "$ip4_addr" | grep -q "AUTOIP4"
+        if [ $? -eq 0 ] ; then
 	    __get_autoip4
 
-            if [ -z "$cur_ip4_iface" ] ; then
+            if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
                new_iface="$default_iface"
+               __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}/24" $_uuid
             else
                new_iface="$cur_ip4_iface"
+               __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $_uuid
             fi
-            __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $_uuid
-            __set_jail_prop "ip4_auto=no" $_uuid
             jexec ioc-${2} ifconfig $new_iface ${auto_ip}/24 up
         fi
     fi
