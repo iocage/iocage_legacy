@@ -1,10 +1,9 @@
 #!/bin/sh
 __pull () {
-    local _gitlocation
+    local _gitlocation _jail_type _jail_path
 
     _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-               ${pool}${iocroot}/.defaults)"
-
+                  ${pool}${iocroot}/.defaults)"
     # Make sure git is installed.
     if [ ! -e "/usr/local/bin/git" ] ; then
         echo "  ERROR: Git is not installed. Please install git first."
@@ -18,10 +17,22 @@ __pull () {
     zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
     zfs set mountpoint=none ${pool}/$jail_zfs_dataset
     zfs set jailed=on ${pool}/$jail_zfs_dataset
+    export type=gitjail
     __configure_jail ${pool}/iocage/jails/$uuid
 
+    _jail_type="$(__get_jail_prop type $uuid)"
+    _jail_path="$(__get_jail_prop mountpoint $uuid)"
+
+    if [ $_gitlocation != "none" ] ; then
+        _gitlocation = $_gitlocation
+    else
+        unset _gitlocation
+        _gitlocation = "$(zfs get -H -o value org.freebsd.iocage:gitlocation \
+                        ${pool}${iocroot}/jails/$uuid)"
+    fi
+
     # Begin git clone process
-    cd $iocroot/jails/${uuid}/root
+    cd ${_jail_path}/root
     if [ -z "$iocset_branch" ] ; then
         git clone --depth 1 "$_gitlocation/$2" .
     else
@@ -30,24 +41,22 @@ __pull () {
 
     # Check if user has a custom git location set
     if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
-        touch $iocroot/jails/$uuid/fstab
+        touch ${_jail_path}/fstab
     else
         echo "  WARNING: Pushing will be disabled, please set a custom repo."
         echo "  You can do this by issuing: iocage set gitlocation=URL default"
         git branch --unset-upstream
-        touch $iocroot/jails/$uuid/fstab
+        touch ${_jail_path}/fstab
     fi
 
     # Check for rc.conf and resolv.conf, create them if they don't exist.
-    if [ ! -e "$iocroot/jails/${uuid}/root/etc/rc.conf" ] ; then
-        echo "hostname=\"${hostname}\"" > \
-        $iocroot/jails/${uuid}/root/etc/rc.conf
-        __jail_rc_conf >> \
-        $iocroot/jails/${uuid}/root/etc/rc.conf
+    if [ ! -e "${_jail_path}/root/etc/rc.conf" ] ; then
+        echo "hostname=\"${hostname}\"" > ${_jail_path}/root/etc/rc.conf
+        __jail_rc_conf >> ${_jail_path}/root/etc/rc.conf
     fi
 
-    if [ ! -e "$iocroot/jails/${uuid}/root/etc/resolv.conf" ] ; then
-        __resolv_conf ${uuid} > $iocroot/jails/${uuid}/root/etc/resolv.conf
+    if [ ! -e "${_jail_path}/root/etc/resolv.conf" ] ; then
+        __resolv_conf ${uuid} > ${_jail_path}/root/etc/resolv.conf
     fi
 }
 

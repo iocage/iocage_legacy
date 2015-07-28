@@ -250,10 +250,12 @@ CONF_SYNC="sync_stat
            sync_tgt_zpool"
 
 # ftp properties
-CONF_FTP="ftphost ftpdir"
+CONF_FTP="ftphost
+          ftpdir"
 
 # git properties
-CONF_GIT="gitlocation branch"
+CONF_GIT="gitlocation
+          branch"
 
 # Basejail filesystems
 bfs_list="bin
