@@ -15,7 +15,7 @@ SCRIPTS=iocage
 SCRIPTSDIR=${PREFIX}/BINDIR
 MAN=	$(SCRIPTS).8
 
-${PROG}:
+${SCRIPT}:
 	@echo Nothing needs to be done for iocage.
 
 install:: all
