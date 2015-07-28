@@ -73,7 +73,7 @@ __parse_cmd () {
                         exit
                 ;;
             pull)       __export_props "$@"
-                        __pull "$@"
+                        __pull "$2"
                         exit
                 ;;
             push)       __push "$2"
