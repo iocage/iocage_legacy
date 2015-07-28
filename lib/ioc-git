@@ -22,7 +22,11 @@ __pull () {
 
     # Begin git clone process
     cd $iocroot/jails/${uuid}/root
-    git clone --depth 1 "$_gitlocation/$2" .
+    if [ -z "$iocset_branch" ] ; then
+        git clone --depth 1 "$_gitlocation/$2" .
+    else
+        git clone -b "$iocset_branch" --depth 1 "$_gitlocation/$2" .
+    fi
 
     # Check if user has a custom git location set
     if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
@@ -61,8 +65,9 @@ __push () {
 
   # Check if user has a custom git location set
   if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
-      # Will add all files and open a dialog for a git commit"
-      git commit -a
+      # Will add all files and open a dialog for a git commit
+      git add -A
+      git commit
       git push
   else
       echo -n "Please enter a git repo to push to: "

@@ -9,7 +9,7 @@ __configure_jail () {
            $CONF_RCTL
            $CONF_CUSTOM
            $CONF_SYNC
-           $CONF_GITLOCATION"
+           $CONF_GIT"
 
     #echo "Configuring jail.."
     for prop in $_CONF ; do

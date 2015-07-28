@@ -22,7 +22,7 @@ __print_defaults () {
            $CONF_ZFS
            $CONF_SYNC
            $CONF_FTP
-           $CONF_GITLOCATION"
+           $CONF_GIT"
 
     for _prop in $(echo $_CONF)  ; do
         _prop_name=$_prop
@@ -245,7 +245,7 @@ __get_jail_prop () {
            $CONF_CUSTOM
            $CONF_SYNC
            $CONF_FTP
-           $CONF_GITLOCATION"
+           $CONF_GIT"
 
     if [ -z "$_property" ] ; then
         echo "  ERROR: get failed, incorrect property syntax!"

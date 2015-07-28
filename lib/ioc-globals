@@ -253,7 +253,7 @@ CONF_SYNC="sync_stat
 CONF_FTP="ftphost ftpdir"
 
 # git properties
-CONF_GITLOCATION="gitlocation"
+CONF_GIT="gitlocation branch"
 
 # Basejail filesystems
 bfs_list="bin
