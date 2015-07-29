@@ -34,6 +34,7 @@
 \fBiocage\fP \fIsnaplist\fP UUID|TAG
 \fBiocage\fP \fIsnapremove\fP UUID|TAG@snapshotname|ALL
 \fBiocage\fP \fIrollback\fP UUID|TAG@snapshotname
+\fBiocage\fP \fIpkg\fP UUID|TAG \fIcommand\fP \fIflags\fP
 \fBiocage\fP \fIpromote\fP UUID|TAG
 \fBiocage\fP \fIruntime\fP UUID|TAG
 \fBiocage\fP \fIupdate\fP UUID|TAG
@@ -430,6 +431,15 @@ latest updates applied.
 .fam C
     Rollback to an existing snapshot. Any intermediate snapshots will be
     destroyed. For more information on this functionality please read zfs(8).
+
+.fam T
+.fi
+\fIpkg\fP \fIUUID\fP|TAG \fIcommand\fP \fIflags\fP
+.PP
+.nf
+.fam C
+    Run pkg(8) from the host with the correct -j switch. For more details please
+    read pkg(8).
 
 .fam T
 .fi

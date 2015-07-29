@@ -1,0 +1,17 @@
+#!/bin/sh
+
+__pkg () {
+    local _name _fulluuid
+    _name="$1"
+    
+    _fulluuid="$(__check_name $_name)"
+    
+    if [ -z $_fulluuid ]; then
+        echo "  ERROR: $_name not found."
+        exit 1
+    fi
+    
+    shift 1
+    
+    pkg -j ioc-$_fulluuid "$@"
+}

@@ -35,6 +35,7 @@ SYNOPSIS
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
   iocage rollback UUID|TAG@snapshotname
+  iocage pkg UUID|TAG command flags
   iocage promote UUID|TAG
   iocage runtime UUID|TAG
   iocage update UUID|TAG
@@ -293,6 +294,11 @@ SUBCOMMANDS
 
     Rollback to an existing snapshot. Any intermediate snapshots will be
     destroyed. For more information on this functionality please read zfs(8).
+
+  pkg UUID|TAG command flags
+
+    Run pkg(8) from the host with the correct -j switch. For more details
+    please read pkg(8)
 
   promote UUID|TAG
 

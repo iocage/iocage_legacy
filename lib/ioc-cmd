@@ -69,6 +69,10 @@ __parse_cmd () {
             package)    __package "$2"
                         exit
                 ;;
+            pkg)        shift
+                        __pkg "$@"
+                        exit
+                ;;
             promote)    __promote "$2"
                         exit
                 ;;
