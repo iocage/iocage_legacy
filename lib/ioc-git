@@ -27,7 +27,7 @@ __pull () {
             echo "  iocage set gitlocation=LOCATION default"
             echo ""
             exit 1
-        elif [ "$iocset_gitlocation" != -z ] ; then
+        elif [ -n "$iocset_gitlocation" ] ; then
             unset _gitlocation
             _gitlocation="$iocset_gitlocation"
         fi
