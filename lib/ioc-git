@@ -1,14 +1,38 @@
 #!/bin/sh
 __pull () {
     local _gitlocation _jail_type _jail_path
-
     _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
                   ${pool}${iocroot}/.defaults)"
+
+    if [ "$_gitlocation" = "-" ] ; then
+        _gitlocation="none"
+    fi
+
     # Make sure git is installed.
     if [ ! -e "/usr/local/bin/git" ] ; then
         echo "  ERROR: Git is not installed. Please install git first."
         exit 1
     fi
+
+    # Check to see if the url begins with these otherwise use gitlocation
+    case "$1" in
+        http://*|https://*|git://*)
+          unset _gitlocation
+          _gitlocation="$1"
+        ;;
+        *)
+        if [ "$_gitlocation" = "none" -a -z "$iocset_gitlocation" ] ; then
+            echo ""
+            echo "  ERROR: You must either specify gitlocation= or set a default"
+            echo "  iocage set gitlocation=LOCATION default"
+            echo ""
+            exit 1
+        elif [ "$iocset_gitlocation" != -z ] ; then
+            unset _gitlocation
+            _gitlocation="$iocset_gitlocation"
+        fi
+        ;;
+    esac
 
     # Create an empty jail structure that we clone the git repo into
     # simulates __create_jail -e but without creating directories
@@ -22,12 +46,6 @@ __pull () {
 
     _jail_type="$(__get_jail_prop type $uuid)"
     _jail_path="$(__get_jail_prop mountpoint $uuid)"
-
-    if [ "$_gitlocation" = "none" ] ; then
-        unset _gitlocation
-        _gitlocation = "$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-                        ${pool}${iocroot}/jails/$uuid)"
-    fi
 
     # Begin git clone process
     cd ${_jail_path}/root
@@ -62,7 +80,7 @@ __push () {
   local _gitlocation _gitrepo _answer _match
 
   _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-             ${pool}${iocroot}/.defaults)"
+                ${pool}${iocroot}/.defaults)"
 
   # Make sure git is installed.
   if [ ! -e "/usr/local/bin/git" ] ; then
@@ -84,7 +102,8 @@ __push () {
       else
           _gitrepo="$_answer"
           _match="1"
-          git commit -a
+          git add -A
+          git commit
           git push -u "$2"
     if [ -z $_match ] ; then
         echo "Invalid repo $_gitrepo specified. Exiting."

@@ -42,6 +42,11 @@ __configure_jail () {
             elif [ "$prop_name" = "ip4_autoend" ] ; then
                 _value="${ip4_autoend}"
             elif [ "$prop_name" = "gitlocation" ] ; then
+                case "$gitlocation" in
+                    "-")
+                        gitlocation="https://github.com/"
+                    ;;
+                esac
                 _value="${gitlocation}"
             elif [ "$prop_name" = "vnet0_mac" ] ; then
                 case "$vnet0_mac" in
