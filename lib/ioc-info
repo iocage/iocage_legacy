@@ -302,6 +302,24 @@ __get_jail_prop () {
     fi
 }
 
+__get_dataset_zfs_prop () {
+    local _prop _dataset
+
+    _prop=${1}
+    _dataset=${2}
+
+    zfs get -Ho value ${_prop} ${_dataset}
+}
+
+__get_dataset_ioc_prop () {
+    local _prop _dataset
+
+    _prop=${1}
+    _dataset=${2}
+
+    zfs get -Ho value org.freebsd.iocage:${_prop} ${_dataset}
+}
+
 __runtime () {
     local name=$1
 
