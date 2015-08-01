@@ -79,7 +79,7 @@ __create_jail () {
     if [ -z "$_installed" -a -z "$_releases" ] ; then
         echo "  ERROR: No RELEASEs found locally, run iocage fetch first."
         exit 1
-    else
+    elif [ -z "$_installed" ] ; then
       echo "  RELEASE $release not found locally."
       echo "  Please fetch $release or rerun iocage with release=RELEASE"
       echo ""
