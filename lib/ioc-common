@@ -217,6 +217,16 @@ __fetch_release () {
 
   if [ -z "$answer" ] ; then
     answer="$release"
+  elif [ "$answer" == "10.1-RELEASE-ISO" ]; then
+	echo "Fetching the 10.1-RELEASE ISO"
+	fetch ftp://${ftphost}/pub/FreeBSD/releases/amd64/amd64/ISO-IMAGES/10.1/FreeBSD-10.1-RELEASE-amd64-bootonly.iso \
+	-o /iocage/download
+	exit
+  elif [ "$answer" == "9.3-RELEASE-ISO" ]; then
+	echo "Fetching the 9.3-RELEASE ISO"
+	fetch ftp://${ftphost}/pub/FreeBSD/releases/amd64/amd64/ISO-IMAGES/9.3/FreeBSD-9.3-RELEASE-amd64-bootonly.iso \
+	-o /iocage/download
+	exit
   else
     release="$answer"
     for rel in $(echo $supported) ; do

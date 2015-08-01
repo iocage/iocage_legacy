@@ -3,11 +3,13 @@
 # Print supported releases----------------------------------
 __print_release () {
     supported="10.1-RELEASE
-                9.3-RELEASE"
+                9.3-RELEASE
+               10.1-RELEASE-ISO
+                9.3-RELEASE-ISO"
 
     echo "Supported releases are: "
     for rel in $(echo $supported) ; do
-        printf "%15s\n" "$rel"
+        printf "%20s\n" "$rel"
     done
 }
 
