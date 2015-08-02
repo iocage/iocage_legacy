@@ -73,6 +73,14 @@ allow_mount_zfs=0
 allow_quotas=0
 allow_socket_af=0
 
+# bhyve defaults
+cpu=1
+ram=256
+size=8G
+con=nmdm0
+tap=tap0
+loader=bhyveload
+
 # RCTL limits
 cpuset="off"
 rlimits="off"
@@ -214,7 +222,13 @@ CONF_JAIL="devfs_ruleset
            allow_mount_zfs
            allow_quotas
            allow_socket_af
-           host_hostuuid"
+           host_hostuuid
+           cpu
+           ram
+           size
+           con
+           tap
+           loader"
 
 # Custom properties
 CONF_CUSTOM="tag
