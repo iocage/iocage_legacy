@@ -36,3 +36,67 @@ __create_vmm () {
 		zfs set org.freebsd.iocage:loader=bhyveload $pool/iocage/jails/$guestuuid
 	fi
 }
+
+# Load guest (lifted from iohyve)
+__load() {
+	local uuid="$1"
+	local media="$2"
+	local ram="$(zfs get -H -o value org.freebsd.iocage:ram $pool/iocage/jails/$uuid)"
+	local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$uuid)"
+	local loader="$(zfs get -H -o value org.freebsd.iocage:loader $pool/iocage/jails/$uuid)"
+	local install="$(zfs get -H -o value org.freebsd.iocage:install $pool/iocage/jails/$uuid)"
+	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
+
+	if [ $loader = "grub-bhyve" ]; then
+		if [ $install = "yes" ]; then
+			printf '\(hd0\)\ /dev/zvol/'$pool'/iocage/disks/'$diskid'.img\n' > /iocage/jails/$uuid/device.map
+			printf '\(cd0\)\ '$media'\n' >> /iocage/jails/$uuid/device.map
+			grub-bhyve -m /iocage/jails/$uuid/device.map -r cd0 -c /dev/${con}A -M $ram ioc-$uuid		
+		elif [ $install = "no" ]; then
+			printf '\(hd0\)\ /dev/zvol/'$pool'/iocage/disks/'$diskid'.img\n' > /iocage/jails/$uuid/device.map
+                        printf '\(cd0\)\ '$media'\n' >> /iocage/jails/$uuid/device.map
+                        grub-bhyve -m /iocage/jails/$uuid/device.map -r hd0,msdos1 -c /dev/${con}A -M $ram ioc-$uuid
+		fi
+	else
+		bhyveload -m $ram -d $media -c /dev/${con}A ioc-$uuid
+	fi
+}
+
+# Install guest (lifted from iohyve)
+__install() {
+	local uuid="$2"
+	local iso="$3"
+	local ram="$(zfs get -H -o value org.freebsd.iocage:ram $pool/iocage/jails/$uuid)"
+	local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$uuid)"
+	local cpu="$(zfs get -H -o value org.freebsd.iocage:cpu $pool/iocage/jails/$uuid)"
+	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
+
+	echo "Installing guest..."
+
+	# Set install prop
+	zfs set org.freebsd.iocage:install=yes $pool/iocage/jails/$uuid
+
+	# Load from CD
+	__load "$uuid" "/iocage/download/$iso"
+
+	# Setup tap if needed
+	if [ $tap != "tap0" ]; then
+		# no need to create tap0, should be installed already via README
+		# check to see if tap is already created before attempting to create new tap interface
+		local tapif="$(ifconfig -a | grep $tap: | cut -c1-4)"
+		if [ -z $tapif ]; then
+			# create tap interface
+			ifconfig $tap create
+			ifconfig bridge0 addm $tap
+		fi
+	fi
+
+	# Start the guest into ISO
+	bhyve -c $cpu -A -H -P -m $ram -s0,hostbridge -s1,lpc \
+	-s2,ahci-hd,/iocage/disks/$diskid \
+	-s3,ahci-cd,/iocage/download/$iso \
+	-s4,virtio-net,$tap
+	-lcom1,/dev/${con}A ioc-$uuid &
+
+  	exit
+}
