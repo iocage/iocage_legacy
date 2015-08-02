@@ -4,8 +4,15 @@
 __create_vmm () {
 	size="$2"
 	guestuuid=$uuid
-	diskid="$(echo $guestuuid | cut -d "-" -f1)"
+	diskid=$(echo $guestuuid | cut -d "-" -f1)
 	tag=$(date "+%F@%T")
+
+	if [ ! -e /iocage/disks ]; then
+		echo "Creating /iocage/disks directory..."
+		zfs create $pool/iocage/disks
+		zfs set mountpoint="/iocage/disks" $pool/iocage/disks
+	fi
+
 	if [ -z $size ]; then
 		echo "You must enter a disk size. Ex: iocage vmmcreate 8G"
 	else
