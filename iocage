@@ -74,6 +74,7 @@ fi
 . "${LIB}/ioc-configure"
 . "${LIB}/ioc-hacks"
 . "${LIB}/ioc-git"
+. "${LIB}/ioc-vmm"
 
 if [ -z "$1" ] ; then
     __usage

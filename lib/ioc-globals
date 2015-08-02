@@ -222,13 +222,15 @@ CONF_JAIL="devfs_ruleset
            allow_mount_zfs
            allow_quotas
            allow_socket_af
-           host_hostuuid
-           cpu
-           ram
-           size
-           con
-           tap
-           loader"
+           host_hostuuid"
+
+# bhyve properties
+CONF_BHYVE="cpu
+            ram
+            size
+            con
+            tap
+            loader"
 
 # Custom properties
 CONF_CUSTOM="tag

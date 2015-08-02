@@ -55,7 +55,8 @@ __set_jail_prop () {
            $CONF_CUSTOM
            $CONF_SYNC
            $CONF_FTP
-           $CONF_GIT"
+           $CONF_GIT
+           $CONF_BHYVE"
 
     for prop in $_CONF ; do
         if [ "$prop" == "$_pname" ] ; then
