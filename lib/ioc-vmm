@@ -46,7 +46,7 @@ __load() {
 	local loader="$(zfs get -H -o value org.freebsd.iocage:loader $pool/iocage/jails/$uuid)"
 	local install="$(zfs get -H -o value org.freebsd.iocage:install $pool/iocage/jails/$uuid)"
 	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
-	local pname=$(echo $uuid | cut -d "-" -f3)
+	local pname=$(echo $uuid | cut -d "-" -f3-)
 
 	if [ $loader = "grub-bhyve" ]; then
 		if [ $install = "yes" ]; then
@@ -71,7 +71,7 @@ __install_vmm() {
 	local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$uuid)"
 	local cpu="$(zfs get -H -o value org.freebsd.iocage:cpu $pool/iocage/jails/$uuid)"
 	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
-	local pname=$(echo $uuid | cut -d "-" -f3)
+	local pname=$(echo $uuid | cut -d "-" -f3-)
 
 	echo "Installing guest..."
 
