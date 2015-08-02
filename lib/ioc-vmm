@@ -14,7 +14,7 @@ __create_vmm () {
 		echo "Disk ID:" $diskid
 		echo "Disk size:" $size
 		zfs create $pool/iocage/jails/$guestuuid
-		zfs create -V $size -o volmode=dev $pool/iocage/jails/$guestuuid/$diskid.img
+		zfs create -V $size -o volmode=dev $pool/iocage/disks/$diskid.img
 		# Set defaults here until __configure_vmm is created. 
 		# iocage set and get will work just fine after guest is created. 
 		zfs set org.freebsd.iocage:host_hostuuid=$guestuuid $pool/iocage/jails/$guestuuid
@@ -22,6 +22,7 @@ __create_vmm () {
 		zfs set org.freebsd.iocage:tybe=vmm $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:cpu=1 $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:ram=256M $pool/iocage/jails/$guestuuid
+		zfs set org.freebsd.iocage:diskid=$diskid $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:size=$size $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:con=nmdm0 $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:tap=tap0 $pool/iocage/jails/$guestuuid
