@@ -70,6 +70,7 @@ __install_vmm() {
 	local ram="$(zfs get -H -o value org.freebsd.iocage:ram $pool/iocage/jails/$uuid)"
 	local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$uuid)"
 	local cpu="$(zfs get -H -o value org.freebsd.iocage:cpu $pool/iocage/jails/$uuid)"
+	local tap="$(zfs get -H -o value org.freebsd.iocage:tap $pool/iocage/jails/$uuid)"
 	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
 	local pname=$(echo $uuid | cut -d "-" -f3-)
 
