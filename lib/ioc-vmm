@@ -103,3 +103,51 @@ __install_vmm() {
 
   	exit
 }
+
+# Start the guest
+__start_vmm() {
+
+local huuid="$2"
+local ram="$(zfs get -H -o value org.freebsd.iocage:ram $pool/iocage/jails/$huuid)"
+local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$huuid)"
+local cpu="$(zfs get -H -o value org.freebsd.iocage:cpu $pool/iocage/jails/$huuid)"
+local tap="$(zfs get -H -o value org.freebsd.iocage:tap $pool/iocage/jails/$huuid)"
+local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$huuid)"
+local pname=$(echo $huuid | cut -d "-" -f3-)
+
+# Setup tap if needed
+if [ $tap != "tap0" ]; then
+	# no need to create tap0, should be installed already via README
+	# check to see if tap is already created before attempting to create new tap interface
+	local tapif="$(ifconfig -a | grep $tap: | cut -c1-4)"
+	if [ -z $tapif ]; then
+		# create tap interface
+		ifconfig $tap create
+		ifconfig bridge0 addm $tap
+	fi
+fi
+
+# Subshell magic
+local runstate="1"
+	(
+		while [ $runstate == "1" ]
+		do	
+			__load "$huuid" "/dev/zvol/$pool/iocage/disks/$diskid.img"
+			bhyve -c $cpu -A -H -P -m $ram -s0,hostbridge -s1,lpc \
+			-s2,ahci-hd,/dev/zvol/$pool/iocage/disks/$diskid.img \
+			-s3,virtio-net,$tap \
+			-lcom1,/dev/${con}A ioc-$pname &
+			local vmpid=$!
+			wait $vmpid
+			vmrc=$?
+			sleep 5
+			if [ $vmrc == "1" ]; then
+				# VM has been powered off
+				runstate="0"
+			else
+			fi
+		done
+		bhyvectl --destroy --vm=ioc-$pname
+	) &
+
+}

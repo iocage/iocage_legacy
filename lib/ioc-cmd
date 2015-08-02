@@ -30,6 +30,9 @@ __parse_cmd () {
             installvmm) __install_vmm "$@"
                         exit
                 ;;
+            startvmm)   __start_vmm "$@"
+                        exit
+                ;;
             defaults)   __print_defaults
                         exit
                 ;;
