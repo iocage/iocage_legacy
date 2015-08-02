@@ -27,6 +27,9 @@ __parse_cmd () {
             createvmm)  __create_vmm "$@"
                         exit
                 ;;
+            installvmm) __install_vmm "$@"
+                        exit
+                ;;
             defaults)   __print_defaults
                         exit
                 ;;

@@ -26,7 +26,7 @@ __create_vmm () {
 		# iocage set and get will work just fine after guest is created. 
 		zfs set org.freebsd.iocage:host_hostuuid=$guestuuid $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:tag=$tag $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:tybe=vmm $pool/iocage/jails/$guestuuid
+		zfs set org.freebsd.iocage:type=vmm $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:cpu=1 $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:ram=256M $pool/iocage/jails/$guestuuid
 		zfs set org.freebsd.iocage:diskid=$diskid $pool/iocage/jails/$guestuuid
@@ -37,7 +37,7 @@ __create_vmm () {
 	fi
 }
 
-# Load guest (lifted from iohyve)
+# Load guest
 __load() {
 	local uuid="$1"
 	local media="$2"
@@ -46,30 +46,32 @@ __load() {
 	local loader="$(zfs get -H -o value org.freebsd.iocage:loader $pool/iocage/jails/$uuid)"
 	local install="$(zfs get -H -o value org.freebsd.iocage:install $pool/iocage/jails/$uuid)"
 	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
+	local pname=$(echo $uuid | cut -d "-" -f3)
 
 	if [ $loader = "grub-bhyve" ]; then
 		if [ $install = "yes" ]; then
 			printf '\(hd0\)\ /dev/zvol/'$pool'/iocage/disks/'$diskid'.img\n' > /iocage/jails/$uuid/device.map
 			printf '\(cd0\)\ '$media'\n' >> /iocage/jails/$uuid/device.map
-			grub-bhyve -m /iocage/jails/$uuid/device.map -r cd0 -c /dev/${con}A -M $ram ioc-$uuid		
+			grub-bhyve -m /iocage/jails/$uuid/device.map -r cd0 -c /dev/${con}A -M $ram ioc-$pname		
 		elif [ $install = "no" ]; then
 			printf '\(hd0\)\ /dev/zvol/'$pool'/iocage/disks/'$diskid'.img\n' > /iocage/jails/$uuid/device.map
                         printf '\(cd0\)\ '$media'\n' >> /iocage/jails/$uuid/device.map
-                        grub-bhyve -m /iocage/jails/$uuid/device.map -r hd0,msdos1 -c /dev/${con}A -M $ram ioc-$uuid
+                        grub-bhyve -m /iocage/jails/$uuid/device.map -r hd0,msdos1 -c /dev/${con}A -M $ram ioc-$pname
 		fi
 	else
-		bhyveload -m $ram -d $media -c /dev/${con}A ioc-$uuid
+		bhyveload -m $ram -d $media -c /dev/${con}A ioc-$pname
 	fi
 }
 
-# Install guest (lifted from iohyve)
-__install() {
+# Install guest (must pass full uuid for right now until other functions integrated)
+__install_vmm() {
 	local uuid="$2"
 	local iso="$3"
 	local ram="$(zfs get -H -o value org.freebsd.iocage:ram $pool/iocage/jails/$uuid)"
 	local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$uuid)"
 	local cpu="$(zfs get -H -o value org.freebsd.iocage:cpu $pool/iocage/jails/$uuid)"
 	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
+	local pname=$(echo $uuid | cut -d "-" -f3)
 
 	echo "Installing guest..."
 
@@ -93,10 +95,10 @@ __install() {
 
 	# Start the guest into ISO
 	bhyve -c $cpu -A -H -P -m $ram -s0,hostbridge -s1,lpc \
-	-s2,ahci-hd,/iocage/disks/$diskid \
+	-s2,ahci-hd,/dev/zvol/$pool/iocage/disks/$diskid.img \
 	-s3,ahci-cd,/iocage/download/$iso \
-	-s4,virtio-net,$tap
-	-lcom1,/dev/${con}A ioc-$uuid &
+	-s4,virtio-net,$tap \
+	-lcom1,/dev/${con}A ioc-$pname &
 
   	exit
 }
