@@ -41,8 +41,8 @@ __pull () {
     zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
     zfs set mountpoint=none ${pool}/$jail_zfs_dataset
     zfs set jailed=on ${pool}/$jail_zfs_dataset
-    export type=gitjail
     __configure_jail ${pool}/iocage/jails/$uuid
+    __set_jail_prop type=gitjail ${uuid}
 
     _jail_type="$(__get_jail_prop type $uuid)"
     _jail_path="$(__get_jail_prop mountpoint $uuid)"
