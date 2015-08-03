@@ -2,16 +2,17 @@
 
 # Configure properties -------------------------------------------------
 __configure_jail () {
-    local _value _default_value
+    local _value _default_value _CONF
 
-    local CONF="$CONF_NET
-                $CONF_JAIL
-                $CONF_RCTL
-                $CONF_CUSTOM
-                $CONF_SYNC"
+    _CONF="$CONF_NET
+           $CONF_JAIL
+           $CONF_RCTL
+           $CONF_CUSTOM
+           $CONF_SYNC
+           $CONF_GIT"
 
-    echo "Configuring jail.."
-    for prop in $CONF ; do
+    #echo "Configuring jail.."
+    for prop in $_CONF ; do
         prop_name=$prop
         eval prop="\$${prop}"
         if [ ! -z "$prop" ] ; then
@@ -29,7 +30,24 @@ __configure_jail () {
             elif [ "$prop_name" = "host_hostuuid" ] ; then
                 _value="$uuid"
             elif [ "$prop_name" = "jail_zfs_dataset" ] ; then
-                _value="iocage/jails/${uuid}/root/data"
+                _value="${jail_zfs_dataset}"
+            elif [ "$prop_name" = "release" ] ; then
+                _value="${release}"
+            elif [ "$prop_name" = "hack88" ] ; then
+                _value="${hack88}"
+            elif [ "$prop_name" = "resolver" ] ; then
+                _value="${resolver}"
+            elif [ "$prop_name" = "ip4_autostart" ] ; then
+                _value="${ip4_autostart}"
+            elif [ "$prop_name" = "ip4_autoend" ] ; then
+                _value="${ip4_autoend}"
+            elif [ "$prop_name" = "gitlocation" ] ; then
+                case "$gitlocation" in
+                    "-")
+                        gitlocation="https://github.com"
+                    ;;
+                esac
+                _value="${gitlocation}"
             elif [ "$prop_name" = "vnet0_mac" ] ; then
                 case "$vnet0_mac" in
                     "-")
@@ -62,11 +80,15 @@ __configure_jail () {
                 _value="$prop"
             fi
 
-            echo "** $prop_name=$_value"
-            zfs set org.freebsd.iocage:$prop_name="$_value" $1
-            unset _value
-            if [ "$prop_name" == "tag" ] ; then
-                __link_tag $1
+            if [ "$1" != "generate" ] ; then
+                echo "** $prop_name=$_value"
+                zfs set org.freebsd.iocage:$prop_name="$_value" $1
+                unset _value
+                if [ "$prop_name" == "tag" ] ; then
+                    __link_tag $1
+                fi
+            elif [ "$1" == "generate" ] ; then
+                echo -n "-o org.freebsd.iocage:$prop_name=\"$_value\" "
             fi
         fi
     done
@@ -83,8 +105,12 @@ __configure_jail () {
                 _value="$prop"
             fi
 
-            echo "** $prop_name=$_value"
-            zfs set $prop_name="$_value" $1
+            if [ "$1" != "generate" ] ; then
+                echo "** $prop_name=$_value"
+                zfs set $prop_name="$_value" $1
+            elif [ "$1" == "generate" ] ; then
+                echo -n "-o $prop_name=\"$_value\" "
+            fi
         fi
     done
 }
@@ -109,17 +135,29 @@ EOT
 }
 
 # This is mostly for pkg autoinstall
+# expects fulluuid to be passed in as $1
 __resolv_conf () {
-    cat /etc/resolv.conf
+    local _name _resolver _resolver_default _fulluuid
+    _fulluuid="$1"
+    _default_resolver="$(__get_default_prop resolver)"
+    _resolver="$(__get_jail_prop resolver $_fulluuid)"
+
+    if [ "${_resolver}" != "none" ] ; then
+        echo "${_resolver}" | tr \; \\n
+    elif [ "${_resolver}" == "none" ] && [ "${_default_resolver}" != "none" ] ; then
+        echo "${_default_resolver}" | tr \; \\n
+    else
+        cat /etc/resolv.conf
+    fi
 }
 
 __pkg_install () {
-    local chrootdir="$1"
+    local _chrootdir="$1"
 
     if [ -e $pkglist ] ; then
         echo "* Installing extra packages.."
         for i in $(cat $pkglist) ; do
-            pkg -c $chrootdir install -qy $i
+            pkg -c $_chrootdir install -qy $i
         done
     fi
 }
@@ -151,8 +189,7 @@ __reset_jail_props () {
         echo " "
         echo -n "  Are you sure? Y[n]: "
         read answer
-
-        if [ "$answer" == "Y" ]; then
+        if [ "$answer" == "Y" ] || [ "$answer" == "y" ] ; then
             echo "  Resetting all jails."
 
             __reset_jail_props_all
@@ -171,7 +208,16 @@ __reset_jail_props () {
     vnet1_mac="$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_dataset)"
     vnet2_mac="$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_dataset)"
     vnet3_mac="$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_dataset)"
-
+    release="$(zfs get -H -o value org.freebsd.iocage:release $_dataset)"
+    hack88="$(zfs get -H -o value org.freebsd.iocage:hack88 $_dataset)"
+    jail_zfs_dataset="$(zfs get -H -o value org.freebsd.iocage:jail_zfs_dataset\
+     $_dataset)"
+    resolver="$(zfs get -H -o value org.freebsd.iocage:resolver $_dataset)"
+    ip4_autostart="$(zfs get -H -o value org.freebsd.iocage:ip4_autostart\
+     $_dataset)"
+    ip4_autoend="$(zfs get -H -o value org.freebsd.iocage:ip4_autoend\
+     $_dataset)"
+    gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
     __configure_jail $_dataset
 }
 

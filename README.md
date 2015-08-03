@@ -48,12 +48,12 @@ Start the jail:
 
 **USAGE:**
 -  iocage activate ZPOOL
--  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]
+-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
 -  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
 -  iocage clone UUID|TAG@snapshot [property=value]
 -  iocage destroy [-f] UUID|TAG|ALL
 -  iocage reset UUID|TAG|ALL
--  iocage list [-t]
+-  iocage list [-t|-r]
 -  iocage start UUID|TAG
 -  iocage stop UUID|TAG
 -  iocage restart UUID|TAG
@@ -64,16 +64,15 @@ Start the jail:
 -  iocage chroot UUID|TAG [command]
 -  iocage df
 -  iocage show property
--  iocage get property|all ] UUID|TAG
+-  iocage get property|all UUID|TAG
 -  iocage set property=value UUID|TAG
 -  iocage cap UUID|TAG
 -  iocage limits UUID|TAG
 -  iocage uncap UUID|TAG
 -  iocage inuse [UUID|TAG]
--  iocage top UUID|TAG
 -  iocage snapshot UUID|TAG@snapshotname
 -  iocage snaplist UUID|TAG
--  iocage snapremove UUID|TAG@snapshotname
+-  iocage snapremove UUID|TAG@snapshotname|ALL
 -  iocage rollback UUID|TAG@snapshotname
 -  iocage promote UUID|TAG
 -  iocage runtime UUID|TAG

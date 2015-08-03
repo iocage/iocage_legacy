@@ -156,23 +156,3 @@ __rctl_inuse_all () {
         unset _line
     done
 }
-
-__top () {
-    local _jail _fulluuid _state
-    _jail="$1"
-
-    if [ ! -z ${_jail} ] ; then
-        _fulluuid="$(__check_name $_jail)"
-    else
-        echo "  ERROR: missing UUID or TAG"
-        exit 1
-    fi
-
-    _state="$(__is_running ${_fulluuid})"
-
-    if [ ${_state} -gt 0 ] ; then
-        top -J ioc-${_fulluuid}
-    else
-        echo "  ERROR: jail ${_jail} is down"
-    fi
-}

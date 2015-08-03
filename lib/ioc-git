@@ -1,0 +1,114 @@
+#!/bin/sh
+__pull () {
+    local _gitlocation _jail_type _jail_path
+    _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
+                  ${pool}${iocroot}/.defaults)"
+
+    if [ "$_gitlocation" = "-" ] ; then
+        _gitlocation="none"
+    fi
+
+    # Make sure git is installed.
+    if [ ! -e "/usr/local/bin/git" ] ; then
+        echo "  ERROR: Git is not installed. Please install git first."
+        exit 1
+    fi
+
+    # Check to see if the url begins with these otherwise use gitlocation
+    case "$1" in
+        http://*|https://*|git://*)
+          unset _gitlocation
+          _gitlocation="$1"
+        ;;
+        *)
+        if [ "$_gitlocation" = "none" -a -z "$iocset_gitlocation" ] ; then
+            echo ""
+            echo "  ERROR: You must either specify gitlocation= or set a default"
+            echo "  iocage set gitlocation=LOCATION default"
+            echo ""
+            exit 1
+        elif [ -n "$iocset_gitlocation" ] ; then
+            unset _gitlocation
+            _gitlocation="$iocset_gitlocation"
+        fi
+        ;;
+    esac
+
+    # Create an empty jail structure that we clone the git repo into
+    # simulates __create_jail -e but without creating directories
+    # git clone complains about that.
+    zfs create -o compression=lz4 -p ${pool}/iocage/jails/$uuid/root
+    zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
+    zfs set mountpoint=none ${pool}/$jail_zfs_dataset
+    zfs set jailed=on ${pool}/$jail_zfs_dataset
+    export type=gitjail
+    __configure_jail ${pool}/iocage/jails/$uuid
+
+    _jail_type="$(__get_jail_prop type $uuid)"
+    _jail_path="$(__get_jail_prop mountpoint $uuid)"
+
+    # Begin git clone process
+    cd ${_jail_path}/root
+    if [ -z "$iocset_branch" ] ; then
+        git clone --depth 1 $_gitlocation/$1 .
+    else
+        git clone -b $iocset_branch --depth 1 $_gitlocation/$1.git .
+    fi
+
+    # Check if user has a custom git location set
+    if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
+        touch ${_jail_path}/fstab
+    else
+        echo "  WARNING: Pushing will be disabled, please set a custom repo."
+        echo "  You can do this by issuing: iocage set gitlocation=URL default"
+        git branch --unset-upstream
+        touch ${_jail_path}/fstab
+    fi
+
+    # Check for rc.conf and resolv.conf, create them if they don't exist.
+    if [ ! -e "${_jail_path}/root/etc/rc.conf" ] ; then
+        echo "hostname=\"${hostname}\"" > ${_jail_path}/root/etc/rc.conf
+        __jail_rc_conf >> ${_jail_path}/root/etc/rc.conf
+    fi
+
+    if [ ! -e "${_jail_path}/root/etc/resolv.conf" ] ; then
+        __resolv_conf ${uuid} > ${_jail_path}/root/etc/resolv.conf
+    fi
+}
+
+__push () {
+  local _gitlocation _gitrepo _answer _match
+
+  _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
+                ${pool}${iocroot}/.defaults)"
+
+  # Make sure git is installed.
+  if [ ! -e "/usr/local/bin/git" ] ; then
+      echo "  ERROR: Git is not installed. Please install git first."
+      exit 1
+  fi
+
+  # Check if user has a custom git location set
+  if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
+      # Will add all files and open a dialog for a git commit
+      git add -A
+      git commit
+      git push
+  else
+      echo -n "Please enter a git repo to push to: "
+      read _answer
+      if [ -z "$_answer" ] ; then
+          _answer="$_gitrepo"
+      else
+          _gitrepo="$_answer"
+          _match="1"
+          git add -A
+          git commit
+          git push -u "$2"
+    if [ -z $_match ] ; then
+        echo "Invalid repo $_gitrepo specified. Exiting."
+        exit 1
+    fi
+  fi
+fi
+}

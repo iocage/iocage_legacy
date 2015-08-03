@@ -95,7 +95,7 @@ __upgrade () {
         exit 0
     else
         echo ""
-        echo "  Mergemaster failed! Backing out."
+        echo "  Etcupdate failed! Backing out."
         zfs set org.freebsd.iocage:release="$oldrelease" $dataset
         rm -rf ${mountpoint}/root/etc
         mv ${mountpoint}/root/etc.old ${mountpoint}/root/etc

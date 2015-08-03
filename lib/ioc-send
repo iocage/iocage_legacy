@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# This is for remote host initialization
+# example: iocage init-host IP-ADDRESS
+# will set up the host for iocage
+
+__init_host () {
+    local _fs _fs_list _host _remote_pool
+
+    _host="$1"
+    _pool="$2"
+    _fs_list="${iocroot}/base
+              ${iocroot}/download
+              ${iocroot}/releases
+              ${iocroot}/.defaults"
+
+    if [ -z $_host ] || [ -z $_pool ] ; then
+        echo "ERROR: missing host or pool name"
+        exit 1
+    fi
+
+    _remote_pool="$(ssh root@$_host zpool get -H -o value name $_pool)"
+
+    if [ -z "$_remote_pool" ] ; then
+        echo "ERROR: no remote pool $_pool found"
+        exit 1
+    fi
+
+    ssh root@$_host "zpool set comment=iocage $_remote_pool"
+    ssh root@$_host "zfs create ${_remote_pool}${iocroot}
+                     && zfs set mountpoint=${iocroot} ${_remote_pool}${iocroot}
+                     && mkdir ${iocroot}/log"
+
+    for _fs in $(echo $_fs_list) ; do
+        zfs snapshot -r ${pool}${_fs}@init
+        zfs send -vR ${pool}${_fs}@init | ssh root@$_host "zfs recv ${_remote_pool}${_fs}"
+        zfs destroy -r ${pool}${_fs}@init
+    done
+}

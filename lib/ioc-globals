@@ -23,6 +23,8 @@ host_hostname=$uuid
 exec_fib=0
 hostname=$uuid
 ip4_addr="none"
+ip4_autostart="none"
+ip4_autoend="none"
 ip4_saddrsel="1"
 ip4="new"
 ip6_addr="none"
@@ -30,6 +32,7 @@ ip6_saddrsel="1"
 ip6="new"
 defaultrouter="none"
 defaultrouter6="none"
+resolver="none"
 mac_prefix="02ff60"
 vnet0_mac="none"
 vnet1_mac="none"
@@ -131,6 +134,9 @@ sync_tgt_zpool="none"
 ftphost="ftp.freebsd.org"
 ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
+# Git properties
+gitlocation="https://github.com"
+
 # Resource limits
 CONF_RCTL="memoryuse
            memorylocked
@@ -159,6 +165,8 @@ CONF_NET="interfaces
           host_hostname
           hostname
           ip4_addr
+          ip4_autostart
+          ip4_autoend
           ip4_saddrsel
           ip4
           ip6_addr
@@ -166,6 +174,7 @@ CONF_NET="interfaces
           ip6
           defaultrouter
           defaultrouter6
+          resolver
           exec_fib
           vnet0_mac
           vnet1_mac
@@ -241,7 +250,12 @@ CONF_SYNC="sync_stat
            sync_tgt_zpool"
 
 # ftp properties
-CONF_FTP="ftphost ftpdir"
+CONF_FTP="ftphost
+          ftpdir"
+
+# git properties
+CONF_GIT="gitlocation
+          branch"
 
 # Basejail filesystems
 bfs_list="bin
@@ -268,4 +282,3 @@ bdir_list="dev
            root
            proc
            mnt"
-

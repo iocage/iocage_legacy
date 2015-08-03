@@ -70,7 +70,7 @@ __start_jail () {
     fi
 
     if [ "$procfs" == "1" ] ; then
-        mount -t procfs proc $iocroot/jails/${fulluuid}/root/proc
+        mount -t procfs proc ${jail_path}/root/proc
     fi
 
     local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"
@@ -134,6 +134,12 @@ __start_jail () {
         fi
     fi
 
+    if [ $jzfs == "on" ] ; then
+        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
+    fi
+
+    __resolv_conf ${fulluuid} > ${jail_path}/root/etc/resolv.conf
+
     echo -n "  + Starting services"
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
      >> $iocroot/log/${fulluuid}-console.log 2>&1
@@ -142,10 +148,6 @@ __start_jail () {
         echo "        FAILED"
     else
         echo "        OK"
-    fi
-
-    if [ $jzfs == "on" ] ; then
-        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
     fi
 
     zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
@@ -207,16 +209,22 @@ __legacy_start () {
     local jail_path="$(__get_jail_prop mountpoint $name)"
     local ip4_addr="$(__get_jail_prop ip4_addr $name)"
     local ip6_addr="$(__get_jail_prop ip6_addr $name)"
+    local ip4="$(__get_jail_prop ip4 $name)"
 
     local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $name)"
     local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $name)"
+
+    # Get the default and current interfaces specified
+    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
+                         awk '{ print $6 }')"
+    local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
+    local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
 
     if [ "$(uname -U)" == "903000" ];
     then
       fdescfs=""
       tmpfs=""
     fi
-
 
     if [ $ip4_addr == "none" ] ; then
         ip4_addr=""
@@ -226,14 +234,43 @@ __legacy_start () {
         ip6_addr=""
     fi
 
+    # Change the DEFAULT tag to correct iface
+    ip4_addr=$(echo $ip4_addr | sed "s/DEFAULT|/$default_iface|/g")
+    ip6_addr=$(echo $ip6_addr | sed "s/DEFAULT|/$default_iface|/g")
+
+    # this is mostly a temporary workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=196474
+    if [ $ip4 == 'inherit' ] ; then
+        ip4="inherit"
+        ip6="inherit"
+        ip4_addr_propline=""
+        ip6_addr_propline=""
+    else
+        ip4_addr_propline="ip4.addr=$ip4_addr"
+        ip6_addr_propline="ip6.addr=$ip6_addr"
+    fi
+
+    # Check if the user specified they wanted to use an automatic IP4 address
+    echo "$ip4_addr" | grep -q "AUTOIP4"
+    if [ $? -eq 0 ] ; then
+        __get_autoip4
+        if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
+            new_iface="DEFAULT"
+            ip4_addr_propline="ip4.addr=$default_iface|${auto_ip4}/24"
+        else
+            new_iface="$cur_ip4_iface"
+            ip4_addr_propline="ip4.addr=$cur_ip4_iface|${auto_ip4}/24"
+        fi
+        __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $name
+    fi
+
     if [ $ipv6 == "on" ] ; then
         jail -c \
-        ip4.addr="$ip4_addr" \
+        ${ip4_addr_propline} \
         ip4.saddrsel="$(__get_jail_prop ip4_saddrsel $name)" \
-        ip4="$(__get_jail_prop ip4 $name)" \
-        ip6.addr="$ip6_addr" \
+        ip4="${ip4}" \
+        ${ip6_addr_propline} \
         ip6.saddrsel="$(__get_jail_prop ip6_saddrsel $name)" \
-        ip6="$(__get_jail_prop ip6 $name)" \
+        ip6="${ip6}" \
         name="ioc-$(__get_jail_prop host_hostuuid $name)" \
         host.hostname="$(__get_jail_prop hostname $name)" \
         path="${jail_path}/root" \
@@ -269,9 +306,9 @@ __legacy_start () {
         persist
     else
         jail -c \
-        ip4.addr="$ip4_addr" \
+        ${ip4_addr_propline} \
         ip4.saddrsel="$(__get_jail_prop ip4_saddrsel $name)" \
-        ip4="$(__get_jail_prop ip4 $name)" \
+        ip4="${ip4}" \
         name="ioc-$(__get_jail_prop host_hostuuid $name)" \
         host.hostname="$(__get_jail_prop hostname $name)" \
         path="${jail_path}/root" \
@@ -336,6 +373,7 @@ __stop_jail () {
     local exec_poststop="$(__findscript $fulluuid poststop)"
     local vnet="$(__get_jail_prop vnet $fulluuid)"
     local state="$(jls | grep ${jail_path} | wc -l)"
+    local ip4="$(__get_jail_prop ip4 $fulluuid)"
 
     if [  "$state" -lt "1" ] ; then
         echo "* ${fulluuid}: is already down"
@@ -345,7 +383,7 @@ __stop_jail () {
     echo "* Stopping $fulluuid ($tag)"
 
     echo -n "  + Running pre-stop"
-    echo "$exec_prestop" | sh
+    eval "$exec_prestop"
     if [ $? -ne 1 ] ; then
         echo "         OK"
     else
@@ -371,7 +409,10 @@ __stop_jail () {
             echo "        OK"
         fi
     else
-        __stop_legacy_networking $name
+        # don't try to tear down networking if we have "inherit" set
+        if [ "$ip4" != 'inherit' ] ; then
+            __stop_legacy_networking $name
+        fi
     fi
 
     echo -n "  + Removing jail process"
@@ -384,7 +425,7 @@ __stop_jail () {
     fi
 
     echo -n "  + Running post-stop"
-    echo "$exec_poststop" | sh
+    eval "$exec_poststop"
     if [ $? -ne 1 ] ; then
         echo "        OK"
     else
@@ -503,4 +544,3 @@ __rc_jails () {
 
     rm $boot_list
 }
-

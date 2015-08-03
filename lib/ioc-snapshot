@@ -27,29 +27,35 @@ __snapshot () {
 
 
 __snapremove () {
-    local name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    local _name _snap _snapshot _snapshots _dataset
+    _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+    _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
 
-    if [ -z $name ] ; then
+    if [ -z ${_name} ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
+    _dataset="$(__find_jail ${_name})"
 
-    if [ -z $dataset ] ; then
+    if [ -z ${_dataset} ] ; then
         echo "  ERROR: jail dataset not found"
         exit 1
     fi
 
-    if [ $dataset == "multiple" ] ; then
+    if [ ${_dataset} == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
-    if [ ! -z $snapshot ] ; then
-        echo "* removing snapshot: ${snapshot}"
-        zfs destroy -r ${dataset}@${snapshot}
+    if [ ! -z ${_snapshot} ] && [ "${_snapshot}" != "ALL" ] ; then
+        echo "* removing snapshot: ${_snapshot}"
+        zfs destroy -r ${_dataset}@${_snapshot}
+    elif [ "${_snapshot}" == "ALL" ] ; then
+        _snapshots="$(zfs list -d1 -Hrt snapshot -o name ${_dataset})"
+        for _snap in $(echo ${_snapshots}) ; do
+            zfs destroy -r ${_snap}
+        done 
     else
         echo "  ERROR: snapshot not found"
         exit 1

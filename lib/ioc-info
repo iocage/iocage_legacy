@@ -13,19 +13,28 @@ __print_release () {
 
 # Print defaults set in this script.
 __print_defaults () {
-    CONF="$CONF_NET
-          $CONF_JAIL
-          $CONF_RCTL
-          $CONF_CUSTOM
-          $CONF_ZFS
-          $CONF_SYNC
-          $CONF_FTP"
+    local _prop _prop_name _saved_default
 
-    for prop in $(echo $CONF)  ; do
-        prop_name=$prop
-        eval prop="\$${prop}"
-        if [ ! -z "$prop" ] ; then
-            echo "$prop_name=$prop"
+    _CONF="$CONF_NET
+           $CONF_JAIL
+           $CONF_RCTL
+           $CONF_CUSTOM
+           $CONF_ZFS
+           $CONF_SYNC
+           $CONF_FTP
+           $CONF_GIT"
+
+    for _prop in $(echo $_CONF)  ; do
+        _prop_name=$_prop
+        eval _prop="\$${_prop}"
+
+        if [ ! -z "${_prop}" ] ; then
+            _saved_default="$(__get_jail_prop ${_prop_name} default)"
+            if [ "${_saved_default}" != "none" ] ; then
+                echo "${_prop_name}=${_saved_default}"
+            else
+                echo "${_prop_name}=${_prop}"
+            fi
         fi
     done
 }
@@ -49,7 +58,7 @@ __get_default_prop () {
 __find_jail () {
     local name=$1
     local jlist="/tmp/iocage-jail-list.$$"
-    local jails="$(zfs list -rH -o name $pool/iocage/jails \
+    local jails="$(zfs list -d1 -rH -o name $pool/iocage/jails \
                  | grep -E \
                 "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
 
@@ -111,7 +120,6 @@ __list_jails () {
         boot=$(zfs get -H -o value org.freebsd.iocage:boot $jail)
         tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
         jail_path=$(zfs get -H -o value mountpoint $jail)
-        state=$(jls | grep ${jail_path} | awk '{print$1}')
         state=$(jls | grep ${jail_path} | awk '{print$1}')
         template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
         # get jid for iocage jails
@@ -215,62 +223,55 @@ __find_mypool () {
             echo "ERROR: No pool for iocage jails found on boot ..exiting"
             exit 1
         else
-            echo -n "  please select a pool for iocage jails [$i]: "
-            read answer
-
-            if [ -z "$answer" ] ; then
-                answer=$i
-            else
-                answer="$(echo $answer|awk 'BEGIN { FS = "/" } ; { print $1 }')"
-            fi
-
-            zpool set comment=iocage $answer
-            export pool=$answer
+            echo "Setting up zpool [$i] for iocage usage..."
+            echo "If you wish to change zpool, use 'iocage activate'"
+            zpool set comment=iocage $i
+            export pool=$i
         fi
     fi
 }
 
 # Get jail properties
 __get_jail_prop () {
-    local _value _found
-    local name="$2"
-    local property="$1"
-    _found="0"
+    local _value _found _name _property _dataset _CONF
 
-    if [ -z "$property" ] ; then
+    _name="$2"
+    _property="$1"
+    _found="0"
+    _dataset="$(__find_jail $_name)"
+    _CONF="$CONF_NET
+           $CONF_JAIL
+           $CONF_RCTL
+           $CONF_CUSTOM
+           $CONF_SYNC
+           $CONF_FTP
+           $CONF_GIT"
+
+    if [ -z "$_property" ] ; then
         echo "  ERROR: get failed, incorrect property syntax!"
         exit 1
     fi
 
-    if [ -z "$name" ] ; then
-        echo "  ERROR: missing UUID!"
+    if [ -z "$_name" ] ; then
+        echo "  ERROR: missing UUID or property!"
         exit 1
     fi
 
-    local dataset="$(__find_jail $name)"
-
-    if [ -z "$dataset" ] ; then
-        echo "  ERROR: jail $name not found!"
+    if [ -z "$_dataset" ] ; then
+        echo "  ERROR: jail $_name not found!"
         exit 1
     fi
 
-    if [ "$dataset" == "multiple" ] ; then
+    if [ "$_dataset" == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
 
-
-    local CONF="$CONF_NET
-                $CONF_JAIL
-                $CONF_RCTL
-                $CONF_CUSTOM
-                $CONF_SYNC"
-
-    for prop in $CONF ; do
-        if [ $prop == $property ] ; then
+    for prop in $_CONF ; do
+        if [ $prop == $_property ] ; then
             _found=1
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
-                         $dataset)"
+                         $_dataset)"
             # Fix nonexistent property problem (zfs get returns "-")
             # info: https://github.com/iocage/iocage/issues/76
             if [ "$_value" == '-' ] ; then
@@ -279,24 +280,24 @@ __get_jail_prop () {
                 echo "$_value"
             fi
 
-        elif [ $property == "all" ] ; then
+        elif [ $_property == "all" ] ; then
             _found=1
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
-                         $dataset)"
+                         $_dataset)"
             echo "$prop:$_value"
         fi
     done
 
     for prop in $CONF_ZFS ; do
-        if [ $prop == $property ] ; then
+        if [ $prop == $_property ] ; then
             _found=1
-            _value="$(zfs get -H -o value $prop $dataset)"
+            _value="$(zfs get -H -o value $prop $_dataset)"
             echo "$_value"
         fi
     done
 
     if [ $_found -ne "1" ] ; then
-        echo "  ERROR: unsupported property: $property !"
+        echo "  ERROR: unsupported property: $_property !"
         exit 1
     fi
 }

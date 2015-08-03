@@ -8,6 +8,12 @@ __export_props () {
             export "iocset_${i}"
         fi
     done
+
+    if [ "$tag" == 'default' ] && ([ "$1" != 'set' ] || [ "$1" != 'get' ]); then
+        tag=$(date "+%F@%T")
+        echo "  WARNING: tag value \"default\" is a reserved keyword"
+        echo "           tag was changed to: $tag"
+    fi
 }
 
 # Set properties ------------------------------------------------------
@@ -47,13 +53,15 @@ __set_jail_prop () {
            $CONF_JAIL
            $CONF_RCTL
            $CONF_CUSTOM
-           $CONF_SYNC"
+           $CONF_SYNC
+           $CONF_FTP
+           $CONF_GIT"
 
     for prop in $_CONF ; do
         if [ "$prop" == "$_pname" ] ; then
             _found=1
             zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
-            if [ "$_pname" == "_tag" ] ; then
+            if [ "$_pname" == "tag" ] ; then
                 __unlink_tag $_dataset
                 __link_tag $_dataset
             fi
@@ -74,7 +82,7 @@ __set_jail_prop () {
 }
 
 __console () {
-    local _name _dataset _fulluuid _login_flags
+    local _name _dataset _fulluuid _login_flags _jexec _exec_fib
     _name=$1
 
     if [ -z $_name ] ; then
@@ -99,11 +107,19 @@ __console () {
     _login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
                   $pool/iocage/jails/$_fulluuid)
 
-    jexec ioc-${_fulluuid} login $_login_flags
+    _exec_fib=$(zfs get -H -o value org.freebsd.iocage:exec_fib \
+                  $pool/iocage/jails/$_fulluuid)
+
+    _jexec="jexec"
+    if [ $_exec_fib -ne "0" ] ; then
+        _jexec="setfib $_exec_fib jexec"
+    fi
+
+    $_jexec ioc-${_fulluuid} login $_login_flags
 }
 
 __exec () {
-    local _jexecopts _name _dataset _fulluuid
+    local _jexecopts _name _dataset _fulluuid _jexec _exec_fib
     _jexecopts=
 
     # check for -U or -u to pass to jexec
@@ -123,15 +139,15 @@ __exec () {
     if [ -z $_name ] ; then
         echo "  ERROR: Missing UUID!"
         exit 1
-
     elif [ $_name == ALL ]; then
         local _jails _fulluuid
         _jails="$(__find_jail ALL)"
 
-    for jail in $_jails ; do
-        _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
-        jexec $_jexecopts ioc-${_fulluuid} "$@"
+        for jail in $_jails ; do
+            _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
+            jexec $_jexecopts ioc-${_fulluuid} "$@"
         done
+
         exit 0
     fi
 
@@ -149,7 +165,15 @@ __exec () {
 
     _fulluuid="$(__check_name $_name)"
 
-    jexec $_jexecopts ioc-${_fulluuid} "$@"
+    _exec_fib=$(zfs get -H -o value org.freebsd.iocage:exec_fib \
+                  $pool/iocage/jails/$_fulluuid)
+
+    _jexec="jexec"
+    if [ $_exec_fib -ne "0" ] ; then
+        _jexec="setfib $_exec_fib jexec"
+    fi
+
+    $_jexec $_jexecopts ioc-${_fulluuid} "$@"
 }
 
 __chroot () {
@@ -175,8 +199,9 @@ __chroot () {
     fi
 
     _fulluuid="$(__check_name $_name)"
+    _jailroot="$(zfs get -Ho value mountpoint $_dataset)"
 
-    chroot ${iocroot}/jails/${_fulluuid}/root $_command
+    chroot ${_jailroot}/root $_command
 }
 
 # Fetch release and prepare base ZFS filesystems-----------
@@ -185,28 +210,28 @@ __fetch_release () {
     _default_rel=$(uname -r|cut -f 1,2 -d'-')
 
     if [ -z "$iocset_release" ] ; then
-	__print_release
+  __print_release
 
-	echo -n "Please select a release [$release]: "
-	read answer
+  echo -n "Please select a release [$release]: "
+  read answer
 
-	if [ -z "$answer" ] ; then
-		answer="$release"
-	else
-		release="$answer"
-		for rel in $(echo $supported) ; do
-			if [ "$answer" == "$rel" ] ; then
-				release="$rel"
-				match="1"
-				break
-			fi
-		done
+  if [ -z "$answer" ] ; then
+    answer="$release"
+  else
+    release="$answer"
+    for rel in $(echo $supported) ; do
+      if [ "$answer" == "$rel" ] ; then
+        release="$rel"
+        match="1"
+        break
+      fi
+    done
 
-		if [ -z $match ] ; then
-			echo "Invalid release $release specified, exiting.."
-			exit 1
-		fi
-	fi
+    if [ -z $match ] ; then
+      echo "Invalid release $release specified, exiting.."
+      exit 1
+    fi
+  fi
     fi
 
 
@@ -218,7 +243,7 @@ __fetch_release () {
     fi
 
     if [ -z "$ftpdir" ] ; then
-	ftpdir="/pub/FreeBSD/releases/amd64/$release"
+        ftpdir="/pub/FreeBSD/releases/amd64/$release"
     fi
 
     cd ${iocroot}/download/${release}
@@ -226,8 +251,8 @@ __fetch_release () {
         if [ ! -e "$file" ] ; then
             fetch http://${ftphost}${ftpdir}/${file}
             if [ $? -ne 0 ] ; then
-		echo "Failed fetching $file.."
-		exit 1
+                echo "Failed fetching $file.."
+                exit 1
             fi
         fi
     done

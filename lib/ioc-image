@@ -1,60 +1,59 @@
 #!/bin/sh
 
 __record () {
-    local name=$2
-    local action=$1
+    local _name _action _dataset _fulluuid _mountpoint _union_mount
 
-    if [ -z $action ] ; then
-        echo "  ERROR: missing action or UUID"
+    _name=$2
+    _action=$1
+    _dataset=$(__find_jail $_name)
+    _fulluuid="$(__check_name $_name)"
+    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
+    _union_mount="$(mount -t unionfs | grep $_fulluuid | wc -l)"
+
+    if [ -z $_action ] ; then
+        echo "  ERROR: Missing action or UUID!"
         exit 1
     fi
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing action or UUID"
+    if [ -z $_name ] ; then
+        echo "  ERROR: Missing action or UUID."
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+    if [ -z $_dataset ] ; then
+        echo "  ERROR: $_name not found."
         exit 1
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+    if [ $_dataset == "multiple" ] ; then
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
-    local fulluuid="$(__check_name $name)"
-
-    local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
-    local union_mount="$(mount -t unionfs | grep $fulluuid | wc -l)"
-
-    if [ ! -d ${mountpoint}/recorded ] ; then
-        mkdir ${mountpoint}/recorded
+    if [ ! -d ${_mountpoint}/recorded ] ; then
+        mkdir ${_mountpoint}/recorded
     fi
 
 
-    if [ $action == "start" ] ; then
-        echo "* Recording to: ${mountpoint}/recorded"
+    if [ $_action == "start" ] ; then
+        echo "* Recording to: ${_mountpoint}/recorded"
 
-        if [ $union_mount -lt 1 ] ; then
+        if [ $_union_mount -lt 1 ] ; then
             mount -t unionfs -o noatime,copymode=transparent \
-            ${mountpoint}/recorded/ ${mountpoint}/root
+            ${_mountpoint}/recorded/ ${_mountpoint}/root
         fi
 
-    elif [ $action == "stop" ] ; then
-        umount -ft unionfs $iocroot/jails/${fulluuid}/root > /dev/null 2>&1
-        echo "* Stopped recording to: ${mountpoint}/recorded"
+    elif [ $_action == "stop" ] ; then
+        umount -ft unionfs $iocroot/jails/${_fulluuid}/root > /dev/null 2>&1
+        echo "* Stopped recording to: ${_mountpoint}/recorded"
 
-        find ${mountpoint}/recorded/ -type d -empty -exec rm -rf {} \; \
+        find ${_mountpoint}/recorded/ -type d -empty -exec rm -rf {} \; \
         > /dev/null 2>&1
-        find ${mountpoint}/recorded/ -type f -size 0 -exec rm -f {} \; \
+        find ${_mountpoint}/recorded/ -type f -size 0 -exec rm -f {} \; \
         > /dev/null 2>&1
-        find ${mountpoint}/recorded/ -name "utx.*" -exec rm -f {} \; \
+        find ${_mountpoint}/recorded/ -name "utx.*" -exec rm -f {} \; \
         > /dev/null 2>&1
-        find ${mountpoint}/recorded/ -name .history -exec rm -f {} \; \
+        find ${_mountpoint}/recorded/ -name .history -exec rm -f {} \; \
         > /dev/null 2>&1
     fi
 }
@@ -62,32 +61,31 @@ __record () {
 __package () {
     # create package from recorded changes
     # sha256 too
-    local name=$1
+    local _name _dataset _fulluuid _mountpoint
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+    _name=$1
+    _dataset=$(__find_jail $_name)
+    _fulluuid="$(__check_name $_name)"
+    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
+
+    if [ -z $_name ] ; then
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+    if [ -z $_dataset ] ; then
+        echo "  ERROR: $_name not found."
         exit 1
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+    if [ $_dataset == "multiple" ] ; then
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
-    local fulluuid="$(__check_name $name)"
-
-    local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
-
-    if [ ! -d ${mountpoint}/recorded ] ; then
-        echo "  ERROR: nothing to package, missing recorded directory!"
-        echo "  HINT: have you recorded the jail?"
+    if [ ! -d ${_mountpoint}/recorded ] ; then
+        echo "  ERROR: Nothing to package, missing recorded directory!"
+        echo "  HINT: Have you recorded the jail?"
         exit 1
     fi
 
@@ -96,141 +94,140 @@ __package () {
     fi
 
     echo "* Creating package..."
-    tar -cvJf $iocroot/packages/$fulluuid.tar.xz -C ${mountpoint}/recorded . && \
-    sha256 -q $iocroot/packages/$fulluuid.tar.xz > $iocroot/packages/$fulluuid.sha256
-    echo "* Package saved to: $iocroot/packages/$fulluuid.tar.xz"
-    echo "* Checksum created: $iocroot/packages/$fulluuid.sha256"
+    tar -cvJf $iocroot/packages/$_fulluuid.tar.xz -C ${_mountpoint}/recorded . && \
+    sha256 -q $iocroot/packages/$_fulluuid.tar.xz > $iocroot/packages/$_fulluuid.sha256
+    echo "* Package saved to: $iocroot/packages/$_fulluuid.tar.xz"
+    echo "* Checksum created: $iocroot/packages/$_fulluuid.sha256"
 }
 
 __import () {
-    local name=$1
+    local _name _package _image _pcount _icount _pcksum _icksum _new_cksum
+    local _old_cksum _uuid _mountpoint
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing package UUID"
+    _name=$1
+    _package="$(find $iocroot/packages/ -name $_name\*.tar.xz)"
+    _image="$(find $iocroot/images/ -name $_name\*.tar.xz)"
+    _pcount="$(echo $_package|wc -w)"
+    _icount="$(echo $_image|wc -w)"
+    _pcksum="$(find $iocroot/packages/ -name $_name\*.sha256)"
+    _icksum="$(find $iocroot/images/ -name $_name\*.sha256)"
+    _new_cksum="$(sha256 -q $_package)"
+    _old_cksum="$(cat $_pcksum)"
+    _uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
+    _mountpoint="$(__get_jail_prop mountpoint $_uuid)"
+
+    if [ -z $_name ] ; then
+        echo "  ERROR: Missing package UUID!"
         exit 1
     fi
 
-    local package="$(find $iocroot/packages/ -name $name\*.tar.xz)"
-    local image="$(find $iocroot/images/ -name $name\*.tar.xz)"
-    local pcount="$(echo $package|wc -w)"
-    local icount="$(echo $image|wc -w)"
-
-    if [ $pcount -gt 1 ] ; then
-        echo "  ERROR: multiple matching packages, please narrow down UUID."
-        exit 1
-    elif [ $pcount -eq 1 ] ; then
-        local pcksum="$(find $iocroot/packages/ -name $name\*.sha256)"
-    fi
-
-    if [ $icount -gt 1 ] ; then
-        echo "  ERROR: multiple matching images, please narrow down UUID."
-        exit 1
-    elif [ $icount -eq 1 ] ; then
-        local icksum="$(find $iocroot/images/ -name $name\*.sha256)"
-    fi
-
-    if [ $pcount -gt 0 ] && [ $icount -gt 0 ] ; then
-        echo "  ERROR: same UUID is matching both a package and an image."
+    if [ $_pcount -gt 1 ] ; then
+        echo "  ERROR: Multiple matching packages, please narrow down UUID."
         exit 1
     fi
 
-    if [ $pcount -gt 0 ] ; then
-        echo "* Found package $package"
-        echo "* Importing package $package"
+    if [ $_icount -gt 1 ] ; then
+        echo "  ERROR: Multiple matching images, please narrow down UUID."
+        exit 1
+    fi
 
-        if [ ! -f $pcksum ] ; then
-            echo "  ERROR: missing checksum file!"
+    if [ $_pcount -gt 0 ] && [ $_icount -gt 0 ] ; then
+        echo "  ERROR: Same UUID is matching both a package and an image."
+        exit 1
+    fi
+
+    if [ $_pcount -gt 0 ] ; then
+        echo "* Found package $_package"
+        echo "* Importing package $_package"
+
+        if [ ! -f $_pcksum ] ; then
+            echo "  ERROR: Missing checksum file!"
             exit 1
         fi
 
-        local new_cksum="$(sha256 -q $package)"
-        local old_cksum="$(cat $pcksum)"
-        local uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
-        local mountpoint="$(__get_jail_prop mountpoint $uuid)"
 
-        if [ $new_cksum != $old_cksum ] ; then
-            echo "  ERROR: checksum mismatch ..exiting"
+        if [ $_new_cksum != $_old_cksum ] ; then
+            echo "  ERROR: Checksum mismatch. Exiting"
             exit 1
         else
-            tar -xvJf $package -C $mountpoint/root
+            tar -xvJf $_package -C $_mountpoint/root
         fi
 
-    elif [ $icount -gt 0 ] ; then
-        echo "* Found image $image"
-        echo "* Importing image $image"
+    elif [ $_icount -gt 0 ] ; then
+        echo "* Found image $_image"
+        echo "* Importing image $_image"
 
-        if [ ! -f $icksum ] ; then
-            echo "  ERROR: missing checksum file!"
+        if [ ! -f $_icksum ] ; then
+            echo "  ERROR: Missing checksum file!"
             exit 1
         fi
 
-        local new_cksum="$(sha256 -q $image)"
-        local old_cksum="$(cat $icksum)"
-        local uuid="$(__create_jail create -e|tail -1)"
-        local mountpoint="$(__get_jail_prop mountpoint $uuid)"
+        _new_cksum="$(sha256 -q $_image)"
+        _old_cksum="$(cat $_icksum)"
+        _uuid="$(__create_jail create -e|tail -1)"
+        _mountpoint="$(__get_jail_prop mountpoint $_uuid)"
 
-        if [ $new_cksum != $old_cksum ] ; then
-            echo "  ERROR: checksum mismatch ..exiting"
+        if [ $_new_cksum != $_old_cksum ] ; then
+            echo "  ERROR: Checksum mismatch. Exiting."
             exit 1
         else
-            tar -xvJf $image -C $mountpoint/root
+            tar -xvJf $_image -C $_mountpoint/root
         fi
 
     else
-        echo "  ERROR: package or image $name not found!"
+        echo "  ERROR: Package or image $_name not found!"
         exit 1
     fi
 
-    cat $iocroot/jails/${uuid}/root/etc/rc.conf | \
-    sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
-    > $iocroot/jails/${uuid}/rc.conf
+    cat $iocroot/jails/${_uuid}/root/etc/rc.conf | \
+    sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$_uuid/g" \
+    > $iocroot/jails/${_uuid}/rc.conf
 
-    mv $iocroot/jails/${uuid}/rc.conf \
-    $iocroot/jails/${uuid}/root/etc/rc.conf
+    mv $iocroot/jails/${_uuid}/rc.conf \
+    $iocroot/jails/${_uuid}/root/etc/rc.conf
 }
 
 __export () {
     # Export full jail
     # sha256
-    local name=$1
+    local _name _dataset _fulluuid _jail_path _state _mountpoint
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+    _name=$1
+    _dataset=$(__find_jail $_name)
+    _fulluuid="$(__check_name $_name)"
+    _jail_path="$(__get_jail_prop mountpoint $_fulluuid)"
+    _state=$(jls|grep ${_jail_path} | wc -l)
+    _mountpoint="$(__get-jail_prop mountpoint $_fulluuid)"
+
+    if [ -z $_name ] ; then
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+    if [ -z $_dataset ] ; then
+        echo "  ERROR: $_name not found."
         exit 1
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+    if [ $_dataset == "multiple" ] ; then
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
-    local fulluuid="$(__check_name $name)"
-    local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
-    local state=$(jls|grep ${jail_path} | wc -l)
-
-    if [ "$state" -gt "0" ] ; then
-        echo "  ERROR: $fulluuid is running!"
+    if [ "$_state" -gt "0" ] ; then
+        echo "  ERROR: $_fulluuid is running!"
         echo "  Stop jail before exporting!"
         exit 1
     fi
-
-    local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
 
     if [ ! -d "$iocroot/images" ] ; then
         mkdir $iocroot/images
     fi
 
-    echo "* Exporting $fulluuid .."
-    tar -cvJf $iocroot/images/$fulluuid.tar.xz -C ${mountpoint}/root . && \
-    sha256 -q $iocroot/images/$fulluuid.tar.xz > $iocroot/images/$fulluuid.sha256
-    echo "* Image saved to: $iocroot/images/$fulluuid.tar.xz"
-    echo "* Checksum created: $iocroot/images/$fulluuid.sha256"
+    echo "* Exporting $_fulluuid"
+    tar -cvJf $iocroot/images/$_fulluuid.tar.xz -C ${_mountpoint}/root . && \
+    sha256 -q $iocroot/images/$_fulluuid.tar.xz > $iocroot/images/$_fulluuid.sha256
+    echo "* Image saved to: $iocroot/images/$_fulluuid.tar.xz"
+    echo "* Checksum created: $iocroot/images/$_fulluuid.sha256"
 
 }

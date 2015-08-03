@@ -56,8 +56,17 @@ __networking () {
     local defaultgw6="$(__get_jail_prop defaultrouter6 ${_uuid})"
     local nics="$(__get_jail_prop interfaces ${_uuid} \
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
-    local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
+    #local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
     local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
+
+    # Get the default and current interfaces specified
+    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
+                awk '{ print $6 }')"
+    local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
+    local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
+
+    # Change the DEFAULT tag to correct iface
+    nics=$(echo $nics | sed "s/DEFAULT/$default_iface/g")
 
     if [ ${_action} == "start" ] ; then
         _mac_offset=0
@@ -78,20 +87,25 @@ __networking () {
             jexec ioc-${2} ifconfig ${nic} link ${_mac_epair_b}
             ifconfig $bridge addm ${nic}:${_jid} up
             ifconfig ${nic}:${_jid} up
-            let _mac_offset=_mac_offset + 2
+            let _mac_offset="_mac_offset + 2" > /dev/null
         done
-
-        if [ "$ip4" != "none" ] ; then
-            for i in $ip4_list ; do
-                iface="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }')"
+        echo "$ip4_addr" | grep -q "AUTOIP4"
+        if [ "$ip4" != "none" -a $? -ne 0 ] ; then
+            local oIFS=$IFS
+            local IFS=","
+            for i in $ip4 ; do
+                local IFS=$oIFS
+                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | sed "s/DEFAULT/$default_iface/g")
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
                 jexec ioc-${2} ifconfig $iface $ip up
+                local IFS=","
             done
+            local IFS=$oIFS
         fi
 
         if [ "$ip6" != "none" ] ; then
             for i in $ip6_list ; do
-                iface="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }')"
+                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | sed "s/DEFAULT/$default_iface/g")
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
                 jexec ioc-${2} ifconfig $iface inet6 $ip up
             done
@@ -105,12 +119,88 @@ __networking () {
             jexec ioc-${2} route add -6 default "${defaultgw6}" >/dev/null
         fi
 
-    elif [ ${_action} == "stop" ] ; then
+        # Check if the user specified they wanted to use an automatic IP4 address
+        echo "$ip4_addr" | grep -q "AUTOIP4"
+        if [ $? -eq 0 ] ; then
+            __get_autoip4
+
+            if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
+               new_iface="$default_iface"
+               __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}/24" $_uuid
+            else
+               new_iface="$cur_ip4_iface"
+               __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $_uuid
+            fi
+            jexec ioc-${2} ifconfig $new_iface ${auto_ip}/24 up
+        fi
+    fi
+
+    if [ ${_action} == "stop" ] ; then
         for if in $nics ; do
             local nic="$(echo $if | cut -f 1 -d:)"
             ifconfig ${nic}:${_jid} destroy
         done
     fi
+}
+
+__get_autoip4 () {
+     local _autobase _autostart _autoend _autoip _freeip
+     unset _auto_ip4
+     _autobase=$(netstat -f inet -nrW | grep '^default' |\
+               awk '{ print $2 }' | cut -d '.' -f 1-3)
+     _autostart=$(__get_jail_prop ip4_autostart default)
+     _autoend=$(__get_jail_prop ip4_autoend default)
+     local jails=$(__find_jail ALL)
+
+     # Do some basic sanity checking
+     if [ -z "$_autostart" ] ; then
+        echo "ERROR: AUTOIP4 is specified, but ip4_autostart is not set!"
+        exit 1
+     fi
+     if [ -z "$_autoend" ] ; then
+        echo "ERROR: AUTOIP4 is specified, but ip4_autoend is not set!"
+        exit 1
+     fi
+
+     # Now loop through all the jails, and find a free IP we can use
+     # that fits within the autostart/autoend ranges
+     _autoip=$_autostart
+     while :
+     do
+        _freeip="YES"
+        _nextaddr="${_autobase}.${_autoip}"
+        # Is this address in use?
+        for jail in $jails ; do
+            local juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid\
+                        $jail)
+            local jip4="$(__get_jail_prop ip4_addr ${juuid})"
+            jip4=$(echo $jip4 | cut -d '|' -f 2 | cut -d '/' -f 1)
+            if [ "$jip4" = "$_nextaddr" ] ; then
+                _freeip="NO"
+                break
+            fi
+        done
+
+        # On to the next entry to try
+        if [ "$_freeip" = "NO" ] ; then
+            _autoip=$(expr $_autoip + 1)
+            continue
+        fi
+
+        # Sanity check
+        if [ $_autoip -gt $_autoend ] ; then
+            echo "ERROR: IP4 Automatic Address exhaustion"
+            exit 1
+        fi
+        if [ $_autoip -gt 254 ] ; then
+            echo "ERROR: IP4 Address outside of bounds"
+            exit 1
+        fi
+        break
+     done
+
+     # Set our new ip address
+     auto_ip4="$_nextaddr"
 }
 
 __stop_legacy_networking () {
@@ -119,8 +209,16 @@ __stop_legacy_networking () {
     local ip4_addr="$(__get_jail_prop ip4_addr $name)"
     local ip6_addr="$(__get_jail_prop ip6_addr $name)"
 
+    # Get the default and current interfaces specified
+    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
+                awk '{ print $6 }')"
+
+    # Change the DEFAULT tag to correct iface
+    ip4_addr=$(echo $ip4_addr | sed "s/DEFAULT|/$default_iface|/g")
+    ip6_addr=$(echo $ip6_addr | sed "s/DEFAULT|/$default_iface|/g")
+
     if [ $ip4_addr != "none" ] ; then
-        IFS=','
+        local IFS=','
         for ip in $ip4_addr ; do
             local iface="$(echo $ip | \
                          awk 'BEGIN { FS = "|" } ; { print $1 }')"
@@ -133,7 +231,7 @@ __stop_legacy_networking () {
     fi
 
     if [ $ip6_addr != "none" ] ; then
-        IFS=','
+        local IFS=','
         for ip6 in $ip6_addr ; do
             local iface="$(echo $ip6 | \
                          awk 'BEGIN { FS = "|" } ; { print $1 }')"
@@ -144,4 +242,3 @@ __stop_legacy_networking () {
         done
     fi
 }
-
