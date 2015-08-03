@@ -44,7 +44,7 @@ __configure_jail () {
             elif [ "$prop_name" = "gitlocation" ] ; then
                 case "$gitlocation" in
                     "-")
-                        gitlocation="https://github.com/"
+                        gitlocation="https://github.com"
                     ;;
                 esac
                 _value="${gitlocation}"

@@ -135,7 +135,7 @@ ftphost="ftp.freebsd.org"
 ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
 # Git properties
-gitlocation="https://github.com/"
+gitlocation="https://github.com"
 
 # Resource limits
 CONF_RCTL="memoryuse
