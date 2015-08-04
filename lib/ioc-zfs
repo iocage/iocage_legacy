@@ -8,6 +8,9 @@ __activate () {
 
     if [ ! -z ${_pool} ] ; then
         zpool set comment=iocage ${_pool}
+    else
+        __find_mypool
+        echo ${pool}
     fi
 
     exit 0
