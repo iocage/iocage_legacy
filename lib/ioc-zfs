@@ -10,7 +10,7 @@ __activate () {
         zpool set comment=iocage ${_pool}
     else
         __find_mypool
-        echo ${pool}
+        echo "pool: ${pool}"
     fi
 
     exit 0
