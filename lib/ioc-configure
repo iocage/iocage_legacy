@@ -19,9 +19,7 @@ __configure_jail () {
             # find saved default value if any for the property
             _default_value="$(__get_default_prop $prop_name)"
 
-            if [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] ; then
-                _value="$_default_value"
-            elif [ "$prop_name" = "tag" ] ; then
+            if [ "$prop_name" = "tag" ] ; then
                 _value="$tag"
             elif [ "$prop_name" = "host_hostname" ] ; then
                 _value="$uuid"
@@ -41,6 +39,8 @@ __configure_jail () {
                 _value="${ip4_autostart}"
             elif [ "$prop_name" = "ip4_autoend" ] ; then
                 _value="${ip4_autoend}"
+            elif [ "$prop_name" = "type" ] ; then
+                _value="${type}"
             elif [ "$prop_name" = "gitlocation" ] ; then
                 case "$gitlocation" in
                     "-")
@@ -76,6 +76,8 @@ __configure_jail () {
                     ;;
                 esac
                 _value="$vnet3_mac"
+            elif [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] ; then
+                _value="$_default_value"
             else
                 _value="$prop"
             fi
@@ -187,7 +189,7 @@ __reset_jail_props () {
         echo " "
         echo "  WARNING: This will reset ALL jails!"
         echo " "
-        echo -n "  Are you sure? Y[n]: "
+        echo -n "  Are you sure? y[N]: "
         read answer
         if [ "$answer" == "Y" ] || [ "$answer" == "y" ] ; then
             echo "  Resetting all jails."
@@ -218,6 +220,7 @@ __reset_jail_props () {
     ip4_autoend="$(zfs get -H -o value org.freebsd.iocage:ip4_autoend\
      $_dataset)"
     gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
+    type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
     __configure_jail $_dataset
 }
 

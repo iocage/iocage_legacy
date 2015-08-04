@@ -104,6 +104,7 @@ __create_jail () {
         zfs create -p $pool/iocage/jails/$uuid/root
         _configured="1"
     elif [ "${2}" = "-b" ] ; then
+        export type=basejail
         zfs snapshot -r $pool/iocage/base@$uuid
         eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
         __set_jail_prop type=basejail ${uuid}
