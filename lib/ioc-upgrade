@@ -5,6 +5,8 @@ __update () {
 
   _name=$2
 
+    # Start looking for any command switches, if nothing special is found
+    # then proceed with the normal update procedure
     case "$1" in
         -n)
             _dataset=$(__find_jail $_name)
@@ -12,6 +14,8 @@ __update () {
             _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
             _jail_type="$(__get_jail_prop type $_fulluuid)"
 
+            # If a git jail is found, update the remote and show the user the
+            # status output
             case $_jail_type in
                 gitjail)
                     git -C $_mountpoint/root remote update
@@ -28,18 +32,22 @@ __update () {
             _date=$(date "+%F_%T")
             _jail_type="$(__get_jail_prop type $_fulluuid)"
 
+            # Check all jail types and do the right thing
             case $_jail_type in
                 basejail)
                     # Re-clone required filesystems
                     __reclone_basejail $_name
                 ;;
                 gitjail)
+                    # Update the local git repo to the latest remote
                     git -C $_mountpoint/root pull
                 ;;
                 jail)
                     echo "* Creating back-out snapshot."
                     __snapshot ${_fulluuid}@ioc-update_${_date}
 
+                    # Override the release that freebsd-update uses and
+                    # set the pager to cat so that it isn't interactive
                     echo "* Updating jail.."
                     env UNAME_r="$release" env PAGER="/bin/cat" \
                         /usr/sbin/freebsd-update \
@@ -106,6 +114,8 @@ __upgrade () {
         exit 1
     fi
 
+    # If jail is a basejail then set the new release and reclone the datasets
+    # also backup jail's /etc just incase etcupdate doesn't go as planned
     if [ $_jail_type == "basejail" ] ; then
         zfs set org.freebsd.iocage:release="$release" $_dataset
         # Re-clone required filesystems
@@ -115,6 +125,7 @@ __upgrade () {
         -s $iocroot/base/$release/root/usr/src
         __chroot "$_name" newaliases
 
+        # Check for zero exit code(success) otherwise bail and revert everything
         if [ $? -eq 0 ] ; then
             echo ""
             echo "* Upgrade successful. Please restart jail and inspect. Remove ${_mountpoint}/root/etc.old if everything is OK."
@@ -134,12 +145,16 @@ __upgrade () {
 
     echo "* Upgrading jail."
 
+    # Override the release that freebsd-update uses and
+    # set the pager to cat so that it isn't interactive
     env UNAME_r=${_oldrelease} env PAGER="/bin/cat" \
         /usr/sbin/freebsd-update \
         -b ${_mountpoint}/root \
         -d ${_mountpoint}/root/var/db/freebsd-update/ \
         -r $release upgrade
 
+    # Same as above except it waits to see a non-zero exit code signalling that
+    # there isn't anything else left to do
     if [ $? -eq 0 ] ; then
         while [ $? -eq 0 ] ; do
             env UNAME_r=${_oldrelease} env PAGER="/bin/cat" \
