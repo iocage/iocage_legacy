@@ -1,6 +1,8 @@
 #!/bin/sh
+
 __pull () {
     local _gitlocation _jail_type _jail_path
+
     _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
                   ${pool}${iocroot}/.defaults)"
 
@@ -17,20 +19,20 @@ __pull () {
     # Check to see if the url begins with these otherwise use gitlocation
     case "$1" in
         http://*|https://*|git://*)
-          unset _gitlocation
-          _gitlocation="$1"
+            unset _gitlocation
+            _gitlocation="$1"
         ;;
         *)
-        if [ "$_gitlocation" = "none" -a -z "$iocset_gitlocation" ] ; then
-            echo ""
-            echo "  ERROR: You must either specify gitlocation= or set a default"
-            echo "  iocage set gitlocation=LOCATION default"
-            echo ""
-            exit 1
-        elif [ -n "$iocset_gitlocation" ] ; then
-            unset _gitlocation
-            _gitlocation="$iocset_gitlocation"
-        fi
+            if [ "$_gitlocation" = "none" -a -z "$iocset_gitlocation" ] ; then
+                echo ""
+                echo "  ERROR: You must either specify gitlocation= or set a default"
+                echo "  iocage set gitlocation=LOCATION default"
+                echo ""
+                exit 1
+            elif [ -n "$iocset_gitlocation" ] ; then
+                unset _gitlocation
+                _gitlocation="$iocset_gitlocation"
+            fi
         ;;
     esac
 
@@ -106,7 +108,7 @@ __push () {
           git commit
           git push -u "$2"
     if [ -z $_match ] ; then
-        echo "Invalid repo $_gitrepo specified. Exiting."
+        echo "  ERROR: Invalid repo $_gitrepo specified. Exiting."
         exit 1
     fi
   fi

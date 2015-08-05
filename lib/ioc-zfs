@@ -69,6 +69,7 @@ __reclone_basejail () {
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
           _zfsconfig
+
     _installed=$(zfs list -r $pool/iocage/releases|grep $release)
     _releases=$(__list_jails -r|grep -v "Downloaded releases:")
     _supported_release=$(echo "$release" | grep "RELEASE")
@@ -86,12 +87,12 @@ __create_jail () {
         echo "  ERROR: No RELEASEs found locally, run iocage fetch first."
         exit 1
     elif [ -z "$_installed" ] ; then
-      echo "  RELEASE $release not found locally."
-      echo "  Please fetch $release or rerun iocage with release=RELEASE"
-      echo ""
-      echo "  These are the releases you have already fetched:"
-      echo "  $_releases"
-      exit 1
+        echo "  RELEASE $release not found locally."
+        echo "  Please fetch $release or rerun iocage with release=RELEASE"
+        echo ""
+        echo "  These are the releases you have already fetched:"
+        echo "  $_releases"
+        exit 1
     fi
 
     if [ "${2}" = "-c" ] ; then

@@ -125,7 +125,7 @@ __parse_cmd () {
             uncap)      __rctl_uncap "$2"
                         exit
                 ;;
-            update)     __update "$2"
+            update)     __update "$2" "$3"
                         exit
                 ;;
             upgrade)     __upgrade "$2"
