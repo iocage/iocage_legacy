@@ -84,11 +84,19 @@ __set_jail_prop () {
 
 __console () {
     local _name _dataset _fulluuid _login_flags _jexec _exec_fib
-    _name=$1
+    _name=$1 
+
+    local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$_name)"
+    local type="$(zfs get -H -o value org.freebsd.iocage:type $pool/iocage/jails/$_name)"
 
     if [ -z $_name ] ; then
         echo "  ERROR: Missing UUID!"
         exit 1
+    fi
+
+    if [ $type == "vmm" ]; then
+	cu -l /dev/${con}B -s 9600
+	exit
     fi
 
     _dataset=$(__find_jail $_name)
