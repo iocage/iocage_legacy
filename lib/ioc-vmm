@@ -2,7 +2,7 @@
 
 # list download folder for ISO's
 __downloads () {
-	ls /iocage/download
+	ls /iocage/download | grep .iso
 }
 
 # Create the bhyve guest
