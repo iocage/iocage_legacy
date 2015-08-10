@@ -2,10 +2,9 @@
 
 # Create the bhyve guest
 __create_vmm () {
-	size="$2"
+	size="$3"
 	guestuuid=$uuid
 	diskid=$(echo $guestuuid | cut -d "-" -f1)
-	tag=$(date "+%F@%T")
 
 	if [ ! -e /iocage/disks ]; then
 		echo "Creating /iocage/disks directory..."
@@ -22,18 +21,10 @@ __create_vmm () {
 		echo "Disk size:" $size
 		zfs create $pool/iocage/jails/$guestuuid
 		zfs create -V $size -o volmode=dev $pool/iocage/disks/$diskid.img
-		# Set defaults here until __configure_vmm is created. 
-		# iocage set and get will work just fine after guest is created. 
-		zfs set org.freebsd.iocage:host_hostuuid=$guestuuid $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:tag=$tag $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:type=vmm $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:cpu=1 $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:ram=256M $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:diskid=$diskid $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:size=$size $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:con=nmdm0 $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:tap=tap0 $pool/iocage/jails/$guestuuid
-		zfs set org.freebsd.iocage:loader=bhyveload $pool/iocage/jails/$guestuuid
+		__configure_jail $pool/iocage/jails/$guestuuid
+		__set_jail_prop type=vmm $guestuuid
+		__set_jail_prop diskid=$diskid $guestuuid
+		__set_jail_prop size=$size $guestuuid
 	fi
 }
 
@@ -46,7 +37,7 @@ __load() {
 	local loader="$(zfs get -H -o value org.freebsd.iocage:loader $pool/iocage/jails/$uuid)"
 	local install="$(zfs get -H -o value org.freebsd.iocage:install $pool/iocage/jails/$uuid)"
 	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
-	local pname=$(echo $uuid | cut -d "-" -f3-)
+	local pname=$(echo $uuid | cut -d "-" -f-3)
 
 	if [ $loader = "grub-bhyve" ]; then
 		if [ $install = "yes" ]; then
@@ -72,7 +63,7 @@ __install_vmm() {
 	local cpu="$(zfs get -H -o value org.freebsd.iocage:cpu $pool/iocage/jails/$uuid)"
 	local tap="$(zfs get -H -o value org.freebsd.iocage:tap $pool/iocage/jails/$uuid)"
 	local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$uuid)"
-	local pname=$(echo $uuid | cut -d "-" -f3-)
+	local pname=$(echo $uuid | cut -d "-" -f-3)
 
 	echo "Installing guest..."
 
@@ -113,7 +104,7 @@ local con="$(zfs get -H -o value org.freebsd.iocage:con $pool/iocage/jails/$huui
 local cpu="$(zfs get -H -o value org.freebsd.iocage:cpu $pool/iocage/jails/$huuid)"
 local tap="$(zfs get -H -o value org.freebsd.iocage:tap $pool/iocage/jails/$huuid)"
 local diskid="$(zfs get -H -o value org.freebsd.iocage:diskid $pool/iocage/jails/$huuid)"
-local pname=$(echo $huuid | cut -d "-" -f3-)
+local pname=$(echo $huuid | cut -d "-" -f-3)
 
 # Setup tap if needed
 if [ $tap != "tap0" ]; then

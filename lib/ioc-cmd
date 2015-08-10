@@ -24,9 +24,6 @@ __parse_cmd () {
                         __create_jail "$@"
                         exit
                 ;;
-            createvmm)  __create_vmm "$@"
-                        exit
-                ;;
             installvmm) __install_vmm "$@"
                         exit
                 ;;

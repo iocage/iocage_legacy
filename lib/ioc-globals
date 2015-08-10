@@ -75,7 +75,7 @@ allow_socket_af=0
 
 # bhyve defaults
 cpu=1
-ram=256
+ram=256M
 size=8G
 con=nmdm0
 tap=tap0
@@ -230,7 +230,8 @@ CONF_BHYVE="cpu
             size
             con
             tap
-            loader"
+            loader
+            diskid"
 
 # Custom properties
 CONF_CUSTOM="tag
