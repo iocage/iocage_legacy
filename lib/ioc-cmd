@@ -24,10 +24,16 @@ __parse_cmd () {
                         __create_jail "$@"
                         exit
                 ;;
+            downloads)  __downloads
+			exit
+                ;;
             installvmm) __install_vmm "$@"
                         exit
                 ;;
             startvmm)   __start_vmm "$@"
+                        exit
+                ;;
+            stopvmm)    __stop_vmm "$@"
                         exit
                 ;;
             defaults)   __print_defaults

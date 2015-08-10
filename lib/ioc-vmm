@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# list download folder for ISO's
+__downloads () {
+	ls /iocage/download
+}
+
 # Create the bhyve guest
 __create_vmm () {
 	size="$3"
@@ -140,5 +145,19 @@ local runstate="1"
 		done
 		bhyvectl --destroy --vm=ioc-$pname
 	) &
+
+}
+
+# stop the bhyve guest
+__stop_vmm () {
+
+local huuid="$2"
+local pname=$(echo $huuid | cut -d "-" -f-3)
+
+local pid=$(ps | grep "ioc-" | grep $pname | grep -v "grep" | cut -c1-5)
+
+echo "Stopping $huuid..."
+
+kill $pid
 
 }
