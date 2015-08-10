@@ -2,6 +2,7 @@
 
 This file is used to track how to currently test iocage's bhyve integration. 
 It's all still a work in progress and will change as more and more is integrated. 
+All work relating to bhyve is done in the 'vmm-dev' branch.
 
 **Pre-Flight Checklist**
 
@@ -43,7 +44,7 @@ Create a new bhyve guest and set disk size:
 
 Note: you cannot pass custom properties via iocage create yet, you must set them after creation. 
 
-    iocage create 8G
+    iocage create --vmm 8G
 
 Set not default tap nullmodem interfaces:
 
