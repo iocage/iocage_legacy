@@ -255,12 +255,12 @@ __legacy_start () {
         __get_autoip4
         if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
             new_iface="DEFAULT"
-            ip4_addr_propline="ip4.addr=$default_iface|${auto_ip4}/24"
+            ip4_addr_propline="ip4.addr=$default_iface|${auto_ip4}"
         else
             new_iface="$cur_ip4_iface"
-            ip4_addr_propline="ip4.addr=$cur_ip4_iface|${auto_ip4}/24"
+            ip4_addr_propline="ip4.addr=$cur_ip4_iface|${auto_ip4}"
         fi
-        __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $name
+        __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $name
     fi
 
     if [ $ipv6 == "on" ] ; then

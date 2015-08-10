@@ -126,12 +126,12 @@ __networking () {
 
             if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
                new_iface="$default_iface"
-               __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}/24" $_uuid
+               __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}" $_uuid
             else
                new_iface="$cur_ip4_iface"
-               __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}/24" $_uuid
+               __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $_uuid
             fi
-            jexec ioc-${2} ifconfig $new_iface ${auto_ip}/24 up
+            jexec ioc-${2} ifconfig $new_iface ${auto_ip} up
         fi
     fi
 
@@ -150,6 +150,7 @@ __get_autoip4 () {
                awk '{ print $2 }' | cut -d '.' -f 1-3)
      _autostart=$(__get_jail_prop ip4_autostart default)
      _autoend=$(__get_jail_prop ip4_autoend default)
+     _autosubnet=$(__get_jail_prop ip4_autosubnet default)
      local jails=$(__find_jail ALL)
 
      # Do some basic sanity checking
@@ -160,6 +161,9 @@ __get_autoip4 () {
      if [ -z "$_autoend" ] ; then
         echo "ERROR: AUTOIP4 is specified, but ip4_autoend is not set!"
         exit 1
+     fi
+     if [ -z "$_autosubnet" -o "$_autosubnet" = "none" ] ; then
+	_autosubnet="24"
      fi
 
      # Now loop through all the jails, and find a free IP we can use
@@ -200,7 +204,7 @@ __get_autoip4 () {
      done
 
      # Set our new ip address
-     auto_ip4="$_nextaddr"
+     auto_ip4="$_nextaddr/$_autosubnet"
 }
 
 __stop_legacy_networking () {

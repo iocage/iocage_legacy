@@ -39,6 +39,8 @@ __configure_jail () {
                 _value="${ip4_autostart}"
             elif [ "$prop_name" = "ip4_autoend" ] ; then
                 _value="${ip4_autoend}"
+            elif [ "$prop_name" = "ip4_autosubnet" ] ; then
+                _value="${ip4_autosubnet}"
             elif [ "$prop_name" = "type" ] ; then
                 _value="${type}"
             elif [ "$prop_name" = "gitlocation" ] ; then

@@ -409,11 +409,12 @@ PROPERTIES
     Example:
       # iocage set ip4_autostart="100" default
       # iocage set ip4_autoend="150" default
+      # iocage set ip4_autosubnet="24" default
 
     This will result in the automatic IPv4 address being assigned in the
     base range of the default network interface. I.E. if the local default
     NIC is set to 192.168.0.XXX, then the new address will be
-    192.168.0.[100-150]
+    192.168.0.[100-150]/24
 
     For VNET jails the interface will be configured with the IP addresses
     listed.
