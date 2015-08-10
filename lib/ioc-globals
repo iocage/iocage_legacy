@@ -168,6 +168,7 @@ CONF_NET="interfaces
           ip4_addr
           ip4_autostart
           ip4_autoend
+          ip4_autosubnet
           ip4_saddrsel
           ip4
           ip6_addr

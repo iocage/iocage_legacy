@@ -221,6 +221,8 @@ __reset_jail_props () {
      $_dataset)"
     ip4_autoend="$(zfs get -H -o value org.freebsd.iocage:ip4_autoend\
      $_dataset)"
+    ip4_autosubnet="$(zfs get -H -o value org.freebsd.iocage:ip4_autosubnet\
+     $_dataset)"
     gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
     type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
     __configure_jail $_dataset
