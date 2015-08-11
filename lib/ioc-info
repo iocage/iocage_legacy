@@ -58,9 +58,9 @@ __get_default_prop () {
 __find_jail () {
     local name=$1
     local jlist="/tmp/iocage-jail-list.$$"
-    local jails="$(zfs list -d1 -rH -o name $pool/iocage/jails \
+    export jails=${jails:-$(zfs list -d1 -rH -o name $pool/iocage/jails \
                  | grep -E \
-                "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
+                "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")}
 
     if [ "${name}" == "ALL" ] ; then
         for jail in $jails ; do
