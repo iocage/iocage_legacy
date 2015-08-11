@@ -31,6 +31,7 @@ __update () {
             _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
             _date=$(date "+%F_%T")
             _jail_type="$(__get_jail_prop type $_fulluuid)"
+            _jail_release="$(__get_jail_prop release $_fulluuid)"
 
             # Check all jail types and do the right thing
             case $_jail_type in
@@ -49,6 +50,11 @@ __update () {
                     # Override the release that freebsd-update uses and
                     # set the pager to cat so that it isn't interactive
                     echo "* Updating jail.."
+
+                    if [ $release != $_jail_release ] ; then
+                        release="$_jail_release"
+                    fi
+
                     env UNAME_r="$release" env PAGER="/bin/cat" \
                         /usr/sbin/freebsd-update \
                         -b ${_mountpoint}/root \
