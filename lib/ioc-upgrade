@@ -55,14 +55,18 @@ __update () {
                         release="$_jail_release"
                     fi
 
-                    env UNAME_r="$release" env PAGER="/bin/cat" \
-                        /usr/sbin/freebsd-update \
-                        -b ${_mountpoint}/root \
-                        -d ${_mountpoint}/root/var/db/freebsd-update/ fetch
-                    env UNAME_r="$release" env PAGER="/bin/cat" \
-                        /usr/sbin/freebsd-update \
-                        -b ${_mountpoint}/root \
-                        -d ${_mountpoint}/root/var/db/freebsd-update/ install
+                    if [ -e $iocroot/releases/$release/root/etc/freebsd-update.conf ] ; then
+                        env UNAME_r="$release" env PAGER="/bin/cat" \
+                            /usr/sbin/freebsd-update \
+                            -b ${_mountpoint}/root \
+                            -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
+                            -d ${_mountpoint}/root/var/db/freebsd-update/ fetch
+                        env UNAME_r="$release" env PAGER="/bin/cat" \
+                            /usr/sbin/freebsd-update \
+                            -b ${_mountpoint}/root \
+                            -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
+                            -d ${_mountpoint}/root/var/db/freebsd-update/ install
+                    fi
 
                     echo ""
                     echo "* Once finished don't forget to remove the snapshot!"

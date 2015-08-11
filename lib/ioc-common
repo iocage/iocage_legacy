@@ -268,14 +268,18 @@ __fetch_release () {
         echo "* Updating base jail.."
         sleep 2
 
-        env UNAME_r="$release" env PAGER="/bin/cat" \
-            /usr/sbin/freebsd-update \
-            -b $iocroot/releases/$release/root \
-            -d $iocroot/releases/$release/root/var/db/freebsd-update/ fetch
-        env UNAME_r="$release" env PAGER="/bin/cat" \
-            /usr/sbin/freebsd-update \
-            -b $iocroot/releases/$release/root \
-            -d $iocroot/releases/$release/root/var/db/freebsd-update/ install
+        if [ -e $iocroot/releases/$release/root/etc/freebsd-update.conf ] ; then
+            env UNAME_r="$release" env PAGER="/bin/cat" \
+                /usr/sbin/freebsd-update \
+                -b $iocroot/releases/$release/root \
+                -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
+                -d $iocroot/releases/$release/root/var/db/freebsd-update/ fetch
+            env UNAME_r="$release" env PAGER="/bin/cat" \
+                /usr/sbin/freebsd-update \
+                -b $iocroot/releases/$release/root \
+                -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
+                -d $iocroot/releases/$release/root/var/db/freebsd-update/ install
+        fi
 
     if [ ! -d $iocroot/log ] ; then
         mkdir $iocroot/log
