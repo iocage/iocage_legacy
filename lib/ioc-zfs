@@ -16,6 +16,84 @@ __activate () {
     exit 0
 }
 
+__deactivate () {
+    local _pool
+    _pool="$1"
+
+    if [ ! -z ${_pool} ] ; then
+        zpool set comment=inherit ${_pool}
+    fi
+
+    exit 0
+}
+
+__clean () {
+    local _answer
+
+    case "$1" in
+        -a)
+            echo " "
+            echo "  WARNING: this will destroy $pool/iocage"
+            echo " "
+            echo "  Please make sure all jails are stopped before continuing."
+            echo " "
+            echo -n "  Are you sure ? y[N]: "
+            read _answer
+
+            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
+                echo "  Destroying $pool/iocage"
+                zfs destroy -rRf $pool/iocage
+                exit 0
+            else
+                echo "  Command not confirmed.  No action taken."
+                exit 1
+            fi
+        ;;
+        -r)
+            echo " "
+            echo "  WARNING: this will destroy all releases"
+            echo " "
+            echo "  Please make sure all basejails are stopped before continuing."
+            echo " "
+            echo -n "  Are you sure ? y[N]: "
+            read _answer
+
+            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
+                echo "  Destroying $pool/iocage/base"
+                zfs destroy -rRf $pool/iocage/base
+                echo "  Destroying $pool/iocage/download"
+                zfs destroy -rRf $pool/iocage/download
+                echo "  Destroying $pool/iocage/releases"
+                zfs destroy -rRf $pool/iocage/releases
+                exit 0
+            else
+                echo "  Command not confirmed.  No action taken."
+                exit 1
+            fi
+        ;;
+        -j)
+            echo " "
+            echo "  WARNING: this will destroy all jails"
+            echo " "
+            echo "  Please make sure all jails are stopped before continuing."
+            echo " "
+            echo -n "  Are you sure ? y[N]: "
+            read _answer
+
+            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
+                echo "  Destroying $pool/iocage/jails"
+                zfs destroy -rRf $pool/iocage/jails
+                echo "  Cleaning TAGs at $pool/iocage/tags"
+                rm -f ${iocroot}/tags/*
+                exit 0
+            else
+                echo "  Command not confirmed.  No action taken."
+                exit 1
+            fi
+        ;;
+    esac
+}
+
 __create_basejail () {
     local _release
 
@@ -242,29 +320,6 @@ __destroy_jail () {
         _name="$1"
     fi
 
-    if [ $_name == "ALL" ] ; then
-        echo " "
-        echo "  WARNING: this will destroy ALL jails"
-        echo " "
-        echo "  Please make sure all jails are stopped before continuing."
-        echo " "
-        echo -n "  Are you sure ? y[N]: "
-        read _answer
-
-        if [ "$_answer" == "Y" ] || [ "$_answer" == "y" ] ; then
-            echo "  Destroying all jails"
-            _force="1"
-
-            __destroy_all
-            rm -f ${iocroot}/tags/*
-
-            exit 0
-        else
-            echo "  Command not confirmed.  No action taken."
-            exit 1
-        fi
-    fi
-
     local dataset="$(__find_jail $_name)"
 
     if [ -z $dataset ] ; then
@@ -325,16 +380,6 @@ __destroy_func () {
     fi
 }
 
-__destroy_all () {
-    local _jails _fulluuid
-    _jails="$(__find_jail ALL)"
-
-    for jail in $_jails ; do
-        _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
-        __destroy_jail "-f" "$_fulluuid"
-    done
-}
-
 # check if our datasets exist, if not create them
 # fixes https://github.com/iocage/iocage/issues/80
 __check_filesystems () {
@@ -352,12 +397,17 @@ __check_filesystems () {
         zfs get -H creation ${pool}${_fs} > /dev/null 2>&1
         if [ $? -ne 0 ] ; then
             _missing=1
-            echo "  INFO: Creating ${pool}${_fs}"
-            zfs create -p ${pool}${_fs}
-            zfs set mountpoint=${_fs} ${pool}${_fs}
+            if [ "$(whoami)" != "root" ] ; then
+                echo "  ERROR: Please run as root to create missing datasets."
+                exit 1
+            else
+                echo "  INFO: Creating ${pool}${_fs}"
+                zfs create -p ${pool}${_fs}
+                zfs set mountpoint=${_fs} ${pool}${_fs}
             if [ ${_fs} == "${iocroot}/.defaults" ] ; then
                 __reset_jail_props default > /dev/null 2>&1
             fi
+          fi
         fi
     done
 

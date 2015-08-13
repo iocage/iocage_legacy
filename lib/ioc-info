@@ -2,7 +2,8 @@
 
 # Print supported releases----------------------------------
 __print_release () {
-    supported="10.1-RELEASE
+    supported="10.2-RELEASE
+                10.1-RELEASE
                 9.3-RELEASE"
 
     echo "Supported releases are: "
@@ -205,8 +206,25 @@ __print_disk () {
 }
 
 __find_mypool () {
+    local _comment _dupcheck
+
     pools="$(zpool list -H -o name)"
+    _comment="$(zpool list -H -o name,comment | grep iocage)"
+    _dupcheck="$(zpool list -H -o name,comment | grep iocage | wc -l)"
     found="0"
+
+    if [ "$_dupcheck" -gt 1 ] ; then
+        echo ""
+        echo "  WARNING: You have more then one pool set for iocage use!"
+        echo ""
+        echo "**** POOLS ****"
+        echo "$_comment"
+        echo "***************"
+        echo ""
+        echo "  Please run 'iocage deactivate' on one of them"
+        echo ""
+        exit 1
+    fi
 
     for i in $pools ; do
         mypool="$(zpool get comment $i | grep -v NAME | awk '{print $3}')"

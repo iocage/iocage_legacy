@@ -1,15 +1,5 @@
 #!/bin/sh
 
-# See whether given command is readonly
-# and therefore doesn't need root credentials
-__readonly_cmd () {
-    case "$1" in
-        defaults|df|get|list) return 0;;
-    esac
-
-    return 1
-}
-
 # Process command line options-------------------------
 __parse_cmd () {
     while [ $# -gt 0 ] ; do
@@ -23,6 +13,9 @@ __parse_cmd () {
             chroot)     __chroot "$2" "$3"
                         exit
                 ;;
+            clean)      __clean "$2"
+                        exit
+                ;;
             clone)      __export_props "$@"
                         __clone_jail "$2"
                         exit
@@ -32,6 +25,9 @@ __parse_cmd () {
                 ;;
             create)     __export_props "$@"
                         __create_jail "$@"
+                        exit
+                ;;
+            deactivate) __deactivate "$2"
                         exit
                 ;;
             defaults)   __print_defaults
