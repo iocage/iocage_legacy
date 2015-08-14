@@ -103,6 +103,11 @@ __list_jails () {
     local ioc_jids=""
     local non_ioc_jids=""
 
+    if [ ! -z ${switch} ] && [ ${switch} == "--long" ] ; then
+        __list_jails_long
+        exit 0
+    fi
+
     if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
         echo "Downloaded releases:"
         local releases="$(zfs list -o name -Hr $pool/iocage/releases \
@@ -183,6 +188,73 @@ __list_jails () {
             done
         fi
     fi
+}
+
+__list_jails_long () {
+    local _jails _switch _ioc_jids _uuid _boot _tag _jail_path _state \
+          _template _interfaces _ip4_addr _ip6_addr _vnet _vnet0_mac \
+          _vnet1_mac _vnet2_mac _vnet3_mac _type
+
+    _jails=$(__find_jail ALL)
+    _switch=$1
+    _ioc_jids=""
+
+    for _jail in $_jails ; do
+        _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jail)
+        _boot=$(zfs get -H -o value org.freebsd.iocage:boot $_jail)
+        _tag=$(zfs get -H -o value org.freebsd.iocage:tag $_jail)
+        _jail_path=$(zfs get -H -o value mountpoint $_jail)
+        _state=$(jls | grep ${_jail_path} | awk '{print$1}')
+        _template=$(zfs get -H -o value org.freebsd.iocage:template $_jail)
+        _interfaces=$(zfs get -H -o value org.freebsd.iocage:interfaces $_jail)
+        _ip4_addr=$(zfs get -H -o value org.freebsd.iocage:ip4_addr $_jail)
+        _ip6_addr=$(zfs get -H -o value org.freebsd.iocage:ip6_addr $_jail)
+        _vnet=$(zfs get -H -o value org.freebsd.iocage:vnet $_jail)
+        _vnet0_mac=$(zfs get -H -o value org.freebsd.iocage:vnet0_mac $_jail)
+        _vnet1_mac=$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_jail)
+        _vnet2_mac=$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_jail)
+        _vnet3_mac=$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_jail)
+        _type=$(zfs get -H -o value org.freebsd.iocage:type $_jail)
+
+        # get jid for iocage jails
+        _jid=$(jls -j "ioc-"$_uuid  -h jid 2> /dev/null | grep -v -x "jid")
+        if [ -z "$_jid"  ] ; then
+            _jid="-"
+        fi
+
+        _ioc_jids=$_ioc_jids" "$_jid
+
+        if [ -z "$_state" ] ; then
+            _state=down
+        else
+            _state=up
+        fi
+
+        printf "%s\n" "JID: $_jid" "UUID: $_uuid" "BOOT: $_boot" \
+                "STATE: $_state" "TAG: $_tag" "IPV4: $_ip4_addr"  \
+                "IPV6: $_ip6_addr" "VNET: $_vnet" "TYPE: $_type"
+
+        if [ $_vnet == "on" ] ; then
+            printf "%s\n" "INTERFACES: $_interfaces"
+        fi
+
+        if [ $_vnet == "on" -a $_vnet0_mac != "none" ] ; then
+            printf "%s\n" "VNET0_MAC: $_vnet0_mac"
+        fi
+
+        if [ $_vnet == "on" -a $_vnet1_mac != "none" ] ; then
+            printf "%s\n" "VNET1_MAC: $_vnet1_mac"
+        fi
+
+        if [ $_vnet == "on" -a $_vnet2_mac != "none" ] ; then
+            printf "%s\n" "VNET2_MAC: $_vnet2_mac"
+        fi
+
+        if [ $_vnet == "on" -a $_vnet3_mac != "none" ] ; then
+            printf "%s\n" "VNET3_MAC: $_vnet3_mac"
+        fi
+
+    done
 }
 
 __print_disk () {
