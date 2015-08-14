@@ -3,7 +3,6 @@
 # Print supported releases----------------------------------
 __print_release () {
     supported="10.2-RELEASE
-                10.1-RELEASE
                 9.3-RELEASE"
 
     echo "Supported releases are: "

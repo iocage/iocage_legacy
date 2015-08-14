@@ -30,6 +30,7 @@ __deactivate () {
 __clean () {
     local _answer
 
+    # Look for the right switch and then ask the user if they are sure
     case "$1" in
         -a)
             echo " "
@@ -393,6 +394,7 @@ __check_filesystems () {
                   ${iocroot}/download
                   ${iocroot}/releases"
 
+    # Loop through and make sure the filesystems exist. Make sure you are root
     for _fs in $(echo ${_filesystems}) ; do
         zfs get -H creation ${pool}${_fs} > /dev/null 2>&1
         if [ $? -ne 0 ] ; then
