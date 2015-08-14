@@ -48,43 +48,47 @@ Start the jail:
 
 **USAGE:**
 -  iocage activate ZPOOL
--  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+-  iocage cap UUID|TAG
+-  iocage chroot UUID|TAG [command]
+-  iocage clean [-a|-r|-j]
+-  iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
+-  iocage console UUID|TAG
 -  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
--  iocage clone UUID|TAG@snapshot [property=value]
--  iocage destroy [-f] UUID|TAG|ALL
--  iocage reset UUID|TAG|ALL
+-  iocage deactivate ZPOOL
+-  iocage defaults
+-  iocage destroy [-f] UUID|TAG
+-  iocage df
+-  iocage exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
+-  iocage export UUID|TAG
+-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
+                ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+-  iocage get property|all UUID|TAG
+-  iocage help
+-  iocage import UUID [property=value]
+-  iocage init-host IP ZPOOL
+-  iocage inuse UUID|TAG
+-  iocage limits [UUID|TAG]
 -  iocage list [-t|-r]
--  iocage start UUID|TAG
--  iocage stop UUID|TAG
--  iocage restart UUID|TAG
+-  iocage package UUID|TAG
+-  iocage promote UUID|TAG
 -  iocage rcboot
 -  iocage rcshutdown
--  iocage console UUID|TAG
--  iocage exec [-u username | -U username] UUID|TAG command [arg ...]
--  iocage chroot UUID|TAG [command]
--  iocage df
--  iocage show property
--  iocage get property|all UUID|TAG
+-  iocage record start|stop UUID|TAG
+-  iocage reset UUID|TAG|ALL
+-  iocage restart UUID|TAG
+-  iocage rollback UUID|TAG@snapshotname
+-  iocage runtime UUID|TAG
 -  iocage set property=value UUID|TAG
--  iocage cap UUID|TAG
--  iocage limits UUID|TAG
--  iocage uncap UUID|TAG
--  iocage inuse [UUID|TAG]
--  iocage snapshot UUID|TAG@snapshotname
+-  iocage show property
 -  iocage snaplist UUID|TAG
 -  iocage snapremove UUID|TAG@snapshotname|ALL
--  iocage rollback UUID|TAG@snapshotname
--  iocage promote UUID|TAG
--  iocage runtime UUID|TAG
+-  iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
+-  iocage start UUID|TAG
+-  iocage stop UUID|TAG
+-  iocage uncap UUID|TAG
 -  iocage update UUID|TAG
--  iocage upgrade UUID|TAG
--  iocage record start|stop UUID|TAG
--  iocage package UUID|TAG
--  iocage export UUID|TAG
--  iocage import UUID [property=value]
--  iocage defaults
--  iocage version | --version
--  iocage help
+-  iocage upgrade UUID|TAG [release=RELEASE]
+- iocage version | --version
 
 **REQUIREMENTS**
 - FreeBSD 9.3-RELEASE amd64 or newer

@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.7.1 (2015/08/04)"
+    echo "iocage 1.7.2 (2015/08/04)"
     exit 0
 fi
 
@@ -42,7 +42,7 @@ if [ "$(zpool list)" = 'no pools available' ] ; then
 fi
 
 if [ "$(uname -K)" -lt "903000" ]; then
-    echo "  Unsupported RELEASE found. Please upgrade to 9.3-RELEASE or later."
+    echo "  ERROR: Unsupported RELEASE found. Please upgrade to 9.3-RELEASE or later."
     exit 1
 fi
 
@@ -85,9 +85,15 @@ if [ "$1" == "help" ] ; then
     exit 0
 fi
 
-if [ "$(whoami)" != "root" ] ; then
-    echo "* Only root can manage jails!"
+if [ ! __readonly_cmd $1 -a "$(whoami)" != "root" ] ; then
+    echo "* The $1 command needs root credentials!"
     exit 1
+fi
+
+# Did not work when included as an OR below, workaround for that
+if [ "$1" == "deactivate" ] ; then
+    shift
+    __deactivate "$1"
 fi
 
 # work around zpool activation chicken-egg problem

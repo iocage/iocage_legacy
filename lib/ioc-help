@@ -7,45 +7,47 @@ NAME
 
 SYNOPSIS
   iocage activate ZPOOL
+  iocage cap UUID|TAG
+  iocage chroot UUID|TAG [command]
+  iocage clean [-a|-r|-j]
+  iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
+  iocage console UUID|TAG
+  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage deactivate ZPOOL
+  iocage defaults
+  iocage destroy [-f] UUID|TAG
+  iocage df
+  iocage exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
+  iocage export UUID|TAG
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
                 ftpfiles="base.txz doc.txz lib32.txz src.txz"]
-  iocage init-host IP zpool
-  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
-  iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
-  iocage destroy [-f] UUID|TAG|ALL
-  iocage reset UUID|TAG|ALL
+  iocage get property|all UUID|TAG
+  iocage help
+  iocage import UUID [property=value]
+  iocage init-host IP ZPOOL
+  iocage inuse UUID|TAG
+  iocage limits [UUID|TAG]
   iocage list [-t|-r]
-  iocage start UUID|TAG
-  iocage stop UUID|TAG
-  iocage restart UUID|TAG
+  iocage package UUID|TAG
+  iocage promote UUID|TAG
   iocage rcboot
   iocage rcshutdown
-  iocage console UUID|TAG
-  iocage exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
-  iocage chroot UUID|TAG [command]
-  iocage df
-  iocage show property
-  iocage get property|all UUID|TAG
+  iocage record start|stop UUID|TAG
+  iocage reset UUID|TAG|ALL
+  iocage restart UUID|TAG
+  iocage rollback UUID|TAG@snapshotname
+  iocage runtime UUID|TAG
   iocage set property=value UUID|TAG
-  iocage cap UUID|TAG
-  iocage limits [UUID|TAG]
-  iocage uncap UUID|TAG
-  iocage inuse [UUID|TAG]
-  iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
+  iocage show property
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
-  iocage rollback UUID|TAG@snapshotname
-  iocage promote UUID|TAG
-  iocage runtime UUID|TAG
+  iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
+  iocage start UUID|TAG
+  iocage stop UUID|TAG
+  iocage uncap UUID|TAG
   iocage update UUID|TAG
   iocage upgrade UUID|TAG [release=RELEASE]
-  iocage record start|stop UUID|TAG
-  iocage package UUID|TAG
-  iocage export UUID|TAG
-  iocage import UUID [property=value]
-  iocage defaults
   iocage version | --version
-  iocage help
 
 DESCRIPTION
   iocage is a system administration tool for jails designed to simplify
@@ -94,47 +96,23 @@ SUBCOMMANDS
     Intended for automation tools. The pool can be activated for iocage jails
     without requiring user input.
 
-  fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-         ftpfiles="base.txz doc.txz lib32.txz src.txz]
+  cap UUID|TAG
 
-    Used for downloading and updating/patching releases.
+    Reapply resource limits on jail while it is running.
 
-    fetch must be executed as the first command on a pristine system. By
-    default fetch will download the host node's RELEASE for deployment. If
-    other releases are required, this can be changed by supplying the
-    required release property or just selecting the appropriate RELEASE from
-    the menu list.
+  chroot UUID|TAG [command]
 
-    Example: iocage fetch release=9.2-RELEASE
+    Chroot into jail, without actually starting the jail itself. Useful for
+    initial setup (set root password, configure networking). You can specify a
+    command just like with the normal system chroot tool.
 
-    fetch is also used to update already downloaded releases. To update a local
-    release already present in iocage (iocage list -r) run:
+  clean [-a|-r|-j]
 
-             iocage fetch release=10.1-RELEASE
-
-    This example will apply latest patches to 10.1-RELEASE base.
-    Newly created jails or basejails will automatically have the latest
-    latest updates applied.
-
-  init-host IP zpool
-
-    Initialize a remote host for iocage. iocage will send all required ZFS
-    filesystems over the network to the host. This requires SSH working keys
-    installed for root.
-
-  create [-b|-c|-e] [release=RELEASE] [property=value] [property=value]
-
-    By default create will deploy a new jail based on the host operating
-    system's release. This can be changed by specifying the release option.
-    If the -c switch is specified the jail will be cloned from the current
-    hosts RELEASE (uname -r).
-    Default is to create a fully independent jail set.
-    The -e switch will create an empty jail which can be used for unsupported
-    or custom jails.
-    The -b flag will create a so called "basejail" with a common shared base.
-
-    Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
-             iocage create -b tag=mybasejail
+    This removes the ZFS datasets associated with the flag called. The -a switch
+    will destroy everything associated with iocage. The -r switch will destroy all
+    releases that have been fetched. Basejails rely on these to exist, so be sure
+    you don't remove them if you have any. The -j switch will destroy the jails
+    dataset.
 
   clone UUID|TAG [UUID|TAG@snapshot] [property=value]
 
@@ -151,7 +129,33 @@ SUBCOMMANDS
     Clone a jail from a custom snapshot (snapshot taken previously):
     iocage clone UUID@snapshotname tag=www02
 
-  destroy [-f] UUID|TAG|ALL
+  console UUID|TAG
+
+    Execute login to have a shell inside the jail
+
+  create [-b|-c|-e] [release=RELEASE] [property=value] [property=value]
+
+    By default create will deploy a new jail based on the host operating
+    system's release. This can be changed by specifying the release option.
+    If the -c switch is specified the jail will be cloned from the current
+    hosts RELEASE (uname -r).
+    Default is to create a fully independent jail set.
+    The -e switch will create an empty jail which can be used for unsupported
+    or custom jails.
+    The -b flag will create a so called "basejail" with a common shared base.
+
+    Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
+             iocage create -b tag=mybasejail
+
+  deactivate ZPOOL
+
+    Remove the comment that iocage uses to locate a usable pool.
+
+  defaults
+
+    Display all defaults set in the default dataset.
+
+  destroy [-f] UUID|TAG
 
     Destroy given jail. This is irreversible, use with caution. If the jail is
     running destroy action will fail.
@@ -159,23 +163,6 @@ SUBCOMMANDS
     With -f the jail will be destroyed without confirmation.
 
     The keyword "ALL" will destroy all jails and templates irreversibly!
-
-  reset UUID|TAG|ALL
-
-    This will reset a jail's properties back to the defaults.
-
-    It reads from the properties set on the "default" dataset. TAG, UUID and
-    generated vnet mac addresses are carried forward.
-
-    Those will retain their values, even if you reset the jail.
-    You can also reset every jail to the default properties by using the
-    keyword "ALL".
-
-  list [-t|-r]
-
-    List all jails, if -t is specified list only templates, with -r list
-    downloaded releases.
-    Non iocage jail listed, only if jail in UP state.
 
   df
 
@@ -186,21 +173,93 @@ SUBCOMMANDS
     QTA - disk quota
     USE - used space
     AVA - available space
+    TAG - jail name
 
-  start UUID|TAG
+  exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
 
-    Start jail identified by UUID or TAG.
+    Execute command inside the jail. This is simply an iocage UUID/tag wrapper
+    for jexec(8).
 
-  stop UUID|TAG
+  export UUID|TAG
 
-    Stop jail identified by UUID or TAG.
+    Export a complete jail. An archive file is created in /iocage/images with
+    SHA256 checksum. Jail must be in stopped state before exporting.
 
-  restart UUID|TAG
+  fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
+         ftpfiles="base.txz doc.txz lib32.txz src.txz]
 
-    Soft restart jail. Soft method will restart the jail without destroying
-    the jail's networking and the jail process itself. All processes are
-    gracefully restarted inside the jail. Useful for quick and graceful
-    restarts.
+    Used for downloading and updating/patching releases.
+
+    fetch must be executed as the first command on a pristine system. By
+    default fetch will download the host node's RELEASE for deployment. If
+    other releases are required, this can be changed by supplying the
+    required release property or just selecting the appropriate RELEASE from
+    the menu list.
+
+    Example: iocage fetch release=10.1-RELEASE
+
+    fetch is also used to update already downloaded releases. To update a local
+    release already present in iocage (iocage list -r) run:
+
+             iocage fetch release=10.1-RELEASE
+
+    This example will apply latest patches to 10.1-RELEASE base.
+    Newly created jails or basejails will automatically have the latest
+    latest updates applied.
+
+  get property|all UUID|TAG
+
+    Get named property or if "all" keyword is specified dump all properties
+    known to iocage.
+
+    To display whether resource limits are enforced for a jail:
+
+    iocage get rlimits UUID|TAG
+
+  help
+
+    This help file you are reading.
+
+  import UUID [property=value]
+
+    Import full jail images or differential packages. Images need to be
+    present in /iocage/images and packages in /iocage/packages along with
+    checksum files. You can use short UUIDs - do not specify the full filename
+    only the UUID.
+
+  init-host IP ZPOOL
+
+    Initialize a remote host for iocage. iocage will send all required ZFS
+    filesystems over the network to the host. This requires SSH working keys
+    installed for root.
+
+  inuse [UUID|TAG]
+
+    Display consumed resources for a jail. Without UUID or TAG dump all
+    resources for all running jails in a comma delimited form.
+
+  limits [UUID|TAG]
+
+    Display active resource limits for a jail or all jails. With no UUID
+    supplied display all limits active for all jails.
+
+  list [-t|-r]
+
+    List all jails, if -t is specified list only templates, with -r list
+    downloaded releases.
+    Non iocage jail listed, only if jail is in the UP state.
+
+  package UUID|TAG
+
+    Package recorded jail session into /iocage/packages. Creates SHA256
+    checksum and prunes empty directories, files and some residual files like
+    utx.* and .history. Before packaging any jails, make sure no unwanted files
+    contaminated or leaked into the recorded package.
+
+  promote UUID|TAG
+
+    Promote a cloned jail to a fully independent copy. For more details please
+    read zfs(8).
 
   rcboot
 
@@ -215,20 +274,42 @@ SUBCOMMANDS
     Jails will be stopped in an ordered fashion based on their "priority"
     property.
 
-  console UUID|TAG
+  record start|stop UUID|TAG
 
-    Console access, drop into jail.
+    The record function will record every changed file in a directory called
+    /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
+    mount. Used for differential package creation.
 
-  exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
+  reset UUID|TAG|ALL
 
-    Execute command inside the jail. This is simply an iocage UUID/tag wrapper
-    for jexec(8).
+    This will reset a jail's properties back to the defaults.
 
-  chroot UUID|TAG [command]
+    It reads from the properties set on the "default" dataset. TAG, UUID and
+    generated vnet mac addresses are carried forward.
 
-    Chroot into jail, without actually starting the jail itself. Useful for
-    initial setup (set root password, configure networking). You can specify a
-    command just like with the normal system chroot tool.
+    Those will retain their values, even if you reset the jail.
+    You can also reset every jail to the default properties by using the
+    keyword "ALL".
+
+  restart UUID|TAG
+
+    Soft restart jail. Soft method will restart the jail without destroying
+    the jail's networking and the jail process itself. All processes are
+    gracefully restarted inside the jail. Useful for quick and graceful
+    restarts.
+
+  rollback UUID|TAG@snapshotname
+
+    Rollback to an existing snapshot. Any intermediate snapshots will be
+    destroyed. For more information on this functionality please read zfs(8).
+
+  runtime UUID|TAG
+
+    Show runtime configuration of a jail. Useful for debugging.
+
+  set property=value UUID|TAG
+
+    Set a property to value.
 
   show property
 
@@ -238,42 +319,6 @@ SUBCOMMANDS
     To get the last successfull start time for all jails:
 
         iocage show last_started
-
-  get property|all UUID|TAG
-
-    Get named property or if "all" keyword is specified dump all properties
-    known to iocage.
-
-    To display whether resource limits are enforced for a jail:
-
-    iocage get rlimits UUID|TAG
-
-  set property=value UUID|TAG
-
-    Set a property to value.
-
-  cap UUID|TAG
-
-    Reapply resource limits on jail while it is running.
-
-  limits [UUID|TAG]
-
-    Display active resource limits for a jail or all jails. With no UUID
-    supplied display all limits active for all jails.
-
-  uncap UUID|TAG
-
-    Release all resource limits, disable limits on the fly.
-
-  inuse [UUID|TAG]
-
-    Display consumed resources for a jail. Without UUID or TAG dump all
-    resources for all running jails in a comma delimited form.
-
-  snapshot UUID|TAG [UUID|TAG@snapshotname]
-
-    Create a ZFS snapshot for jail. If no snapshot name is specified defaults
-    to auto snapshot name based on current date and time.
 
   snaplist UUID|TAG
 
@@ -289,19 +334,22 @@ SUBCOMMANDS
     Destroy specified jail snapshot. If the keyword ALL is specified all
     snapshots will be destroyed for the jail.
 
-  rollback UUID|TAG@snapshotname
+  snapshot UUID|TAG [UUID|TAG@snapshotname]
 
-    Rollback to an existing snapshot. Any intermediate snapshots will be
-    destroyed. For more information on this functionality please read zfs(8).
+    Create a ZFS snapshot for jail. If no snapshot name is specified defaults
+    to auto snapshot name based on current date and time.
 
-  promote UUID|TAG
+  start UUID|TAG
 
-    Promote a cloned jail to a fully independent copy. For more details please
-    read zfs(8).
+    Start jail identified by UUID or TAG.
 
-  runtime UUID|TAG
+  stop UUID|TAG
 
-    Show runtime configuration of a jail. Useful for debugging.
+    Stop jail identified by UUID or TAG.
+
+  uncap UUID|TAG
+
+    Release all resource limits, disable limits on the fly.
 
   update UUID|TAG
 
@@ -322,42 +370,9 @@ SUBCOMMANDS
     will re-clone its filesystems from the new release either by issuing
     the upgrade command or at next jail start.
 
-  record start|stop UUID|TAG
-
-    The record function will record every changed file in a directory called
-    /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
-    mount. Used for differential package creation.
-
-  package UUID|TAG
-
-    Package recorded jail session into /iocage/packages. Creates SHA256
-    checksum and prunes empty directories, files and some residual files like
-    utx.* and .history. Before packaging any jails, make sure no unwanted files
-    contaminated or leaked into the recorded package.
-
-  export UUID|TAG
-
-    Export a complete jail. An archive file is created in /iocage/images with
-    SHA256 checksum. Jail must be in stopped state before exporting.
-
-  import UUID [property=value]
-
-    Import full jail images or differential packages. Images need to be
-    present in /iocage/images and packages in /iocage/packages along with
-    checksum files. You can use short UUIDs - do not specify the full filename
-    only the UUID.
-
-  defaults
-
-    Display all defaults set in iocage itself.
-
   version | --version
 
     List version number.
-
-  help
-
-    List quick help.
 
 PROPERTIES
   For more information on properties please check the relevant man page which
@@ -409,11 +424,12 @@ PROPERTIES
     Example:
       # iocage set ip4_autostart="100" default
       # iocage set ip4_autoend="150" default
+      # iocage set ip4_autosubnet="24" default
 
     This will result in the automatic IPv4 address being assigned in the
     base range of the default network interface. I.E. if the local default
     NIC is set to 192.168.0.XXX, then the new address will be
-    192.168.0.[100-150]
+    192.168.0.[100-150]/24
 
     For VNET jails the interface will be configured with the IP addresses
     listed.

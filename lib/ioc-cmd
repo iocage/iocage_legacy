@@ -13,6 +13,9 @@ __parse_cmd () {
             chroot)     __chroot "$2" "$3"
                         exit
                 ;;
+            clean)      __clean "$2"
+                        exit
+                ;;
             clone)      __export_props "$@"
                         __clone_jail "$2"
                         exit
@@ -22,6 +25,9 @@ __parse_cmd () {
                 ;;
             create)     __export_props "$@"
                         __create_jail "$@"
+                        exit
+                ;;
+            deactivate) __deactivate "$2"
                         exit
                 ;;
             defaults)   __print_defaults
@@ -125,7 +131,7 @@ __parse_cmd () {
             uncap)      __rctl_uncap "$2"
                         exit
                 ;;
-            update)     __update "$2"
+            update)     __update "$2" "$3"
                         exit
                 ;;
             upgrade)     __upgrade "$2"

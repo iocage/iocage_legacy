@@ -25,6 +25,7 @@ hostname=$uuid
 ip4_addr="none"
 ip4_autostart="none"
 ip4_autoend="none"
+ip4_autosubnet="none"
 ip4_saddrsel="1"
 ip4="new"
 ip6_addr="none"
@@ -167,6 +168,7 @@ CONF_NET="interfaces
           ip4_addr
           ip4_autostart
           ip4_autoend
+          ip4_autosubnet
           ip4_saddrsel
           ip4
           ip6_addr

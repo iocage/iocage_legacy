@@ -2,7 +2,7 @@
 
 # Print supported releases----------------------------------
 __print_release () {
-    supported="10.1-RELEASE
+    supported="10.2-RELEASE
                 9.3-RELEASE"
 
     echo "Supported releases are: "
@@ -188,7 +188,7 @@ __list_jails () {
 __print_disk () {
     local jails=$(__find_jail ALL)
 
-    printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA"
+    printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
 
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
@@ -197,15 +197,33 @@ __print_disk () {
         qta=$(zfs get -H -o value quota $jail)
         use=$(zfs get -H -o value used $jail)
         ava=$(zfs get -H -o value available $jail)
+        tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
 
-        printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s\n" "$uuid" "$crt" "$res" "$qta" \
-               "$use" "$ava"
+        printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "$uuid" "$crt" "$res" "$qta" \
+               "$use" "$ava" "$tag"
     done
 }
 
 __find_mypool () {
+    local _comment _dupcheck
+
     pools="$(zpool list -H -o name)"
+    _comment="$(zpool list -H -o name,comment | grep iocage)"
+    _dupcheck="$(zpool list -H -o name,comment | grep iocage | wc -l)"
     found="0"
+
+    if [ "$_dupcheck" -gt 1 ] ; then
+        echo ""
+        echo "  WARNING: You have more then one pool set for iocage use!"
+        echo ""
+        echo "**** POOLS ****"
+        echo "$_comment"
+        echo "***************"
+        echo ""
+        echo "  Please run 'iocage deactivate' on one of them"
+        echo ""
+        exit 1
+    fi
 
     for i in $pools ; do
         mypool="$(zpool get comment $i | grep -v NAME | awk '{print $3}')"
