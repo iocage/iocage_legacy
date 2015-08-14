@@ -85,11 +85,10 @@ if [ "$1" == "help" ] ; then
     exit 0
 fi
 
-if [ ! __readonly_cmd $1 -a "$(whoami)" != "root" ] ; then
+if ! __readonly_cmd $1 && [ "$(whoami)" != "root" ] ; then
     echo "* The $1 command needs root credentials!"
     exit 1
 fi
-
 # Did not work when included as an OR below, workaround for that
 if [ "$1" == "deactivate" ] ; then
     shift
