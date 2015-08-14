@@ -4,7 +4,7 @@
 # and therefore doesn't need root credentials
 __readonly_cmd () {
     case "$1" in
-        defaults|df|get|list) return 0;;
+        defaults|df|get|list|show|snaplist) return 0;;
     esac
 
     return 1
