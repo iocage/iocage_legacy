@@ -149,6 +149,12 @@ __list_jails () {
                 printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
                 "$boot" "$state" "$tag"
             fi
+        elif [ $switch == "-b" ] ; then
+            jail_type="$(__get_jail_prop type $uuid)"
+            if [ $jail_type == "basejail" ] ; then
+                printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
+                "$boot" "$state" "$tag"
+            fi
         elif [ $switch != "-t" ] ; then
             if [ $template != "yes" ] ; then
                 printf "%-4s  %-+.36s  %-4s  %-4s   %s\n" "$jid" "$uuid"  \
