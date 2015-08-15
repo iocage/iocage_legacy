@@ -56,44 +56,35 @@ __get_default_prop () {
 # Find and return the jail's top level ZFS dataset
 
 __find_jail () {
-    local name=$1
-    local jlist="/tmp/iocage-jail-list.$$"
-    local jails="$(zfs list -d1 -rH -o name $pool/iocage/jails \
-                 | grep -E \
-                "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
+    local _name _jlist _jail _tag _found
+    _name="$1"
 
-    if [ "${name}" == "ALL" ] ; then
-        for jail in $jails ; do
-            echo $jail
+    if [ "${_name}" == "ALL" ] ; then
+        for _jail in ${jail_datasets} ; do
+            echo ${_jail}
         done
-    elif [ "${name}" == "default" ] ; then
+    elif [ "${_name}" == "default" ] ; then
         echo "${pool}/iocage/.defaults"
     else
-        for jail in $jails ; do
-            found="$(echo $jail |grep -iE "^$pool/iocage/jails/$name"|wc -l)"
-            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
+        for _jail in ${jail_datasets} ; do
+            _found="$(echo ${_jail} | grep -iE "^${pool}/iocage/jails/${_name}")"
+            _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
 
-            if [ "$found" -eq 1 ] ; then
-                echo $jail >> $jlist
+            if [ "${#_found}" -gt 0 ] ; then
+                _jlist="${_jlist} ${_jail}"
             fi
 
-            if [ $tag == $name ] ; then
-                echo $jail >> $jlist
+            if [ "${_tag}" == "${_name}" ] ; then
+                _jlist="${_jlist} ${_jail}"
             fi
         done
 
-        if [ ! -e $jlist ] ; then
-            exit 0
-        fi
-
-        if [ "$(cat $jlist|wc -l)" -eq "1" ] ; then
-            cat $jlist
-        elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
+        if [ "$(echo ${_jlist}|wc -w)" -eq "1" ] ; then
+            echo "${_jlist}"
+        elif [ "$(echo ${_jlist}|wc -w)" -gt "1" ] ; then
             echo "multiple"
         fi
     fi
-
-    rm  -f $jlist
 }
 
 __list_jails () {
@@ -330,13 +321,13 @@ __find_mypool () {
 }
 
 # Get jail properties
+# Expects: property as $1 and UUID|jail name as $2 optionally dataset as $3
 __get_jail_prop () {
     local _value _found _name _property _dataset _CONF
 
     _name="$2"
     _property="$1"
     _found="0"
-    _dataset="$(__find_jail $_name)"
     _CONF="$CONF_NET
            $CONF_JAIL
            $CONF_RCTL
@@ -344,6 +335,12 @@ __get_jail_prop () {
            $CONF_SYNC
            $CONF_FTP
            $CONF_GIT"
+
+    if [ "$3" ] ; then
+        _dataset="$3"
+    else
+        _dataset="$(__find_jail $_name)"
+    fi
 
     if [ -z "$_property" ] ; then
         echo "  ERROR: Get failed, incorrect property syntax!"
@@ -377,6 +374,7 @@ __get_jail_prop () {
             else
                 echo "$_value"
             fi
+
 
         elif [ $_property == "all" ] ; then
             _found=1
@@ -457,30 +455,25 @@ __findscript () {
     fi
 }
 
+# Expects name and optional dataset as $2
 __check_name () {
     local name=$1
+    local _dataset
 
     if [ -z $name ] ; then
         echo "ERROR"
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: Jail $name not found!"
-        exit 1
+    if [ $2 ] ; then
+        _dataset="$2"
+    else
+        _dataset=$(__find_jail $name)
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
-    fi
-
-    local uuid="$(__get_jail_prop host_hostuuid $name)"
+    local uuid="$(__get_jail_prop host_hostuuid $name $_dataset)"
 
     echo "$uuid"
-
 }
 
 __is_running () {

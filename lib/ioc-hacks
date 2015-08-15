@@ -2,13 +2,14 @@
 
 # truncate mountpoint to work around 88 char mount limit on FreeBSD
 __hack88_mount () {
-    local _fulluuid _shortuuid _mountpoint _mount_len _hack88
+    local _fulluuid _shortuuid _mountpoint _mount_len _hack88 _dataset
 
     _fulluuid="$1"
+    _dataset="$2"
     _shortuuid="$(echo $_fulluuid|cut -f1 -d\-)"
-    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
+    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
     _mount_len="$(echo ${_mountpoint} | cut -f4 -d\/|wc -c | awk '{print $1}')"
-    _hack88="$(__get_jail_prop hack88 $_fulluuid)"
+    _hack88="$(__get_jail_prop hack88 $_fulluuid $_dataset)"
 
     if [ "$_hack88" == "1" ] && [ "$_mount_len" -eq "37" ] ; then
         echo "  INFO: truncating jail mountpoint"

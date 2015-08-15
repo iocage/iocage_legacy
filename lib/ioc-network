@@ -18,25 +18,26 @@ __get_next_mac () {
 # Example: __validate_mac ${nic} ${_mac_offset} a ${_uuid}
 __validate_mac () {
     local _nic _uuid _mac _mac_base _mac_offset \
-          _mac_epair_a _mac_epair_b _return
+          _mac_epair_a _mac_epair_b _return _dataset
 
     _nic="$1"
     _mac_offset="$2"
     _epair_leg="$3"
     _uuid="$4"
-    _mac="$(__get_jail_prop ${_nic}_mac ${_uuid})"
+    _dataset="$5"
+    _mac="$(__get_jail_prop ${_nic}_mac ${_uuid} $_dataset)"
     _mac_base="$(echo ${_uuid} | awk '{print substr($0, 0, 6)}')"
     _mac_epair_a="$(__get_next_mac ${_mac_base} ${_mac_offset})"
     _mac_epair_b="$(__get_next_mac ${_mac_base} ${_mac_offset}+1)"
 
     if [ ${_mac} == "none" ] ; then
-        __set_jail_prop ${_nic}_mac="${_mac_epair_a},${_mac_epair_b}" ${_uuid}
+        __set_jail_prop ${_nic}_mac="${_mac_epair_a},${_mac_epair_b}" ${_uuid} $_dataset
     fi
 
     if [ ${_epair_leg} == "a" ] ; then
-        _return="$(__get_jail_prop ${_nic}_mac ${_uuid}|cut -f1 -d,)"
+        _return="$(__get_jail_prop ${_nic}_mac ${_uuid} $_dataset|cut -f1 -d,)"
     elif [ ${_epair_leg} == "b" ] ; then
-        _return="$(__get_jail_prop ${_nic}_mac ${_uuid}|cut -f2 -d,)"
+        _return="$(__get_jail_prop ${_nic}_mac ${_uuid} $_dataset|cut -f2 -d,)"
     fi
 
     echo ${_return}
@@ -45,16 +46,17 @@ __validate_mac () {
 # Expects $1 for action and $2 for UUID
 __networking () {
     local _action _uuid _jid _mac_epair_a mac_epair_b \
-          _mac_offset
+          _mac_offset _dataset
 
     _action="$1"
     _uuid="$2"
+    _dataset="$3"
     _jid="$(jls -j ioc-${_uuid} jid)"
-    local ip4="$(__get_jail_prop ip4_addr ${_uuid})"
-    local ip6="$(__get_jail_prop ip6_addr ${_uuid})"
-    local defaultgw="$(__get_jail_prop defaultrouter ${_uuid})"
-    local defaultgw6="$(__get_jail_prop defaultrouter6 ${_uuid})"
-    local nics="$(__get_jail_prop interfaces ${_uuid} \
+    local ip4="$(__get_jail_prop ip4_addr ${_uuid} $_dataset)"
+    local ip6="$(__get_jail_prop ip6_addr ${_uuid} $_dataset)"
+    local defaultgw="$(__get_jail_prop defaultrouter ${_uuid} $_dataset)"
+    local defaultgw6="$(__get_jail_prop defaultrouter6 ${_uuid} $_dataset)"
+    local nics="$(__get_jail_prop interfaces ${_uuid} $_dataset\
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     #local ip4_list="$(echo $ip4 | sed 's/,/ /g')"
     local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
@@ -122,14 +124,14 @@ __networking () {
         # Check if the user specified they wanted to use an automatic IP4 address
         echo "$ip4_addr" | grep -q "AUTOIP4"
         if [ $? -eq 0 ] ; then
-            __get_autoip4
+            __get_autoip4 $_dataset
 
             if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
                new_iface="$default_iface"
-               __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}" $_uuid
+               __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}" $_uuid $_dataset
             else
                new_iface="$cur_ip4_iface"
-               __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $_uuid
+               __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $_uuid $_dataset
             fi
             jexec ioc-${2} ifconfig $new_iface ${auto_ip} up
         fi
@@ -144,7 +146,10 @@ __networking () {
 }
 
 __get_autoip4 () {
-     local _autobase _autostart _autoend _autoip _freeip
+     local _autobase _autostart _autoend _autoip _freeip _dataset
+
+
+     _dataset="$2"
      unset _auto_ip4
      _autobase=$(netstat -f inet -nrW | grep '^default' |\
                awk '{ print $2 }' | cut -d '.' -f 1-3)
@@ -177,7 +182,7 @@ __get_autoip4 () {
         for jail in $jails ; do
             local juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid\
                         $jail)
-            local jip4="$(__get_jail_prop ip4_addr ${juuid})"
+            local jip4="$(__get_jail_prop ip4_addr ${juuid} $_dataset)"
             jip4=$(echo $jip4 | cut -d '|' -f 2 | cut -d '/' -f 1)
             if [ "$jip4" = "$_nextaddr" ] ; then
                 _freeip="NO"

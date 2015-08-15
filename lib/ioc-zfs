@@ -416,4 +416,8 @@ __check_filesystems () {
     if [ ${_missing} -gt 0 ] ; then
         zfs mount -a
     fi
+
+    export jail_datasets="$(zfs list -d1 -rH -o name $pool/iocage/jails \
+                          | grep -E \
+                          "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
 }
