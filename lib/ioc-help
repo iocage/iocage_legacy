@@ -31,6 +31,7 @@ SYNOPSIS
   iocage package UUID|TAG
   iocage promote UUID|TAG
   iocage rcboot
+  iocage reboot UUID|TAG
   iocage rcshutdown
   iocage record start|stop UUID|TAG
   iocage reset UUID|TAG|ALL
@@ -266,6 +267,11 @@ SUBCOMMANDS
     Start all jails with "boot" property set to "on". Intended for boot time
     execution. Jails will be started in an ordered fashion based on their
     "priority" property.
+
+  reboot UUID|TAG
+
+    Fully stops the jail with `iocage stop` and, upon success, restarts it with
+    `iocage start`.
 
   rcshutdown
 

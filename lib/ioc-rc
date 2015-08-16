@@ -345,6 +345,11 @@ __legacy_start () {
     fi
 }
 
+# Stop completely and start the jail anew
+__reboot_jail () {
+    __stop_jail "$1" && __start_jail "$1"
+}
+
 __stop_jail () {
     local name="$1"
 

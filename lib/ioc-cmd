@@ -101,6 +101,9 @@ __parse_cmd () {
             rcshutdown) __rc_jails shutdown
                         exit
                 ;;
+            reboot)     __reboot_jail "$2"
+                        exit
+                ;;
             record)     __record "$2" "$3"
                         exit
                 ;;

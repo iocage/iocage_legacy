@@ -31,6 +31,7 @@
 \fBiocage\fP \fIpackage\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIpromote\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIrcboot\fP
+\fBiocage\fP \fIreboot\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIrcshutdown\fP
 \fBiocage\fP \fIrecord\fP start|stop \fIUUID\fP|TAG
 \fBiocage\fP \fIreset\fP \fIUUID\fP|TAG|ALL
@@ -384,6 +385,15 @@ latest updates applied.
     Start all jails with "boot" property set to "on". Intended for boot time
     execution. Jails will be started in an ordered fashion based on their
     "priority" property.
+
+.fam T
+.fi
+\fIreboot\fP \fIUUID\fP|TAG
+.PP
+.nf
+.fam C
+    Fully stops the jail with `iocage stop` and, upon success, restarts it with
+    `iocage start`.
 
 .fam T
 .fi
