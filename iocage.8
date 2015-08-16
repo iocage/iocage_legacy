@@ -27,7 +27,7 @@
 \fBiocage\fP \fIinit-host\fP \fIIP\fP \fIZPOOL\fP
 \fBiocage\fP \fIinuse\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIlimits\fP [\fIUUID\fP|TAG]
-\fBiocage\fP \fIlist\fP [\fB-t\fP|\fB-r\fP]
+\fBiocage\fP \fIlist\fP [\fB-b\fP|\fB-t\fP|\fB-r\fP]
 \fBiocage\fP \fIpackage\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIpromote\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIrcboot\fP
@@ -347,12 +347,12 @@ latest updates applied.
 
 .fam T
 .fi
-\fIlist\fP [\fB-t\fP|\fB-r\fP]
+\fIlist\fP [\fB-b\fP|\fB-t\fP|\fB-r\fP]
 .PP
 .nf
 .fam C
-    List all jails, if -t is specified list only templates, with -r list
-    downloaded releases.
+    List all jails, if -b is specified list only basejails, with -t list only
+    templates, with -r list downloaded releases.
     Non iocage jail listed, only if jail is in the UP state.
 
 .fam T

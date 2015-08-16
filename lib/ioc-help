@@ -27,7 +27,7 @@ SYNOPSIS
   iocage init-host IP ZPOOL
   iocage inuse UUID|TAG
   iocage limits [UUID|TAG]
-  iocage list [-t|-r]
+  iocage list [-b|-t|-r]
   iocage package UUID|TAG
   iocage promote UUID|TAG
   iocage rcboot
@@ -243,10 +243,10 @@ SUBCOMMANDS
     Display active resource limits for a jail or all jails. With no UUID
     supplied display all limits active for all jails.
 
-  list [-t|-r]
+  list [-b|-t|-r]
 
-    List all jails, if -t is specified list only templates, with -r list
-    downloaded releases.
+    List all jails, if -b is specified list only basejails, with -t list only
+    templates, with -r list downloaded releases.
     Non iocage jail listed, only if jail is in the UP state.
 
   package UUID|TAG
