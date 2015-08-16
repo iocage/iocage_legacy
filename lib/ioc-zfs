@@ -205,21 +205,19 @@ __create_jail () {
         done
         _configured="1"
     else
+        eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
+        _configured="1"
         zfs snapshot -r $pool/iocage/releases/$release@$uuid
-        zfs send     -R $pool/iocage/releases/$release@$uuid | \
-        zfs recv        $pool/iocage/jails/$uuid
+        zfs send     -R $pool/iocage/releases/$release/root@$uuid | \
+        zfs recv        $pool/iocage/jails/$uuid/root
         zfs destroy  -r $pool/iocage/releases/$release@$uuid
-        zfs destroy  -r $pool/iocage/jails/$uuid@$uuid
-    fi
-
-    if [ "${_configured}" -ne "1" ] ; then
-        __configure_jail $pool/iocage/jails/$uuid
+        zfs destroy  -r $pool/iocage/jails/$uuid/root@$uuid
     fi
 
     touch $iocroot/jails/$uuid/fstab
 
     # remove any residual clone snapshots carried over from the RELEASE datasets
-    __snapremove ${uuid}@ALL
+    __snapremove ${uuid}@ALL $pool/iocage/jails/$uuid
 
     # at create time set the default rc.conf
     if [ "${2}" != "-e" ] ; then
@@ -236,7 +234,7 @@ __create_jail () {
     zfs set jailed=on ${pool}/$jail_zfs_dataset
 
     # configure the jail mountpoint
-    __hack88_mount ${uuid}
+    __hack88_mount ${uuid} $pool/iocage/jails/$uuid
 
     # Install extra packages
     # this requires working resolv.conf in jail

@@ -36,7 +36,11 @@ __snapremove () {
         exit 1
     fi
 
-    _dataset="$(__find_jail ${_name})"
+    if [ "$2" ] ; then
+        _dataset="$2"
+    else
+        _dataset="$(__find_jail ${_name})"
+    fi
 
     if [ -z ${_dataset} ] ; then
         echo "  ERROR: jail dataset not found"

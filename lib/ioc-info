@@ -80,7 +80,8 @@ __find_jail () {
         done
 
         if [ "$(echo ${_jlist}|wc -w)" -eq "1" ] ; then
-            echo "${_jlist}"
+            # remove whitespace
+            echo "${_jlist}" | xargs
         elif [ "$(echo ${_jlist}|wc -w)" -gt "1" ] ; then
             echo "multiple"
         fi

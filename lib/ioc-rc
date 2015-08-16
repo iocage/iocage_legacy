@@ -2,13 +2,18 @@
 
 __start_jail () {
     local name=$1
+    local _dataset
 
     if [ -z $name ] ; then
         echo "  ERROR: missing UUID"
         exit 1
     fi
 
-    local _dataset="$(__find_jail $name)"
+    if [ "$2" ] ; then
+        _dataset="$2"
+    else
+        _dataset="$(__find_jail $name)"
+    fi
 
     if [ -z $_dataset ] ; then
         echo "  ERROR: $name not found"
@@ -150,7 +155,7 @@ __start_jail () {
         echo "        OK"
     fi
 
-    zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $_dataset
+    zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $_dataset &
 
 }
 
@@ -526,11 +531,12 @@ __rc_jails () {
 
         for i in $boot_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
-            local jail_path="$(__get_jail_prop mountpoint $jail)"
+            local _dataset="$(__find_jail $jail)"
+            local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
             local state="$(jls | grep ${jail_path} | wc -l)"
 
             if [ "$state" -lt "1" ] ; then
-                __start_jail $jail
+                __start_jail $jail $_dataset
             fi
         done
 
