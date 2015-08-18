@@ -43,6 +43,8 @@ __configure_jail () {
                 _value="${ip4_autosubnet}"
             elif [ "$prop_name" = "type" ] ; then
                 _value="${type}"
+            elif [ "$prop_name" = "boot" ] ; then
+                _value="${boot}"
             elif [ "$prop_name" = "gitlocation" ] ; then
                 case "$gitlocation" in
                     "-")
@@ -225,6 +227,7 @@ __reset_jail_props () {
      $_dataset)"
     gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
     type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
+    boot="$(zfs get -H -o value org.freebsd.iocage:boot $_dataset)"
     __configure_jail $_dataset
 }
 
