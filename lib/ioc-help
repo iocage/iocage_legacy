@@ -1396,20 +1396,20 @@ __usage () {
 }
 
 __show () {
-    local _jails _prop _name _tag _value
+    local _datasets _prop _fulluuid _tag _value _dataset
 
-    _jails=$(__find_jail ALL)
+    _datasets=$(__find_jail ALL)
     _prop="$1"
 
     {
         printf "%s\t%s\t%s\n" "UUID" "TAG" "$_prop"
-        for jail in $_jails ; do
-            _name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
-                        $jail)"
-            _tag="$(__get_jail_prop tag $_name)"
-            _value="$(__get_jail_prop $_prop $_name)"
+        for _dataset in $_datasets ; do
+            _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+                        $_dataset)"
+            _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
+            _value="$(__get_jail_prop $_prop $_fulluuid $_dataset)"
 
-            printf "%s\t%s\t%s\n" "$_name"  "$_tag" "$_value"
+            printf "%s\t%s\t%s\n" "$_fulluuid"  "$_tag" "$_value"
         done
     } | column -s $'\t' -t
 }

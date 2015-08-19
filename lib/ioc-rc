@@ -5,7 +5,7 @@ __start_jail () {
           _tag _jail_hostid _jail_path _template _cpuset \
           _procfs _state _vnet _nics
 
-    # Get fulluuid and dataset in one step
+    # Get fulluuid and dataset in one step (dataset is optional)
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
 
     set $_fulluuid_dataset
@@ -64,14 +64,14 @@ __start_jail () {
         mount -t procfs proc ${_jail_path}/root/proc
     fi
 
-    local jzfs="$(__get_jail_prop jail_zfs $_fulluuid $_dataset)"
-    local jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $_fulluuid $_dataset)"
+    local _jzfs="$(__get_jail_prop jail_zfs $_fulluuid $_dataset)"
+    local _jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $_fulluuid $_dataset)"
 
-    if [ $jzfs == "on" ] ; then
+    if [ $_jzfs == "on" ] ; then
         __set_jail_prop allow_mount=1 $_fulluuid $_dataset
         __set_jail_prop enforce_statfs=1 $_fulluuid $_dataset
         __set_jail_prop allow_mount_zfs=1 $_fulluuid $_dataset
-        zfs set jailed=on ${pool}/$jzfs_dataset
+        zfs set jailed=on ${pool}/${_jzfs_dataset}
     fi
 
     if [ $_vnet == "on" ] || [ $_vnet == "-" ] ; then
@@ -125,8 +125,8 @@ __start_jail () {
         fi
     fi
 
-    if [ $jzfs == "on" ] ; then
-        zfs jail ioc-${_fulluuid} ${pool}/$jzfs_dataset
+    if [ $_jzfs == "on" ] ; then
+        zfs jail ioc-${_fulluuid} ${pool}/${_jzfs_dataset}
     fi
 
     __resolv_conf ${_fulluuid} > ${_jail_path}/root/etc/resolv.conf
@@ -344,7 +344,9 @@ __reboot_jail () {
 }
 
 __stop_jail () {
-    local _fulluuid
+    local _fulluuid _dataset _fulluuid_dataset _jail_path _tag \
+          _exec_prestop _exec_stop _exec_poststop _vnet _state \
+          _ip4
 
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
 
@@ -354,24 +356,24 @@ __stop_jail () {
     _dataset="$2"
 
 
-    local jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
-    local tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
-    local exec_prestop="$(__findscript $_fulluuid prestop)"
-    local exec_stop="$(__get_jail_prop exec_stop $_fulluuid $_dataset)"
-    local exec_poststop="$(__findscript $_fulluuid poststop)"
-    local vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
-    local state="$(__is_running $_fulluuid)"
-    local ip4="$(__get_jail_prop ip4 $_fulluuid $_dataset)"
+    _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
+    _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
+    _exec_prestop="$(__findscript $_fulluuid prestop)"
+    _exec_stop="$(__get_jail_prop exec_stop $_fulluuid $_dataset)"
+    _exec_poststop="$(__findscript $_fulluuid poststop)"
+    _vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
+    _state="$(__is_running $_fulluuid)"
+    _ip4="$(__get_jail_prop ip4 $_fulluuid $_dataset)"
 
-    if [ -z "$state" ] ; then
+    if [ -z "$_state" ] ; then
         echo "* ${_fulluuid}: is already down"
         exit 1
     fi
 
-    echo "* Stopping $_fulluuid ($tag)"
+    echo "* Stopping $_fulluuid ($_tag)"
 
     echo -n "  + Running pre-stop"
-    eval "$exec_prestop"
+    eval "$_exec_prestop"
     if [ $? -ne 1 ] ; then
         echo "         OK"
     else
@@ -380,7 +382,7 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
-    jexec ioc-${_fulluuid} $exec_stop >> $iocroot/log/${_fulluuid}-console.log 2>&1
+    jexec ioc-${_fulluuid} $_exec_stop >> $iocroot/log/${_fulluuid}-console.log 2>&1
 
     if [ $? -ne 1 ] ; then
         echo "        OK"
@@ -388,7 +390,7 @@ __stop_jail () {
         echo "    FAILED"
     fi
 
-    if [ $vnet == "on" ] ; then
+    if [ $_vnet == "on" ] ; then
         echo -n "  + Tearing down VNET"
         __networking stop $_fulluuid
         if [ $? -eq 1 ] ; then
@@ -398,7 +400,7 @@ __stop_jail () {
         fi
     else
         # don't try to tear down networking if we have "inherit" set
-        if [ "$ip4" != 'inherit' ] ; then
+        if [ "$_ip4" != 'inherit' ] ; then
             __stop_legacy_networking $name
         fi
     fi
@@ -413,17 +415,17 @@ __stop_jail () {
     fi
 
     echo -n "  + Running post-stop"
-    eval "$exec_poststop"
+    eval "$_exec_poststop"
     if [ $? -ne 1 ] ; then
         echo "        OK"
     else
         echo "    FAILED"
     fi
 
-    umount -afvF ${jail_path}/fstab > /dev/null 2>&1
-    umount ${jail_path}/root/dev/fd > /dev/null 2>&1
-    umount ${jail_path}/root/dev    > /dev/null 2>&1
-    umount ${jail_path}/root/proc   > /dev/null 2>&1
+    umount -afvF ${_jail_path}/fstab > /dev/null 2>&1
+    umount ${_jail_path}/root/dev/fd > /dev/null 2>&1
+    umount ${_jail_path}/root/dev    > /dev/null 2>&1
+    umount ${_jail_path}/root/proc   > /dev/null 2>&1
 
     if [ -d $iocroot/jails/${_fulluuid}/recorded ] ; then
         umount -ft unionfs $iocroot/jails/${_fulluuid}/root > /dev/null 2>&1
@@ -507,7 +509,7 @@ __rc_jails () {
 
         for i in $boot_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
-            local _dataset="$(__find_jail $jail)"
+            local _dataset="${pool}/iocage/jails/${jail}"
             local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
             local state="$(jls | grep ${jail_path} | wc -l)"
 
