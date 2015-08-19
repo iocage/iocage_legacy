@@ -83,7 +83,8 @@ __find_jail () {
             # remove whitespace
             echo "${_jlist}" | xargs
         elif [ "$(echo ${_jlist}|wc -w)" -gt "1" ] ; then
-            echo "multiple"
+            echo "  ERROR: multiple jails matching name: $_name !"
+            exit 1
         fi
     fi
 }
@@ -117,7 +118,6 @@ __list_jails () {
         boot=$(zfs get -H -o value org.freebsd.iocage:boot $jail)
         tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
         jail_path=$(zfs get -H -o value mountpoint $jail)
-        state=$(jls | grep ${jail_path} | awk '{print$1}')
         template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
         # get jid for iocage jails
         jid=$(jls -j "ioc-"$uuid  -h jid 2> /dev/null | grep -v -x "jid")
@@ -126,7 +126,7 @@ __list_jails () {
         fi
         local ioc_jids=$ioc_jids" "$jid
 
-        if [ -z "$state" ] ; then
+        if [ "$jid" == '-' ] ; then
             state=down
         else
             state=up
@@ -353,16 +353,6 @@ __get_jail_prop () {
         exit 1
     fi
 
-    if [ -z "$_dataset" ] ; then
-        echo "  ERROR: Jail $_name not found!"
-        exit 1
-    fi
-
-    if [ "$_dataset" == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
-    fi
-
     for prop in $_CONF ; do
         if [ $prop == $_property ] ; then
             _found=1
@@ -457,6 +447,7 @@ __findscript () {
 }
 
 # Expects name and optional dataset as $2
+# translates names/tags to UUID
 __check_name () {
     local name=$1
     local _dataset
@@ -477,10 +468,40 @@ __check_name () {
     echo "$uuid"
 }
 
+# Expects full UUID
+# Checks whether jail is up
 __is_running () {
     local _fulluuid _state
     _fulluuid="$1"
-    _running="$(jls -n| grep ioc-${_fulluuid} | wc -l)"
+    _state="$(jls -j ioc-${_fulluuid} jid 2> /dev/null)"
 
-    echo "${_running}"
+    if [ ! -z "${_state}" ] ; then
+        echo 1
+    fi
+}
+
+__get_uuid_and_dataset () {
+    local _name _dataset _fulluuid
+
+    _name="$1"
+
+    if [ -z "$_name" ] ; then
+        echo "  ERROR: missing jail UUID or name!"
+        exit 1
+    fi
+
+    if [ "$2" ] ; then
+        _dataset="$2"
+    else
+        _dataset=$(__find_jail $_name)
+    fi
+
+    if [ -z "$_dataset" ] ; then
+        echo "  ERROR: $_name not found!"
+        exit 1
+    fi
+
+    _fulluuid="$(__get_jail_prop host_hostuuid $_name $_dataset)"
+
+    echo "$_fulluuid $_dataset"
 }

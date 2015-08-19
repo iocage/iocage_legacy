@@ -1,54 +1,38 @@
 #!/bin/sh
-
+set -x
 __start_jail () {
-    local name=$1
-    local _dataset
+    local _fulluuid_dataset _dataset _fulluuid
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
-        exit 1
-    fi
+    # Get fulluuid and dataset in one step
+    _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
 
-    if [ "$2" ] ; then
-        _dataset="$2"
-    else
-        _dataset="$(__find_jail $name)"
-    fi
+    set $_fulluuid_dataset
 
-    if [ -z $_dataset ] ; then
-        echo "  ERROR: $name not found"
-        exit 1
-    fi
+    _fulluuid="$1"
+    _dataset="$2"
 
-    if [ $_dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
-    fi
+    __hack88_mount ${_fulluuid} ${_dataset}
 
-    local fulluuid="$(__check_name $name $_dataset)"
-
-    __hack88_mount ${fulluuid} ${_dataset}
-
-    local jail_type="$(__get_jail_prop type $fulluuid $_dataset)"
-    local tag="$(__get_jail_prop tag $fulluuid $_dataset)"
-    local jail_hostid="$(__get_jail_prop hostid $fulluuid $_dataset)"
-    local jail_path="$(__get_jail_prop mountpoint $fulluuid $_dataset)"
-    local template="$(__get_jail_prop template $fulluuid $_dataset)"
-    local cpuset="$(__get_jail_prop cpuset $fulluuid $_dataset)"
-    local procfs="$(__get_jail_prop mount_procfs $fulluuid $_dataset)"
-    local state="$(jls | grep ${jail_path} | wc -l)"
-    local vnet="$(__get_jail_prop vnet $fulluuid $_dataset)"
-    local nics="$(__get_jail_prop interfaces $fulluuid $_dataset\
+    local jail_type="$(__get_jail_prop type $_fulluuid $_dataset)"
+    local tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
+    local jail_hostid="$(__get_jail_prop hostid $_fulluuid $_dataset)"
+    local jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
+    local template="$(__get_jail_prop template $_fulluuid $_dataset)"
+    local cpuset="$(__get_jail_prop cpuset $_fulluuid $_dataset)"
+    local procfs="$(__get_jail_prop mount_procfs $_fulluuid $_dataset)"
+    local state=$(__is_running $_fulluuid)
+    local vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
+    local nics="$(__get_jail_prop interfaces $_fulluuid $_dataset\
                |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
 
-    if [ "$state" -eq "1" ] ; then
-        echo "* ${fulluuid}: is already up"
+    if [ "$state" ] ; then
+        echo "* ${_fulluuid}: is already up"
         exit 1
     fi
 
     if [ $jail_type == "basejail" ] ; then
         # Re-clone required filesystems
-        __reclone_basejail $name
+        __reclone_basejail $_fulluuid
     fi
 
     for i in $nics ; do
@@ -57,7 +41,7 @@ __start_jail () {
 
         if [ -z $nic ] || [ -z $bridge ] ; then
             echo "  ERROR  : incorrect interfaces property format"
-            echo "  HINT   : check with \"iocage get interfaces $fulluuid\""
+            echo "  HINT   : check with \"iocage get interfaces $_fulluuid\""
             echo "  Example: vnet0:bridge0"
             exit 1
         fi
@@ -78,20 +62,20 @@ __start_jail () {
         mount -t procfs proc ${jail_path}/root/proc
     fi
 
-    local jzfs="$(__get_jail_prop jail_zfs $fulluuid $_dataset)"
-    local jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $fulluuid $_dataset)"
+    local jzfs="$(__get_jail_prop jail_zfs $_fulluuid $_dataset)"
+    local jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $_fulluuid $_dataset)"
 
     if [ $jzfs == "on" ] ; then
-        __set_jail_prop allow_mount=1 $fulluuid $_dataset
-        __set_jail_prop enforce_statfs=1 $fulluuid $_dataset
-        __set_jail_prop allow_mount_zfs=1 $fulluuid $_dataset
+        __set_jail_prop allow_mount=1 $_fulluuid $_dataset
+        __set_jail_prop enforce_statfs=1 $_fulluuid $_dataset
+        __set_jail_prop allow_mount_zfs=1 $_fulluuid $_dataset
         zfs set jailed=on ${pool}/$jzfs_dataset
     fi
 
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
-            echo "* Starting $fulluuid ($tag)"
-            __vnet_start $fulluuid $_dataset
+            echo "* Starting $_fulluuid ($tag)"
+            __vnet_start $_fulluuid $_dataset
 
             if [ $? -eq 1 ] ; then
                 echo "  ! Start                FAILED"
@@ -101,7 +85,7 @@ __start_jail () {
             fi
 
             echo -n "  + Configuring VNET"
-            __networking start $fulluuid $_dataset
+            __networking start $_fulluuid $_dataset
 
             if [ $? -eq 1 ] ; then
                 echo "         FAILED"
@@ -109,14 +93,14 @@ __start_jail () {
                 echo "         OK"
             fi
         else
-            echo "  ERR: start failed for $fulluuid"
+            echo "  ERR: start failed for $_fulluuid"
             echo "  vnet=on but kernel is not VNET capable!"
             echo "  Turn vnet off for this jail or recompile kernel with VNET."
             exit 1
         fi
     else
-        echo "* Starting $fulluuid ($tag)"
-        __legacy_start $fulluuid
+        echo "* Starting $_fulluuid ($tag)"
+        __legacy_start $_fulluuid
         if [ $? -eq 1 ] ; then
             echo "  ! Start                FAILED"
         else
@@ -124,13 +108,13 @@ __start_jail () {
         fi
     fi
 
-    cd ${jail_path}/root/dev && ln -s ../var/run/log log
+    cd ${jail_path}/root/dev && ln -s ../var/run/log log &
 
-    __rctl_limits $fulluuid
+    __rctl_limits $_fulluuid
 
     if [ $cpuset != "off" ] ; then
         echo -n "  + Appliyng CPU affinity"
-        local jid="$(jls -j ioc-${fulluuid} jid)"
+        local jid="$(jls -j ioc-${_fulluuid} jid)"
         cpuset -l $cpuset -j $jid
         if [ $? -eq 1 ] ; then
             echo "    FAILED"
@@ -140,14 +124,14 @@ __start_jail () {
     fi
 
     if [ $jzfs == "on" ] ; then
-        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
+        zfs jail ioc-${_fulluuid} ${pool}/$jzfs_dataset
     fi
 
-    __resolv_conf ${fulluuid} > ${jail_path}/root/etc/resolv.conf
+    __resolv_conf ${_fulluuid} > ${jail_path}/root/etc/resolv.conf
 
     echo -n "  + Starting services"
-    jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid $_dataset) \
-     >> $iocroot/log/${fulluuid}-console.log 2>&1
+    jexec ioc-${_fulluuid} $(__get_jail_prop exec_start $_fulluuid $_dataset) \
+     >> $iocroot/log/${_fulluuid}-console.log 2>&1
 
     if [ $? -eq 1 ] ; then
         echo "        FAILED"
