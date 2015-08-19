@@ -1,7 +1,7 @@
 #!/bin/sh
 
 __update () {
-  local _name _dataset _fulluuid _mountpoint _date _jail_type
+  local _name _dataset _fulluuid _mountpoint _date _jail_type _non_interactive
 
   _name=$2
 
@@ -55,9 +55,15 @@ __update () {
                         release="$_jail_release"
                     fi
 
+                    _non_interactive="--not-running-from-cron"
+                    if [ $(uname -U) -lt 1002000 ] ; then
+                        _non_interactive=""
+                    fi
+
                     if [ -e $iocroot/releases/$release/root/etc/freebsd-update.conf ] ; then
                         env UNAME_r="$release" env PAGER="/bin/cat" \
                             /usr/sbin/freebsd-update \
+                            $_non_interactive \
                             -b ${_mountpoint}/root \
                             -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
                             -d ${_mountpoint}/root/var/db/freebsd-update/ fetch
