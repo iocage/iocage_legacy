@@ -157,7 +157,7 @@ __create_jail () {
     _configured="0"
 
     if [ -z "$_supported_release" ] ; then
-        echo "  You are not running a RELEASE."
+        echo "  You are not running a production RELEASE."
         echo "  ERROR: Please specify release=RELEASE."
         exit 1
     fi

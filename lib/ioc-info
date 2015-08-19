@@ -188,7 +188,8 @@ __list_jails () {
             for jid in $non_ioc_jids ; do
                 path=$(jls -j $jid  -h path | grep -v -x "path")
                 ip4=$(jls -j $jid  -h ip4.addr | grep -v -x "ip4.addr")
-                host_hostname=$(jls -j $jid  -h host.hostname | grep -v -x "host.hostname")
+                host_hostname=$(jls -j $jid  -h host.hostname | \
+                                grep -v -x "host.hostname")
                 printf "%-4s  %-36.36s  %-15s  %s\n" "$jid" "$path"  \
                         "$ip4" "$host_hostname"
             done
@@ -266,7 +267,8 @@ __list_jails_long () {
 __print_disk () {
     local jails=$(__find_jail ALL)
 
-    printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
+    printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" \
+           "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
 
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
@@ -277,8 +279,8 @@ __print_disk () {
         ava=$(zfs get -H -o value available $jail)
         tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
 
-        printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "$uuid" "$crt" "$res" "$qta" \
-               "$use" "$ava" "$tag"
+        printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" \
+               "$uuid" "$crt" "$res" "$qta" "$use" "$ava" "$tag"
     done
 }
 
@@ -316,7 +318,7 @@ __find_mypool () {
     if [ $found -ne 1 ] ; then
         if [ -n "$RC_PID" ]; then
             # RC_PID set means we are running from rc
-            echo "ERROR: No pool for iocage jails found on boot ..exiting"
+            echo "ERROR: No pool selected for iocage. Exiting"
             exit 1
         else
             echo "Setting up zpool [$i] for iocage usage..."
@@ -344,22 +346,22 @@ __get_jail_prop () {
            $CONF_GIT"
 
     if [ -z "$_property" ] ; then
-        echo "  ERROR: get failed, incorrect property syntax!"
+        echo "  ERROR: Get failed, incorrect property syntax!"
         exit 1
     fi
 
     if [ -z "$_name" ] ; then
-        echo "  ERROR: missing UUID or property!"
+        echo "  ERROR: Missing UUID or property!"
         exit 1
     fi
 
     if [ -z "$_dataset" ] ; then
-        echo "  ERROR: jail $_name not found!"
+        echo "  ERROR: Jail $_name not found!"
         exit 1
     fi
 
     if [ "$_dataset" == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
@@ -393,7 +395,7 @@ __get_jail_prop () {
     done
 
     if [ $_found -ne "1" ] ; then
-        echo "  ERROR: unsupported property: $_property !"
+        echo "  ERROR: Unsupported property: $_property !"
         exit 1
     fi
 }
@@ -402,19 +404,19 @@ __runtime () {
     local name=$1
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
+        echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
     local dataset=$(__find_jail $name)
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
+        echo "  ERROR: $name not found."
         exit 1
     fi
 
     if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
@@ -428,7 +430,7 @@ __runtime () {
             echo "  $i"
         done
     else
-        echo " ERROR: jail $fulluuid is not up.."
+        echo " ERROR: Jail $fulluuid is not up."
     fi
 }
 
@@ -466,12 +468,12 @@ __check_name () {
     local dataset=$(__find_jail $name)
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: jail $name not found!"
+        echo "  ERROR: Jail $name not found!"
         exit 1
     fi
 
     if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
+        echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
