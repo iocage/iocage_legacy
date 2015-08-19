@@ -1,5 +1,5 @@
 #!/bin/sh
-set -x
+
 __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid
 
