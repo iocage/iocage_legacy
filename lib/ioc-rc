@@ -511,15 +511,20 @@ __rc_jails () {
 
         for i in $boot_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
+            local _priority="$(echo $i | cut -f1 -d,)"
             local _dataset="${pool}/iocage/jails/${jail}"
             local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
             local state="$(jls | grep ${jail_path} | wc -l)"
 
-            if [ "$state" -lt "1" ] ; then
+            if [ "$state" -lt "1" ] && [ "$_priority" -eq 99 ] ; then
+                echo "* Executing background start for $jail"
+                __start_jail $jail $_dataset > /var/tmp/${jail} 2>&1 && cat /var/tmp/${jail} &
+                sleep 1
+            else
                 __start_jail $jail $_dataset
             fi
-        done
 
+        done
     elif [ "$action" == "shutdown" ] ; then
         echo "* [I|O|C] shutting down jails... "
 
@@ -535,6 +540,5 @@ __rc_jails () {
         done
 
     fi
-
     rm $boot_list
 }

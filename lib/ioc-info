@@ -491,7 +491,7 @@ __get_uuid_and_dataset () {
     _name="$1"
 
     if [ -z "$_name" ] ; then
-        echo "  ERROR: missing jail UUID or name!"
+        echo "  ERROR: Missing jail UUID or name!"
         exit 1
     fi
 
