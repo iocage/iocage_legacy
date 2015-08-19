@@ -80,12 +80,12 @@ __networking () {
             epair_a=$(ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
             ifconfig ${epair_a} name ${nic}:${_jid} mtu $brmtu
-            _mac_epair_a="$(__validate_mac ${nic} ${_mac_offset} a ${_uuid})"
+            _mac_epair_a="$(__validate_mac ${nic} ${_mac_offset} a ${_uuid} $_dataset)"
             ifconfig ${nic}:${_jid} link ${_mac_epair_a}
             ifconfig ${nic}:${_jid} description "associated with jail: ${_uuid}"
             ifconfig $epair_b vnet ioc-${2}
             jexec ioc-${2} ifconfig $epair_b name $nic mtu $brmtu
-            _mac_epair_b="$(__validate_mac ${nic} ${_mac_offset} b ${_uuid})"
+            _mac_epair_b="$(__validate_mac ${nic} ${_mac_offset} b ${_uuid} $_dataset)"
             jexec ioc-${2} ifconfig ${nic} link ${_mac_epair_b}
             ifconfig $bridge addm ${nic}:${_jid} up
             ifconfig ${nic}:${_jid} up

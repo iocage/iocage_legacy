@@ -114,7 +114,7 @@ __start_jail () {
 
     cd ${_jail_path}/root/dev && ln -s ../var/run/log log &
 
-    __rctl_limits $_fulluuid
+    __rctl_limits $_fulluuid $_dataset
 
     if [ $_cpuset != "off" ] ; then
         echo -n "  + Appliyng CPU affinity"
@@ -131,7 +131,7 @@ __start_jail () {
         zfs jail ioc-${_fulluuid} ${pool}/${_jzfs_dataset}
     fi
 
-    __resolv_conf ${_fulluuid} > ${_jail_path}/root/etc/resolv.conf
+    __resolv_conf ${_fulluuid} > ${_jail_path}/root/etc/resolv.conf &
 
     echo -n "  + Starting services"
     jexec ioc-${_fulluuid} $(__get_jail_prop exec_start $_fulluuid $_dataset) \
@@ -394,7 +394,7 @@ __stop_jail () {
 
     if [ $_vnet == "on" ] ; then
         echo -n "  + Tearing down VNET"
-        __networking stop $_fulluuid
+        __networking stop $_fulluuid $_dataset
         if [ $? -eq 1 ] ; then
             echo "        FAILED"
         else
