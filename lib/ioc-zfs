@@ -190,7 +190,7 @@ __create_jail () {
         export type=basejail
         zfs snapshot -r $pool/iocage/base@$uuid
         eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
-        __set_jail_prop type=basejail ${uuid}
+        __set_jail_prop type=basejail ${uuid} $pool/iocage/jails/$uuid
         zfs create -o compression=lz4 -p $pool/iocage/jails/$uuid/root/usr
 
         for fs in $bfs_list ; do
