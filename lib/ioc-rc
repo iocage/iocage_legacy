@@ -403,7 +403,7 @@ __stop_jail () {
     else
         # don't try to tear down networking if we have "inherit" set
         if [ "$_ip4" != 'inherit' ] ; then
-            __stop_legacy_networking $name
+            __stop_legacy_networking $_fulluuid $_dataset
         fi
     fi
 

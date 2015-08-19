@@ -213,10 +213,11 @@ __get_autoip4 () {
 }
 
 __stop_legacy_networking () {
-    local name="$1"
+    local _fulluuid="$1"
+    local _dataset="$2"
 
-    local ip4_addr="$(__get_jail_prop ip4_addr $name)"
-    local ip6_addr="$(__get_jail_prop ip6_addr $name)"
+    local ip4_addr="$(__get_jail_prop ip4_addr $_fulluuid $_dataset)"
+    local ip6_addr="$(__get_jail_prop ip6_addr $_fulluuid $_dataset)"
 
     # Get the default and current interfaces specified
     local default_iface="$(netstat -f inet -nrW | grep '^default' |\
