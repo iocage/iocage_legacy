@@ -66,9 +66,10 @@ __set_jail_prop () {
             _found=1
             zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
             if [ "$_pname" == "tag" ] ; then
-                #__unlink_tag $_dataset
-                #__link_tag $_dataset
+                __unlink_tag $_dataset
+                __link_tag $_dataset
             fi
+            break
         fi
     done
 
@@ -76,6 +77,7 @@ __set_jail_prop () {
         if [ "$prop" == "$_pname" ] ; then
             zfs set $prop="$_pval" $_dataset
             _found=1
+            break
         fi
     done
 

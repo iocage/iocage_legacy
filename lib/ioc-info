@@ -72,6 +72,7 @@ __find_jail () {
 
             if [ "${#_found}" -gt 0 ] ; then
                 _jlist="${_jlist} ${_jail}"
+                break
             fi
 
             if [ "${_tag}" == "${_name}" ] ; then
@@ -365,13 +366,13 @@ __get_jail_prop () {
             else
                 echo "$_value"
             fi
-
-
+            break
         elif [ $_property == "all" ] ; then
             _found=1
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
                          $_dataset)"
             echo "$prop:$_value"
+            break
         fi
     done
 
@@ -380,6 +381,7 @@ __get_jail_prop () {
             _found=1
             _value="$(zfs get -H -o value $prop $_dataset)"
             echo "$_value"
+            break
         fi
     done
 
@@ -434,15 +436,17 @@ __get_jail_name () {
 # search for executable prestart|poststart|prestop|poststop in jail_dir first,
 # else use jail exec_<type> property unchanged
 __findscript () {
-    local name=$1
+    local _fulluuid _dataset _type _jail_path
+    _fulluuid="$1"
     # type should be one of prestart|poststart|prestop|poststop
-    local type=$2
-    local jail_path="$(__get_jail_prop mountpoint $name)"
+    _type="$2"
+    _dataset=$3
+    _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
 
-    if [ -x "${jail_path}/${type}" ]; then
-        echo "${jail_path}/${type}"
+    if [ -x "${_jail_path}/${_type}" ]; then
+        echo "${_jail_path}/${_type}"
     else
-        echo "$(__get_jail_prop exec_${type} $name)"
+        echo "$(__get_jail_prop exec_${_type} $_fulluuid $_dataset)"
     fi
 }
 

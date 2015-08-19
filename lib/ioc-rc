@@ -50,6 +50,8 @@ __start_jail () {
     done
 
     if [ $_template == "yes" ] ; then
+        echo "  INFO: $_tag is a template jail, ignoring start request."
+        echo "        (disable template flag with: iocage set template=no $_tag)"
         return
     fi
 
@@ -102,7 +104,7 @@ __start_jail () {
         fi
     else
         echo "* Starting $_fulluuid ($_tag)"
-        __legacy_start $_fulluuid
+        __legacy_start $_fulluuid $_dataset
         if [ $? -eq 1 ] ; then
             echo "  ! Start                FAILED"
         else
@@ -180,9 +182,9 @@ __vnet_start () {
     allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name $_dataset)" \
     allow.quotas="$(__get_jail_prop allow_quotas $name $_dataset)" \
     allow.socket_af="$(__get_jail_prop allow_socket_af $name $_dataset)" \
-    exec.prestart="$(__findscript $name prestart)" \
-    exec.poststart="$(__findscript $name poststart)" \
-    exec.prestop="$(__findscript $name prestop)" \
+    exec.prestart="$(__findscript $name prestart $_dataset)" \
+    exec.poststart="$(__findscript $name poststart $_dataset)" \
+    exec.prestop="$(__findscript $name prestop $_dataset)" \
     exec.stop="$(__get_jail_prop exec_stop $name $_dataset)" \
     exec.clean="$(__get_jail_prop exec_clean $name $_dataset)" \
     exec.timeout="$(__get_jail_prop exec_timeout $name $_dataset)" \
@@ -284,9 +286,9 @@ __legacy_start () {
         allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name $_dataset)" \
         allow.quotas="$(__get_jail_prop allow_quotas $name $_dataset)" \
         allow.socket_af="$(__get_jail_prop allow_socket_af $name $_dataset)" \
-        exec.prestart="$(__findscript $name prestart)" \
-        exec.poststart="$(__findscript $name poststart)" \
-        exec.prestop="$(__findscript $name prestop)" \
+        exec.prestart="$(__findscript $name prestart $_dataset)" \
+        exec.poststart="$(__findscript $name poststart $_dataset)" \
+        exec.prestop="$(__findscript $name prestop $_dataset)" \
         exec.stop="$(__get_jail_prop exec_stop $name $_dataset)" \
         exec.clean="$(__get_jail_prop exec_clean $name $_dataset)" \
         exec.timeout="$(__get_jail_prop exec_timeout $name $_dataset)" \
@@ -322,9 +324,9 @@ __legacy_start () {
         allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name $_dataset)" \
         allow.quotas="$(__get_jail_prop allow_quotas $name $_dataset)" \
         allow.socket_af="$(__get_jail_prop allow_socket_af $name $_dataset)" \
-        exec.prestart="$(__findscript $name prestart)" \
-        exec.poststart="$(__findscript $name poststart)" \
-        exec.prestop="$(__findscript $name prestop)" \
+        exec.prestart="$(__findscript $name prestart $_dataset)" \
+        exec.poststart="$(__findscript $name poststart $_dataset)" \
+        exec.prestop="$(__findscript $name prestop $_dataset)" \
         exec.stop="$(__get_jail_prop exec_stop $name $_dataset)" \
         exec.clean="$(__get_jail_prop exec_clean $name $_dataset)" \
         exec.timeout="$(__get_jail_prop exec_timeout $name $_dataset)" \
@@ -358,9 +360,9 @@ __stop_jail () {
 
     _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
     _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
-    _exec_prestop="$(__findscript $_fulluuid prestop)"
+    _exec_prestop="$(__findscript $_fulluuid prestop $_dataset)"
     _exec_stop="$(__get_jail_prop exec_stop $_fulluuid $_dataset)"
-    _exec_poststop="$(__findscript $_fulluuid poststop)"
+    _exec_poststop="$(__findscript $_fulluuid poststop $_dataset)"
     _vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
     _state="$(__is_running $_fulluuid)"
     _ip4="$(__get_jail_prop ip4 $_fulluuid $_dataset)"
@@ -523,11 +525,12 @@ __rc_jails () {
 
         for i in $shutdown_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
-            local jail_path="$(__get_jail_prop mountpoint $jail)"
+            local _dataset="${pool}/iocage/jails/${jail}"
+            local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
             local state="$(jls | grep ${jail_path} | wc -l)"
 
             if [ "$state" -eq "1" ] ; then
-                __stop_jail $jail
+                __stop_jail $jail $_dataset
             fi
         done
 
