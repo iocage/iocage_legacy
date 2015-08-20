@@ -370,7 +370,6 @@ __get_jail_prop () {
             _value="$(zfs get -H -o value org.freebsd.iocage:$prop \
                          $_dataset)"
             echo "$prop:$_value"
-            break
         fi
     done
 
