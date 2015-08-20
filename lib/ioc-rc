@@ -34,7 +34,7 @@ __start_jail () {
 
     if [ $_jail_type == "basejail" ] ; then
         # Re-clone required filesystems
-        __reclone_basejail $_fulluuid
+        __reclone_basejail $_fulluuid $_dataset
     fi
 
     for i in $_nics ; do

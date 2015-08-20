@@ -109,38 +109,21 @@ __create_basejail () {
 }
 
 __reclone_basejail () {
-    local name=$1
+    local _fulluuid _dataset _jail_release _fs
 
-    if [ -z $name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
-    fi
+    _fulluuid="$1"
+    _dataset="$2"
+    _jail_release="$(__get_jail_prop release $_fulluuid $_dataset)"
 
-    local dataset=$(__find_jail $name)
+    zfs destroy -rRf $pool/iocage/base@$_fulluuid
+    zfs snapshot -r  $pool/iocage/base@$_fulluuid
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found."
-        exit 1
-    fi
-
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
-    fi
-
-    local fulluuid="$(__check_name $name)"
-    local jail_release="$(__get_jail_prop release $fulluuid)"
-
-    zfs destroy -rRf $pool/iocage/base@$fulluuid
-    zfs snapshot -r  $pool/iocage/base@$fulluuid
-
-    echo "* $fulluuid is a basejail, re-cloning jail.."
+    echo "* $_fulluuid is a basejail, re-cloning jail.."
 
     # Re-clone required filesystems
-    for fs in $bfs_list ; do
-        # echo "  re-cloning: $pool/iocage/jails/$fulluuid/root/$fs"
-        zfs clone $pool/iocage/base/$jail_release/root/$fs@$fulluuid \
-                  $pool/iocage/jails/$fulluuid/root/$fs
+    for _fs in $bfs_list ; do
+        zfs clone $pool/iocage/base/${_jail_release}/root/${_fs}@${_fulluuid} \
+                  $pool/iocage/jails/${_fulluuid}/root/${_fs}
     done
 }
 
