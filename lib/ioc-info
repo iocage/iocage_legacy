@@ -119,10 +119,9 @@ __list_jails () {
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
         boot=$(zfs get -H -o value org.freebsd.iocage:boot $jail)
         tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
-        jail_path=$(zfs get -H -o value mountpoint $jail)
         template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
         # get jid for iocage jails
-        jid=$(jls -j "ioc-"$uuid  -h jid 2> /dev/null | grep -v -x "jid")
+        jid=$(jls -j ioc-${uuid} jid 2> /dev/null)
         if [ -z "$jid"  ] ; then
             jid="-"
         fi
@@ -204,8 +203,6 @@ __list_jails_long () {
         _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jail)
         _boot=$(zfs get -H -o value org.freebsd.iocage:boot $_jail)
         _tag=$(zfs get -H -o value org.freebsd.iocage:tag $_jail)
-        _jail_path=$(zfs get -H -o value mountpoint $_jail)
-        _state=$(jls | grep ${_jail_path} | awk '{print$1}')
         _template=$(zfs get -H -o value org.freebsd.iocage:template $_jail)
         _interfaces=$(zfs get -H -o value org.freebsd.iocage:interfaces $_jail)
         _ip4_addr=$(zfs get -H -o value org.freebsd.iocage:ip4_addr $_jail)
@@ -218,14 +215,14 @@ __list_jails_long () {
         _type=$(zfs get -H -o value org.freebsd.iocage:type $_jail)
 
         # get jid for iocage jails
-        _jid=$(jls -j "ioc-"$_uuid  -h jid 2> /dev/null | grep -v -x "jid")
+        _jid=$(jls -j ioc-${_uuid} jid 2> /dev/null)
         if [ -z "$_jid"  ] ; then
             _jid="-"
         fi
 
         _ioc_jids=$_ioc_jids" "$_jid
 
-        if [ -z "$_state" ] ; then
+        if [ "$_jid" == '-' ] ; then
             _state=down
         else
             _state=up
