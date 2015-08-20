@@ -191,8 +191,8 @@ __list_jails () {
 }
 
 __list_jails_long () {
-    local _jails _switch _ioc_jids _uuid _boot _tag _jail_path _state \
-          _template _interfaces _ip4_addr _ip6_addr _vnet _vnet0_mac \
+    local _jails _switch _ioc_jids _uuid _boot _tag _template _interfaces \
+          _ip4_addr _ip6_addr _vnet _vnet0_mac \
           _vnet1_mac _vnet2_mac _vnet3_mac _type
 
     _jails=$(__find_jail ALL)
