@@ -93,11 +93,12 @@ __start_jail () {
 
             if [ $? -eq 1 ] ; then
                 echo "         FAILED"
+                exit 1
             else
                 echo "         OK"
             fi
         else
-            echo "  ERR: start failed for $_fulluuid"
+            echo "  ERROR: start failed for $_fulluuid"
             echo "  vnet=on but kernel is not VNET capable!"
             echo "  Turn vnet off for this jail or recompile kernel with VNET."
             exit 1
@@ -107,6 +108,7 @@ __start_jail () {
         __legacy_start $_fulluuid $_dataset
         if [ $? -eq 1 ] ; then
             echo "  ! Start                FAILED"
+            exit 1
         else
             echo "  + Started (shared IP mode) OK"
         fi
@@ -122,6 +124,7 @@ __start_jail () {
         cpuset -l $_cpuset -j $jid
         if [ $? -eq 1 ] ; then
             echo "    FAILED"
+            exit 1
         else
             echo "    OK"
         fi
@@ -139,6 +142,7 @@ __start_jail () {
 
     if [ $? -eq 1 ] ; then
         echo "        FAILED"
+        exit 1
     else
         echo "        OK"
     fi
