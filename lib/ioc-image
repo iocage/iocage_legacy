@@ -89,8 +89,8 @@ __package () {
         exit 1
     fi
 
-    if [ ! -d "$iocroot/packages" ] ; then
-        mkdir $iocroot/packages
+    if [ ! -d "${iocroot}/packages" ] ; then
+        mkdir ${iocroot}/packages
     fi
 
     echo "* Creating package..."
@@ -220,8 +220,8 @@ __export () {
         exit 1
     fi
 
-    if [ ! -d "$iocroot/images" ] ; then
-        mkdir $iocroot/images
+    if [ ! -d "${iocroot}/images" ] ; then
+        mkdir ${iocroot}/images
     fi
 
     echo "* Exporting $_fulluuid"

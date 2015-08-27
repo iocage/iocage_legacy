@@ -89,14 +89,16 @@ if ! __readonly_cmd $1 && [ "$(whoami)" != "root" ] ; then
     echo "* The $1 command needs root credentials!"
     exit 1
 fi
+
 # Did not work when included as an OR below, workaround for that
 if [ "$1" == "deactivate" ] ; then
     shift
     __deactivate "$1"
 fi
 
-# work around zpool activation chicken-egg problem
+# Work around zpool activation chicken-egg problem
 # (when activating a pool don't look for an existing one)
+# Also look for an altroot and if it exists change lib/ioc-globals to that value
 if [ "$1" != "activate" ] ; then
     __find_mypool
     __check_filesystems

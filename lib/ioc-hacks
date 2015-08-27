@@ -2,26 +2,28 @@
 
 # truncate mountpoint to work around 88 char mount limit on FreeBSD
 __hack88_mount () {
-    local _fulluuid _shortuuid _mountpoint _mount_len _hack88 _dataset
+    local _altroot _fulluuid _shortuuid _mountpoint _mount_len \
+          _hack88 _dataset
 
+    _altroot="$(zpool get -H altroot ${pool} | awk '{print $3}')"
     _fulluuid="$1"
     _dataset="$2"
-    _shortuuid="$(echo $_fulluuid|cut -f1 -d\-)"
-    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
-    _mount_len="$(echo ${_mountpoint} | cut -f4 -d\/|wc -c | awk '{print $1}')"
-    _hack88="$(__get_jail_prop hack88 $_fulluuid $_dataset)"
+    _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
+    _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
+    _mount_len="$(echo ${_mountpoint} | sed  s#.*jails.#''# | wc -c)"
 
-    if [ "$_hack88" == "1" ] && [ "$_mount_len" -eq "37" ] ; then
+    if [ "${_hack88}" == "1" ] && [ "${_mount_len}" -eq "37" ] ; then
         echo "  INFO: truncating jail mountpoint"
         zfs umount -f ${iocroot}/jails/${_fulluuid}
         __set_jail_prop mountpoint=${iocroot}/jails/${_shortuuid} ${_fulluuid}
-        zfs list -rH -o name ${pool}${iocroot}/jails/${_fulluuid} | \
-        grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
-    elif [ "$_hack88" != "1" ] && [ "$_mount_len" -lt "37" ] ; then
+        zfs list -rH -o name ${pool}/iocage/jails/${_fulluuid} | \
+            grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
+    elif [ "${_hack88}" != "1" ] && [ "${_mount_len}" -lt "37" ] ; then
         echo "  INFO: restoring jail mountpoint"
         zfs umount -f ${iocroot}/jails/${_shortuuid}
         __set_jail_prop mountpoint=${iocroot}/jails/${_fulluuid} ${_fulluuid}
-        zfs list -rH -o name ${pool}${iocroot}/jails/${_fulluuid} | \
-        grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
+        zfs list -rH -o name ${pool}/iocage/jails/${_fulluuid} | \
+            grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
     fi
 }

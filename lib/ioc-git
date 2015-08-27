@@ -4,7 +4,7 @@ __pull () {
     local _gitlocation _jail_type _jail_path
 
     _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-                  ${pool}${iocroot}/.defaults)"
+                  ${pool}/iocage/.defaults)"
 
     if [ "$_gitlocation" = "-" ] ; then
         _gitlocation="none"
@@ -82,7 +82,7 @@ __push () {
   local _gitlocation _gitrepo _answer _match
 
   _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-                ${pool}${iocroot}/.defaults)"
+                ${pool}/iocage/.defaults)"
 
   # Make sure git is installed.
   if [ ! -e "/usr/local/bin/git" ] ; then

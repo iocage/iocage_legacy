@@ -217,17 +217,18 @@ __reset_jail_props () {
     release="$(zfs get -H -o value org.freebsd.iocage:release $_dataset)"
     hack88="$(zfs get -H -o value org.freebsd.iocage:hack88 $_dataset)"
     jail_zfs_dataset="$(zfs get -H -o value org.freebsd.iocage:jail_zfs_dataset\
-     $_dataset)"
+        $_dataset)"
     resolver="$(zfs get -H -o value org.freebsd.iocage:resolver $_dataset)"
     ip4_autostart="$(zfs get -H -o value org.freebsd.iocage:ip4_autostart\
-     $_dataset)"
+        $_dataset)"
     ip4_autoend="$(zfs get -H -o value org.freebsd.iocage:ip4_autoend\
-     $_dataset)"
+        $_dataset)"
     ip4_autosubnet="$(zfs get -H -o value org.freebsd.iocage:ip4_autosubnet\
-     $_dataset)"
+        $_dataset)"
     gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
     type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
     boot="$(zfs get -H -o value org.freebsd.iocage:boot $_dataset)"
+
     __configure_jail $_dataset
 }
 

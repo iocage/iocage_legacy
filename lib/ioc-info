@@ -297,7 +297,7 @@ __find_mypool () {
     fi
 
     for i in $pools ; do
-        mypool="$(zpool get comment $i | grep -v NAME | awk '{print $3}')"
+        mypool="$(zpool get -H comment $i | awk '{print $3}')"
 
         if [ "$mypool" == "iocage" ] ; then
             export pool=$i

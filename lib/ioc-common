@@ -215,99 +215,99 @@ __fetch_release () {
     local _rel_exist _default_rel _non_interactive
     _default_rel=$(uname -r|cut -f 1,2 -d'-')
 
-    if [ -z "$iocset_release" ] ; then
-  __print_release
+    if [ -z "${iocset_release}" ] ; then
+        __print_release
 
-  echo -n "Please select a release [$release]: "
-  read answer
+        echo -n "Please select a release [${release}]: "
+        read _answer
 
-  if [ -z "$answer" ] ; then
-    answer="$release"
-  else
-    release="$answer"
-    for rel in $(echo $supported) ; do
-      if [ "$answer" == "$rel" ] ; then
-        release="$rel"
-        match="1"
-        break
-      fi
-    done
+        if [ -z "${_answer}" ] ; then
+            _answer="${release}"
+        else
+            release="${_answer}"
+            for _rel in $(echo ${supported}) ; do
+                if [ "${_answer}" == "${_rel}" ] ; then
+                    release="${_rel}"
+                    match="1"
+                    break
+                fi
+            done
 
-    if [ -z $match ] ; then
-      echo "Invalid release $release specified, exiting.."
-      exit 1
-    fi
-  fi
-    fi
-
-
-    _rel_exist=$(zfs list | grep -w ^${pool}${iocroot}/releases/${release})
-
-    if [ -z "$_rel_exist" ] ; then
-        zfs create -o compression=lz4 -p ${pool}${iocroot}/releases/${release}/root
-        zfs create -o compression=lz4 -p ${pool}${iocroot}/download/${release}
+            if [ -z ${match} ] ; then
+                echo "Invalid release ${release} specified, exiting.."
+                exit 1
+            fi
+        fi
     fi
 
-    if [ -z "$ftpdir" ] ; then
-        ftpdir="/pub/FreeBSD/releases/amd64/$release"
+
+    _rel_exist=$(zfs list | grep -w ^${pool}/iocage/releases/${release})
+
+    if [ -z "${_rel_exist}" ] ; then
+        zfs create -o compression=lz4 -p ${pool}/iocage/releases/${release}/root
+        zfs create -o compression=lz4 -p ${pool}/iocage/download/${release}
+    fi
+
+    if [ -z "${ftpdir}" ] ; then
+        ftpdir="/pub/FreeBSD/releases/amd64/${release}"
     fi
 
     cd ${iocroot}/download/${release}
-    for file in $ftpfiles ; do
-        if [ ! -e "$file" ] ; then
-            fetch http://${ftphost}${ftpdir}/${file}
+    for _file in ${ftpfiles} ; do
+        if [ ! -e "${_file}" ] ; then
+            fetch http://${ftphost}${ftpdir}/${_file}
             if [ $? -ne 0 ] ; then
-                echo "Failed fetching $file.."
+                echo "Failed fetching ${_file}.."
                 exit 1
             fi
         fi
     done
 
-    for file in $(echo $ftpfiles) ; do
-        if [ -e "$file" ] ; then
-            echo "Extracting: $file"
+    for _file in $(echo ${ftpfiles}) ; do
+        if [ -e "${_file}" ] ; then
+            echo "Extracting: ${_file}"
             chflags -R noschg ${iocroot}/releases/${release}/root
-            tar -C ${iocroot}/releases/${release}/root -xf $file
+            tar -C ${iocroot}/releases/${release}/root -xf ${_file}
         fi
     done
 
-        echo "* Updating base jail.."
-        sleep 2
+    echo "* Updating base jail.."
+    sleep 2
 
-        _non_interactive="--not-running-from-cron"
-        if [ $(uname -U) -lt 1002000 ] ; then
-            _non_interactive=""
-        fi
-
-        if [ -e $iocroot/releases/$release/root/etc/freebsd-update.conf ] ; then
-            env UNAME_r="$release" env PAGER="/bin/cat" \
-                /usr/sbin/freebsd-update \
-                $_non_interactive \
-                -b $iocroot/releases/$release/root \
-                -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
-                -d $iocroot/releases/$release/root/var/db/freebsd-update/ fetch
-            env UNAME_r="$release" env PAGER="/bin/cat" \
-                /usr/sbin/freebsd-update \
-                -b $iocroot/releases/$release/root \
-                -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
-                -d $iocroot/releases/$release/root/var/db/freebsd-update/ install
-        fi
-
-    if [ ! -d $iocroot/log ] ; then
-        mkdir $iocroot/log
+    _non_interactive="--not-running-from-cron"
+    if [ $(uname -U) -lt 1002000 ] ; then
+        _non_interactive=""
     fi
 
-    __create_basejail $release
-    chflags -R noschg $iocroot/base/$release/root
-    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/releases/$release/root -cf - . | \
-    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
-
-    if [ ! -e "$iocroot/base/$release/root/usr/sbin/chown" ] ; then
-       cd $iocroot/base/$release/root/usr/sbin && ln -s ../bin/chgrp chown
+    if [ ! -d ${iocroot}/log ] ; then
+        mkdir ${iocroot}/log
     fi
 
-    etcupdate extract -D $iocroot/base/$release/root \
-    -s $iocroot/base/$release/root/usr/src
+    if [ -e ${iocroot}/releases/${release}/root/etc/freebsd-update.conf ] ; then
+        env UNAME_r="${release}" env PAGER="/bin/cat" \
+            /usr/sbin/freebsd-update \
+            ${_non_interactive} \
+            -b ${iocroot}/releases/${release}/root \
+            -f ${iocroot}/releases/${release}/root/etc/freebsd-update.conf \
+            -d ${iocroot}/releases/${release}/root/var/db/freebsd-update/ fetch
+        env UNAME_r="${release}" env PAGER="/bin/cat" \
+            /usr/sbin/freebsd-update \
+            -b ${iocroot}/releases/${release}/root \
+            -f ${iocroot}/releases/${release}/root/etc/freebsd-update.conf \
+            -d ${iocroot}/releases/${release}/root/var/db/freebsd-update/ install
+    fi
+
+    __create_basejail ${release}
+    chflags -R noschg ${iocroot}/base/${release}/root
+    tar --exclude \.zfs --exclude usr/sbin/chown -C ${iocroot}/releases/${release}/root -cf - . | \
+    tar --exclude \.zfs --exclude usr/sbin/chown -C ${iocroot}/base/${release}/root -xf -
+
+    if [ ! -e "${iocroot}/base/${release}/root/usr/sbin/chown" ] ; then
+       cd ${iocroot}/base/${release}/root/usr/sbin && ln -s ../bin/chgrp chown
+    fi
+
+    etcupdate extract -D ${iocroot}/base/${release}/root \
+    -s ${iocroot}/base/${release}/root/usr/src
 }
 
 # reads tag property from given jail dataset
