@@ -342,14 +342,16 @@ __get_jail_prop () {
         _dataset="$(__find_jail $_name)"
     fi
 
+    if [ -z $_dataset ] ; then
+        __die "jail $_name not found!"
+    fi
+
     if [ -z "$_property" ] ; then
-        echo "  ERROR: Get failed, incorrect property syntax!"
-        exit 1
+        __die "Get failed, incorrect property syntax!"
     fi
 
     if [ -z "$_name" ] ; then
-        echo "  ERROR: Missing UUID or property!"
-        exit 1
+        __die "Missing UUID or property!"
     fi
 
     for prop in $_CONF ; do
@@ -383,8 +385,7 @@ __get_jail_prop () {
     done
 
     if [ $_found -ne "1" ] ; then
-        echo "  ERROR: Unsupported property: $_property !"
-        exit 1
+        __die "Unsupported property: $_property !"
     fi
 }
 

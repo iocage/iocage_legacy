@@ -350,3 +350,9 @@ __unlink_tag () {
         find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \;
     fi
 }
+
+# Log error to stderr and die
+__die () {
+    echo "  ERROR: $@" >&2
+    exit 1
+}
