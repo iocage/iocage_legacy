@@ -72,12 +72,10 @@ __find_jail () {
 
             if [ "${#_found}" -gt 0 ] ; then
                 _jlist="${_jlist} ${_jail}"
-                break
             fi
 
             if [ "${_tag}" == "${_name}" ] ; then
                 _jlist="${_jlist} ${_jail}"
-                break
             fi
         done
 
@@ -85,7 +83,7 @@ __find_jail () {
             # remove whitespace
             echo "${_jlist}" | xargs
         elif [ "$(echo ${_jlist}|wc -w)" -gt "1" ] ; then
-            echo "  ERROR: multiple jails matching name: $_name !"
+            __error "multiple jails matching name: $_name !"
             exit 1
         fi
     fi
@@ -309,7 +307,7 @@ __find_mypool () {
     if [ $found -ne 1 ] ; then
         if [ -n "$RC_PID" ]; then
             # RC_PID set means we are running from rc
-            echo "ERROR: No pool selected for iocage. Exiting"
+            __error "No pool selected for iocage. Exiting"
             exit 1
         else
             echo "Setting up zpool [$i] for iocage usage..."
@@ -343,15 +341,18 @@ __get_jail_prop () {
     fi
 
     if [ -z $_dataset ] ; then
-        __die "jail $_name not found!"
+        __error "jail $_name not found!"
+        exit 1
     fi
 
     if [ -z "$_property" ] ; then
-        __die "Get failed, incorrect property syntax!"
+        __error "Get failed, incorrect property syntax!"
+        exit 1
     fi
 
     if [ -z "$_name" ] ; then
-        __die "Missing UUID or property!"
+        __error "Missing UUID or property!"
+        exit 1
     fi
 
     for prop in $_CONF ; do
@@ -385,7 +386,8 @@ __get_jail_prop () {
     done
 
     if [ $_found -ne "1" ] ; then
-        __die "Unsupported property: $_property !"
+        __error "Unsupported property: $_property !"
+        exit 1
     fi
 }
 
@@ -393,19 +395,19 @@ __runtime () {
     local name=$1
 
     if [ -z $name ] ; then
-        echo "  ERROR: Missing UUID!"
+        __error "missing UUID!"
         exit 1
     fi
 
     local dataset=$(__find_jail $name)
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found."
+        __error "$name not found."
         exit 1
     fi
 
     if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
+        __error "multiple matching UUIDs!"
         exit 1
     fi
 
@@ -419,7 +421,8 @@ __runtime () {
             echo "  $i"
         done
     else
-        echo " ERROR: Jail $fulluuid is not up."
+        __error "jail $fulluuid is not up."
+        exit 1
     fi
 }
 
@@ -488,7 +491,7 @@ __get_uuid_and_dataset () {
     _name="$1"
 
     if [ -z "$_name" ] ; then
-        echo "  ERROR: Missing jail UUID or name!"
+        __error "missing jail UUID or name!"
         exit 1
     fi
 
@@ -499,7 +502,7 @@ __get_uuid_and_dataset () {
     fi
 
     if [ -z "$_dataset" ] ; then
-        echo "  ERROR: $_name not found!"
+        __error "$_name not found!"
         exit 1
     fi
 

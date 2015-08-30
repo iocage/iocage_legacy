@@ -351,8 +351,7 @@ __unlink_tag () {
     fi
 }
 
-# Log error to stderr and die
-__die () {
+# Log error to stderr
+__error () {
     echo "  ERROR: $@" >&2
-    exit 1
 }
