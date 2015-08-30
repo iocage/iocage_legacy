@@ -145,10 +145,11 @@ EOT
 # This is mostly for pkg autoinstall
 # expects fulluuid to be passed in as $1
 __resolv_conf () {
-    local _name _resolver _resolver_default _fulluuid
+    local _name _resolver _resolver_default _fulluuid _dataset
     _fulluuid="$1"
-    _default_resolver="$(__get_default_prop resolver)"
-    _resolver="$(__get_jail_prop resolver $_fulluuid)"
+    _dataset="$2"
+    _default_resolver="$(__get_default_prop resolver $_dataset)"
+    _resolver="$(__get_jail_prop resolver $_fulluuid $_dataset)"
 
     if [ "${_resolver}" != "none" ] ; then
         echo "${_resolver}" | tr \; \\n

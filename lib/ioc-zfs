@@ -214,7 +214,8 @@ __create_jail () {
         echo "hostname=\"${hostname}\"" > ${iocroot}/jails/${uuid}/root/etc/rc.conf
         __jail_rc_conf >> \
         ${iocroot}/jails/${uuid}/root/etc/rc.conf
-        __resolv_conf ${uuid} > ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+        ${iocroot}/jails/${uuid}/root/etc/resolv.conf
     elif [ "${2}" = "-e" ] ; then
         echo ${uuid}
     fi
