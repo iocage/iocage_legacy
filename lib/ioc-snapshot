@@ -26,8 +26,8 @@ __snapremove () {
     _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
 
-    if [ -z ${_name} ] ; then
-        __die "missing UUID!"
+    if [ -z ${_name} ] || [ -z ${_snapshot} ]; then
+        __die "missing UUID or snapshot name!"
     fi
 
     if [ "$2" ] ; then
