@@ -76,6 +76,7 @@ __find_jail () {
 
             if [ "${_tag}" == "${_name}" ] ; then
                 _jlist="${_jlist} ${_jail}"
+                break
             fi
         done
 
