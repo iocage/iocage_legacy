@@ -346,8 +346,7 @@ __destroy_func () {
         fi
 
     elif [ "$state" -eq "1" ] ; then
-        echo "  ERROR: Jail is up and running. Exiting."
-        exit 1
+        __die "jail is up and running. Exiting."
     fi
 }
 
@@ -372,8 +371,7 @@ __check_filesystems () {
         if [ $? -ne 0 ] ; then
             _missing=1
             if [ "$(whoami)" != "root" ] ; then
-                echo "  ERROR: Please run as root to create missing datasets."
-                exit 1
+                __die "Please run as root to create missing datasets."
             else
                 echo "  INFO: Creating ${pool}/${_fs}"
                 zfs create -p ${pool}/${_fs}
@@ -410,7 +408,7 @@ __check_filesystems () {
             "${LIB}/ioc-globals"
         export iocroot="${_altroot}/iocage"
     elif [ ${_altroot} != "-" -a "$(whoami)" != "root" -a ${iocroot} != "${_altroot}/iocage" ] ; then
-        echo "  ERROR: You changed the altroot of ${pool}"
+        __error "You changed the altroot of ${pool}"
         echo "  Please run as root to fix."
         exit 1
     elif [ ${_altroot} == "-" -a "$(whoami)" == "root" ] ; then
@@ -418,7 +416,7 @@ __check_filesystems () {
             "${LIB}/ioc-globals"
         export iocroot="/iocage"
     elif [ ${_altroot} == "-" -a "$(whoami)" != "root" -a ${iocroot} != "/iocage" ] ; then
-        echo "  ERROR: You changed the altroot of ${pool}"
+        __error "You changed the altroot of ${pool}"
         echo "  Please run as root to fix."
         exit 1
     fi
