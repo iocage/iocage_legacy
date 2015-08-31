@@ -306,8 +306,7 @@ __find_mypool () {
     if [ $found -ne 1 ] ; then
         if [ -n "$RC_PID" ]; then
             # RC_PID set means we are running from rc
-            __error "No pool selected for iocage. Exiting"
-            exit 1
+            __die "No pool selected for iocage. Exiting"
         else
             echo "Setting up zpool [$i] for iocage usage..."
             echo "If you wish to change zpool, use 'iocage activate'"
@@ -333,6 +332,14 @@ __get_jail_prop () {
            $CONF_FTP
            $CONF_GIT"
 
+    if [ -z "$_property" ] ; then
+        __die "get failed, incorrect property syntax!"
+    fi
+
+    if [ -z "$_name" ] ; then
+        __die "missing UUID or property!"
+    fi
+
     if [ "$3" ] ; then
         _dataset="$3"
     else
@@ -340,18 +347,7 @@ __get_jail_prop () {
     fi
 
     if [ -z $_dataset ] ; then
-        __error "jail $_name not found!"
-        exit 1
-    fi
-
-    if [ -z "$_property" ] ; then
-        __error "Get failed, incorrect property syntax!"
-        exit 1
-    fi
-
-    if [ -z "$_name" ] ; then
-        __error "Missing UUID or property!"
-        exit 1
+        __die "jail $_name not found!"
     fi
 
     for prop in $_CONF ; do
@@ -385,8 +381,7 @@ __get_jail_prop () {
     done
 
     if [ $_found -ne "1" ] ; then
-        __error "Unsupported property: $_property !"
-        exit 1
+        __die "unsupported property: $_property !"
     fi
 }
 
@@ -394,20 +389,13 @@ __runtime () {
     local name=$1
 
     if [ -z $name ] ; then
-        __error "missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
     local dataset="$(__find_jail $name)" || exit $?
 
     if [ -z $dataset ] ; then
-        __error "$name not found."
-        exit 1
-    fi
-
-    if [ $dataset == "multiple" ] ; then
-        __error "multiple matching UUIDs!"
-        exit 1
+        __die "$name not found!"
     fi
 
     local fulluuid="$(__check_name $name)"
@@ -420,8 +408,7 @@ __runtime () {
             echo "  $i"
         done
     else
-        __error "jail $fulluuid is not up."
-        exit 1
+        __die "jail $fulluuid is not up."
     fi
 }
 
@@ -490,8 +477,7 @@ __get_uuid_and_dataset () {
     _name="$1"
 
     if [ -z "$_name" ] ; then
-        __error "missing jail UUID or name!"
-        exit 1
+        __die "missing jail UUID or name!"
     fi
 
     if [ "$2" ] ; then
@@ -501,8 +487,7 @@ __get_uuid_and_dataset () {
     fi
 
     if [ -z "$_dataset" ] ; then
-        __error "$_name not found!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     _fulluuid="$(__get_jail_prop host_hostuuid $_name $_dataset)"
