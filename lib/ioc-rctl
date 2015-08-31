@@ -72,8 +72,7 @@ __rctl_uncap () {
     local name="$1"
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
-        exit 1
+        __die "missing UUID!"
     fi
 
     local fulluuid="$(__check_name $name)"
@@ -86,30 +85,26 @@ __rctl_uncap () {
 
 
 __rctl_inuse () {
-    local name="$1"
+    local _name _dataset _fulluuid
 
-    if [ -z $name ] ; then
+    _name="$1"
+
+    if [ -z $_name ] ; then
         __rctl_inuse_all
         exit 0
     fi
 
-    local dataset=$(__find_jail $name)
+    _dataset="$(__find_jail $_name)" || exit $?
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
-        exit 1
+    if [ -z $_dataset ] ; then
+        __die "$_name not found!"
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
-    fi
-
-    local fulluuid="$(__check_name $name)"
+    _fulluuid="$(__check_name $_name)"
 
     echo "Consumed resources:"
     echo "-------------------"
-    rctl -hu jail:ioc-${fulluuid}
+    rctl -hu jail:ioc-${_fulluuid}
 }
 
 __rctl_inuse_all () {
