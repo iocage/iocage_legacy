@@ -160,12 +160,10 @@ __get_autoip4 () {
 
      # Do some basic sanity checking
      if [ -z "$_autostart" ] ; then
-        echo "ERROR: AUTOIP4 is specified, but ip4_autostart is not set!"
-        exit 1
+        __die "AUTOIP4 is specified, but ip4_autostart is not set!"
      fi
      if [ -z "$_autoend" ] ; then
-        echo "ERROR: AUTOIP4 is specified, but ip4_autoend is not set!"
-        exit 1
+        __die "AUTOIP4 is specified, but ip4_autoend is not set!"
      fi
      if [ -z "$_autosubnet" -o "$_autosubnet" = "none" ] ; then
 	_autosubnet="24"
@@ -198,12 +196,10 @@ __get_autoip4 () {
 
         # Sanity check
         if [ $_autoip -gt $_autoend ] ; then
-            echo "ERROR: IP4 Automatic Address exhaustion"
-            exit 1
+            __die "IP4 Automatic Address exhaustion"
         fi
         if [ $_autoip -gt 254 ] ; then
-            echo "ERROR: IP4 Address outside of bounds"
-            exit 1
+            __die" IP4 Address outside of bounds"
         fi
         break
      done

@@ -23,32 +23,24 @@ __set_jail_prop () {
     _property="$1"
 
     if [ -z "$_name" ] || [ -z "$_property" ] ; then
-        echo "  ERROR: Missing property or UUID!"
-        exit 1
+        __die "missing property or UUID!"
     fi
 
     if [ "$3" ] ; then
         _dataset="$3"
     else
-        _dataset="$(__find_jail $_name)"
+        _dataset="$(__find_jail $_name)" || exit $?
     fi
 
     if [ -z "$_dataset" ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ "$_dataset" == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     _pname="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
     _pval="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
     if [ -z "$_pname" ] || [ -z "$_pval" ] ; then
-        echo "  ERROR: Set failed, incorrect property syntax!"
-        exit 1
+        __die "set failed, incorrect property syntax!"
     fi
 
     _found="0"
@@ -82,8 +74,7 @@ __set_jail_prop () {
     done
 
     if [ $_found -ne "1" ] ; then
-        echo "  ERROR: Unsupported property: $_pname!"
-        exit 1
+        __die "unsupported property: $_pname!"
     fi
 }
 
@@ -96,20 +87,13 @@ __console () {
         exit 1
     fi
 
-    _dataset=$(__find_jail $_name)
+    _dataset=$(__find_jail $_name) || exit $?
 
     if [ -z $_dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ $_dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     _fulluuid="$(__check_name $_name)"
-
     _login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
                   $pool/iocage/jails/$_fulluuid)
 
@@ -132,8 +116,7 @@ __exec () {
     while getopts u:U: opt "$@"; do
         case "$opt" in
             [uU]) _jexecopts="$_jexecopts -$opt $OPTARG";;
-            ?)    echo "  ERROR: Invalid exec option: $opt"
-                  exit 1
+            ?)    __die "invalid exec option: $opt"
                   ;;
         esac
     done
@@ -143,8 +126,7 @@ __exec () {
     shift
 
     if [ -z $_name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+        __die "missing UUID!"
     elif [ $_name == ALL ]; then
         local _jails _fulluuid
         _jails="$(__find_jail ALL)"
@@ -157,16 +139,10 @@ __exec () {
         exit 0
     fi
 
-    _dataset=$(__find_jail $_name)
+    _dataset=$(__find_jail $_name) || exit $?
 
     if [ -z $_dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ $_dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     _fulluuid="$(__check_name $_name)"
@@ -188,20 +164,13 @@ __chroot () {
     _command="$2"
 
     if [ -z $_name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
-    _dataset=$(__find_jail $_name)
+    _dataset=$(__find_jail $_name) || exit $?
 
     if [ -z $_dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ $_dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     _fulluuid="$(__check_name $_name)"
@@ -336,8 +305,7 @@ __link_tag () {
             fi
         fi
     else
-        echo "  ERROR: No such dataset: $_dataset!"
-        exit 1
+        __die "no such dataset: $_dataset!"
     fi
 }
 
@@ -355,3 +323,10 @@ __unlink_tag () {
 __error () {
     echo "  ERROR: $@" >&2
 }
+
+# Log error to stderr and exit
+__die () {
+    echo "  ERROR: $@" >&2
+    exit 1
+}
+

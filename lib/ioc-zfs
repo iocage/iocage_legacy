@@ -153,8 +153,7 @@ __create_jail () {
     fi
 
     if [ -z "${_installed}" -a -z "${_releases}" ] ; then
-        echo "  ERROR: No RELEASEs found locally, run iocage fetch first."
-        exit 1
+        __die "No RELEASEs found locally, run iocage fetch first."
     elif [ -z "${_installed}" ] ; then
         echo "  RELEASE ${release} not found locally."
         echo "  Please fetch ${release} or rerun iocage with release=RELEASE"
@@ -241,21 +240,10 @@ __clone_jail () {
     local _zfsconfig
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
-    local dataset="$(__find_jail $name)"
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found."
-        exit 1
-    fi
-
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
-    fi
+    local dataset="$(__find_jail $name)" || exit $?
 
     local fs_list="$(zfs list -rH -o name $dataset)"
     _zfsconfig="$(__configure_jail generate)"
@@ -298,8 +286,7 @@ __destroy_jail () {
     local _name _answer _uuid_list _force
 
     if [ -z "$1" ] ; then
-        echo "  ERROR: missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
     if [ "$1" == '-f' ] ; then
@@ -310,16 +297,10 @@ __destroy_jail () {
         _name="$1"
     fi
 
-    local dataset="$(__find_jail $_name)"
+    local dataset="$(__find_jail $_name)" || exit $?
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     local origin="$(zfs get -H -o value origin $dataset)"

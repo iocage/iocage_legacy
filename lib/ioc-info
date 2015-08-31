@@ -83,8 +83,7 @@ __find_jail () {
             # remove whitespace
             echo "${_jlist}" | xargs
         elif [ "$(echo ${_jlist}|wc -w)" -gt "1" ] ; then
-            __error "multiple jails matching name: $_name !"
-            exit 1
+            __die "multiple jails matching name: $_name!"
         fi
     fi
 }
@@ -337,7 +336,7 @@ __get_jail_prop () {
     if [ "$3" ] ; then
         _dataset="$3"
     else
-        _dataset="$(__find_jail $_name)"
+        _dataset="$(__find_jail $_name)" || exit $?
     fi
 
     if [ -z $_dataset ] ; then
@@ -399,7 +398,7 @@ __runtime () {
         exit 1
     fi
 
-    local dataset=$(__find_jail $name)
+    local dataset="$(__find_jail $name)" || exit $?
 
     if [ -z $dataset ] ; then
         __error "$name not found."
@@ -465,7 +464,7 @@ __check_name () {
     if [ $2 ] ; then
         _dataset="$2"
     else
-        _dataset=$(__find_jail $name)
+        _dataset="$(__find_jail $name)" || exit $?
     fi
 
     local uuid="$(__get_jail_prop host_hostuuid $name $_dataset)"
@@ -498,7 +497,7 @@ __get_uuid_and_dataset () {
     if [ "$2" ] ; then
         _dataset="$2"
     else
-        _dataset=$(__find_jail $_name)
+        _dataset="$(__find_jail $_name)" || exit $?
     fi
 
     if [ -z "$_dataset" ] ; then

@@ -176,20 +176,13 @@ __reset_jail_props () {
     _name=$1
 
     if [ -z "$_name" ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
-    _dataset="$(__find_jail $_name)"
+    _dataset="$(__find_jail $_name)" || exit $?
 
     if [ -z "$_dataset" ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ "$_dataset" == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     if [ $_name == "ALL" ] ; then

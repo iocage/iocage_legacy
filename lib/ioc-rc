@@ -452,20 +452,13 @@ __restart_jail () {
     local name="$1"
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
-        exit 1
+        __die "missing UUID!"
     fi
 
-    local dataset="$(__find_jail $name)"
+    local dataset="$(__find_jail $name)" || exit $?
 
     if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
-        exit 1
-    fi
-
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
+        __die "$name not found!"
     fi
 
     local fulluuid="$(__check_name $name)"
@@ -482,8 +475,7 @@ __restart_jail () {
         jexec ioc-${fulluuid} $exec_start >> $iocroot/log/${fulluuid}-console.log 2>&1
         zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
     else
-        echo "  ERROR: soft restart failed.."
-        exit 1
+        __die "soft restart failed!"
     fi
 }
 
@@ -508,8 +500,7 @@ __rc_jails () {
         local boot_order=$(sort -n $boot_list)
         local shutdown_order=$(sort -rn $boot_list)
     else
-        echo "  ERROR: None of the jails have boot on"
-        exit 1
+        __die "none of the jails have boot on"
     fi
 
     if [ "$action" == "boot" ] ; then
