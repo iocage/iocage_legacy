@@ -83,8 +83,7 @@ __console () {
     _name=$1
 
     if [ -z $_name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
     _dataset=$(__find_jail $_name) || exit $?
