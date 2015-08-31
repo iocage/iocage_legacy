@@ -14,16 +14,20 @@ __hack88_mount () {
     _mount_len="$(echo ${_mountpoint} | sed  s#.*jails.#''# | wc -c)"
 
     if [ "${_hack88}" == "1" ] && [ "${_mount_len}" -eq "37" ] ; then
+        __unlink_tag $_dataset
         echo "  INFO: truncating jail mountpoint"
         zfs umount -f ${iocroot}/jails/${_fulluuid}
         __set_jail_prop mountpoint=${iocroot}/jails/${_shortuuid} ${_fulluuid}
         zfs list -rH -o name ${pool}/iocage/jails/${_fulluuid} | \
             grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
+        __link_tag $_dataset
     elif [ "${_hack88}" != "1" ] && [ "${_mount_len}" -lt "37" ] ; then
+        __unlink_tag $_dataset
         echo "  INFO: restoring jail mountpoint"
         zfs umount -f ${iocroot}/jails/${_shortuuid}
         __set_jail_prop mountpoint=${iocroot}/jails/${_fulluuid} ${_fulluuid}
         zfs list -rH -o name ${pool}/iocage/jails/${_fulluuid} | \
             grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
+        __link_tag $_dataset
     fi
 }

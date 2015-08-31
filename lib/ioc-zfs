@@ -205,6 +205,9 @@ __create_jail () {
 
     touch ${iocroot}/jails/${uuid}/fstab
 
+    # create tag link
+    __link_tag ${pool}/iocage/jails/${uuid}
+
     # remove any residual clone snapshots carried over from the RELEASE datasets
     __snapremove ${uuid}@ALL ${pool}/iocage/jails/${uuid}
 
@@ -224,7 +227,7 @@ __create_jail () {
     zfs set jailed=on ${pool}/${jail_zfs_dataset}
 
     # configure the jail mountpoint
-        __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid}
+    __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid}
 
     # Install extra packages
     # this requires working resolv.conf in jail
@@ -268,6 +271,8 @@ __clone_jail () {
             fi
         done
     fi
+
+    __link_tag ${pool}/iocage/jails/${uuid}
 
     #__configure_jail $pool/iocage/jails/$uuid
     mv $iocroot/jails/$uuid/fstab $iocroot/jails/$uuid/fstab.$name
