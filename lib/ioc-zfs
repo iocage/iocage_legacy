@@ -288,7 +288,8 @@ __clone_jail () {
 
 # Destroy jails --------------------------------------------------------------
 __destroy_jail () {
-    local _name _answer _uuid_list _force
+    local _name _answer _uuid_list _force _dataset _origin \
+          _fulluuid _jail_path _state _jail_release
 
     if [ -z "$1" ] ; then
         __die "missing UUID!"
@@ -302,56 +303,70 @@ __destroy_jail () {
         _name="$1"
     fi
 
-    local dataset="$(__find_jail $_name)" || exit $?
+    _fulluuid_dataset="$(__get_uuid_and_dataset $_name)" || exit $?
 
-    if [ -z $dataset ] ; then
+    set $_fulluuid_dataset
+    _fulluuid="$1"
+    _dataset="$2"
+
+    if [ -z $_dataset ] ; then
         __die "$_name not found!"
     fi
 
-    local origin="$(zfs get -H -o value origin $dataset)"
-    local fulluuid="$(__check_name $_name)"
-    local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
-    local state="$(jls | grep ${jail_path} | wc -l)"
-    local jail_type="$(__get_jail_prop type $fulluuid)"
-    local jail_release="$(__get_jail_prop release $fulluuid)"
+    __check_children $_dataset
+
+    _origin="$(zfs get -H -o value origin $_dataset)"
+    _fulluuid="$(__check_name $_name)"
+    _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
+    _state="$(__is_running $_fulluuid)"
+    _jail_type="$(__get_jail_prop type $_fulluuid $_dataset)"
+    _jail_release="$(__get_jail_prop release $_fulluuid $_dataset)"
+
+    __check_children $_fulluuid $_dataset
+
+    if [ ! -z $_state ] ; then
+        __die "cannot destroy $_name - jail is running!"
+    fi
 
     if [ "$_force" -ne "1" ] ; then
             echo " "
-            echo "  WARNING: this will destroy jail $fulluuid"
-            echo "  Dataset: $dataset"
+            echo "  WARNING: this will destroy jail $_fulluuid"
+            echo "  Dataset: $_dataset"
             echo " "
             echo -n "  Are you sure ? y[N]: "
             read _answer
 
         if [ "$_answer" == "Y" ] || [ "$_answer" == "y" ] ; then
-            __destroy_func
+            __destroy_func $_fulluuid $_dataset $_origin $_jail_type
         else
-            echo "  Command not confirmed.  No action taken."
-            exit 1
+            __die "Command not confirmed.  No action taken."
         fi
     else
-        __destroy_func
+        __destroy_func $_fulluuid $_dataset $_origin $_jail_type
     fi
 }
 
 __destroy_func () {
-    if [ "$state" -lt "1" ] ; then
-        echo "  Destroying: $fulluuid"
-        __unlink_tag $dataset
+    local _fulluuid _dataset _origin _jail_type
 
-        zfs destroy -fr $dataset
+    _fulluuid="$1"
+    _dataset="$2"
+    _origin="$3"
+    _jail_type="$4"
 
-        if [ "$origin" != "-" ] ; then
-            echo "  Destroying clone origin: $origin"
-            zfs destroy -r $origin
-        fi
+    echo "  Destroying: $_fulluuid"
 
-        if [ $jail_type == "basejail" ] ; then
-            zfs destroy -fr $pool/iocage/base@$fulluuid
-        fi
+    __unlink_tag $_dataset
 
-    elif [ "$state" -eq "1" ] ; then
-        __die "jail is up and running. Exiting."
+    zfs destroy -fr $_dataset
+
+    if [ "$_origin" != "-" ] ; then
+        echo "  Destroying clone origin: $_origin"
+        zfs destroy -r $_origin
+    fi
+
+    if [ $_jail_type == "basejail" ] ; then
+        zfs destroy -fr $pool/iocage/base@$_fulluuid
     fi
 }
 
@@ -425,4 +440,23 @@ __check_filesystems () {
         echo "  Please run as root to fix."
         exit 1
     fi
+}
+
+__check_children () {
+    local _dataset _jail_datasets _fs _origin _tag _fulluuid \
+          _uuid
+
+    _fulluuid="$1"
+    _dataset="$2"
+    _jail_datasets="$(__find_jail ALL)"
+
+    for _fs in $_jail_datasets ; do
+        _origin="$(zfs get -H -o value origin $_fs | cut -f1 -d@)"
+        _tag="$(zfs get -H -o value org.freebsd.iocage:tag $_fs)"
+        _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_fs)"
+
+        if [ $_origin == "$_dataset" ] ; then
+            __die "jail has dependent clone, uuid: $_uuid ($_tag)"
+        fi
+    done
 }
