@@ -1,7 +1,7 @@
 #!/bin/sh
 
 __pull () {
-    local _gitlocation _jail_type _jail_path
+    local _gitlocation _jail_path
 
     _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
                   ${pool}/iocage/.defaults)"
@@ -12,8 +12,7 @@ __pull () {
 
     # Make sure git is installed.
     if [ ! -e "/usr/local/bin/git" ] ; then
-        echo "  ERROR: Git is not installed. Please install git first."
-        exit 1
+        __die "git is not installed. Please install git first."
     fi
 
     # Check to see if the url begins with these otherwise use gitlocation
@@ -37,17 +36,10 @@ __pull () {
     esac
 
     # Create an empty jail structure that we clone the git repo into
-    # simulates __create_jail -e but without creating directories
-    # git clone complains about that.
-    zfs create -o compression=lz4 -p ${pool}/iocage/jails/$uuid/root
-    zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
-    zfs set mountpoint=none ${pool}/$jail_zfs_dataset
-    zfs set jailed=on ${pool}/$jail_zfs_dataset
     export type=gitjail
-    __configure_jail ${pool}/iocage/jails/$uuid
-
-    _jail_type="$(__get_jail_prop type $uuid)"
-    _jail_path="$(__get_jail_prop mountpoint $uuid)"
+    __create_jail '' '-e'
+    _jail_path="$(__get_jail_prop mountpoint ${uuid} \
+                ${pool}/iocage/jails/${uuid})"
 
     # Begin git clone process
     cd ${_jail_path}/root
@@ -74,7 +66,8 @@ __pull () {
     fi
 
     if [ ! -e "${_jail_path}/root/etc/resolv.conf" ] ; then
-        __resolv_conf ${uuid} > ${_jail_path}/root/etc/resolv.conf
+        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+        ${_jail_path}/root/etc/resolv.conf
     fi
 }
 
@@ -86,8 +79,7 @@ __push () {
 
   # Make sure git is installed.
   if [ ! -e "/usr/local/bin/git" ] ; then
-      echo "  ERROR: Git is not installed. Please install git first."
-      exit 1
+      __die "git is not installed. Please install git first."
   fi
 
   # Check if user has a custom git location set
@@ -108,8 +100,7 @@ __push () {
           git commit
           git push -u "$2"
     if [ -z $_match ] ; then
-        echo "  ERROR: Invalid repo $_gitrepo specified. Exiting."
-        exit 1
+        __die "invalid repo $_gitrepo specified."
     fi
   fi
 fi
