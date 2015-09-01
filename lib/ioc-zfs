@@ -86,7 +86,7 @@ __clean () {
                 echo "  Destroying $pool/iocage/jails"
                 zfs destroy -rRf $pool/iocage/jails
                 echo "  Cleaning TAGs at $pool/iocage/tags"
-                rm -rf ${_iocroot}/tags
+                rm -rf ${iocroot}/tags
                 exit 0
             else
                 echo "  Command not confirmed.  No action taken."
@@ -143,18 +143,16 @@ __create_jail () {
     _releases=$(__list_jails -r|grep -v "Downloaded releases:")
     _supported_release=$(echo "${release}" | grep "RELEASE")
     _zfsconfig="$(__configure_jail generate)"
-
     _configured="0"
-
-    if [ -z "${_supported_release}" ] ; then
+    if [ -z "${_supported_release}" -a "${2}" != "-e" ] ; then
         echo "  You are not running a production RELEASE."
         echo "  ERROR: Please specify release=RELEASE."
         exit 1
     fi
 
-    if [ -z "${_installed}" -a -z "${_releases}" ] ; then
+    if [ -z "${_installed}" -a -z "${_releases}" -a "${2}" != "-e" ] ; then
         __die "No RELEASEs found locally, run iocage fetch first."
-    elif [ -z "${_installed}" ] ; then
+    elif [ -z "${_installed}" -a "${2}" != "-e" ] ; then
         echo "  RELEASE ${release} not found locally."
         echo "  Please fetch ${release} or rerun iocage with release=RELEASE"
         echo ""
