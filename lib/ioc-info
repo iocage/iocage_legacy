@@ -96,8 +96,8 @@ __list_jails () {
     local ioc_jids=""
     local non_ioc_jids=""
 
-    if [ ! -z ${switch} ] && [ ${switch} == "--long" ] ; then
-        __list_jails_long
+    if [ ! -z ${switch} ] && [ ${switch} == "--warden" ] ; then
+        __list_jails_warden
         exit 0
     fi
 
@@ -188,7 +188,7 @@ __list_jails () {
     fi
 }
 
-__list_jails_long () {
+__list_jails_warden () {
     local _jails _switch _ioc_jids _uuid _boot _tag _template _interfaces \
           _ip4_addr _ip6_addr _vnet _vnet0_mac \
           _vnet1_mac _vnet2_mac _vnet3_mac _type
@@ -226,30 +226,12 @@ __list_jails_long () {
             _state=up
         fi
 
-        printf "%s\n" "JID: $_jid" "UUID: $_uuid" "BOOT: $_boot" \
-                "STATE: $_state" "TAG: $_tag" "IPV4: $_ip4_addr"  \
-                "IPV6: $_ip6_addr" "VNET: $_vnet" "TYPE: $_type"
-
-        if [ $_vnet == "on" ] ; then
-            printf "%s\n" "INTERFACES: $_interfaces"
-        fi
-
-        if [ $_vnet == "on" -a $_vnet0_mac != "none" ] ; then
-            printf "%s\n" "VNET0_MAC: $_vnet0_mac"
-        fi
-
-        if [ $_vnet == "on" -a $_vnet1_mac != "none" ] ; then
-            printf "%s\n" "VNET1_MAC: $_vnet1_mac"
-        fi
-
-        if [ $_vnet == "on" -a $_vnet2_mac != "none" ] ; then
-            printf "%s\n" "VNET2_MAC: $_vnet2_mac"
-        fi
-
-        if [ $_vnet == "on" -a $_vnet3_mac != "none" ] ; then
-            printf "%s\n" "VNET3_MAC: $_vnet3_mac"
-        fi
-
+        printf "%s\n" "id: $_jid" "host: $_tag" "ipv4: $_ip4_addr" \
+               "alias-ipv4: " "bridge-ipv4: " "alias-bridge-ipv4: " \
+               "defaultrouter-ipv4: " "ipv6: $_ip6_addr" "alias-ipv6: " \
+               "bridge-ipv6: " "alias-bridge-ipv6: " "defaultrouter-ipv6: " \
+               "autostart: $_boot" "vnet: $_vnet" "status: $_state" \
+               "type: $_type"
     done
 }
 
