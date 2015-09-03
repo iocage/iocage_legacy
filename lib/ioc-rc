@@ -68,12 +68,19 @@ __start_jail () {
 
     _jzfs="$(__get_jail_prop jail_zfs $_fulluuid $_dataset)"
     _jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $_fulluuid $_dataset)"
+    _jzfs_dataset_olen="${#_jzfs_dataset}"
+    _jzfs_dataset="${_jzfs_dataset#iocage/jails}"
+    _jzfs_dataset_nlen="${#_jzfs_dataset}"
+
+    if [ $_jzfs_dataset_olen -ne $_jzfs_dataset_nlen ] ; then
+        _jzfs_dataset="${pool}/iocage/jails${_jzfs_dataset}"
+    fi
 
     if [ $_jzfs == "on" ] ; then
         __set_jail_prop allow_mount=1 $_fulluuid $_dataset
         __set_jail_prop enforce_statfs=1 $_fulluuid $_dataset
         __set_jail_prop allow_mount_zfs=1 $_fulluuid $_dataset
-        zfs set jailed=on ${pool}/${_jzfs_dataset}
+        zfs set jailed=on ${_jzfs_dataset}
     fi
 
     if [ $_vnet == "on" ] || [ $_vnet == "-" ] ; then
@@ -131,7 +138,7 @@ __start_jail () {
     fi
 
     if [ $_jzfs == "on" ] ; then
-        zfs jail ioc-${_fulluuid} ${pool}/${_jzfs_dataset}
+        zfs jail ioc-${_fulluuid} ${_jzfs_dataset}
     fi
 
     __resolv_conf ${_fulluuid} > ${_jail_path}/root/etc/resolv.conf &
