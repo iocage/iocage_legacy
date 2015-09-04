@@ -302,7 +302,8 @@ __find_mypool () {
 # Get jail properties
 # Expects: property as $1 and UUID|jail name as $2 optionally dataset as $3
 __get_jail_prop () {
-    local _value _found _name _property _dataset _CONF
+    local _value _found _name _property _dataset _CONF \
+          _fulluuid _state
 
     _name="$2"
     _property="$1"
@@ -331,6 +332,17 @@ __get_jail_prop () {
 
     if [ -z $_dataset ] ; then
         __die "jail $_name not found!"
+    fi
+
+    if [ $_property == "state" ] ; then
+        _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
+        _state="$(__is_running $_fulluuid)"
+        if [ $_state ] ; then
+            echo "up"
+        else
+            echo "down"
+        fi
+        exit 0
     fi
 
     for prop in $_CONF ; do
