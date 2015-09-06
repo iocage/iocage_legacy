@@ -139,6 +139,7 @@ __start_jail () {
 
     if [ $_jzfs == "on" ] ; then
         zfs jail ioc-${_fulluuid} ${_jzfs_dataset}
+        jexec ioc-${_fulluuid} zfs mount -a
     fi
 
     __resolv_conf ${_fulluuid} > ${_jail_path}/root/etc/resolv.conf &

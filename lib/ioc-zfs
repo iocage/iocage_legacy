@@ -232,6 +232,8 @@ __create_jail () {
     if [ "${pkglist}" != "none" ] ; then
         __pkg_install "${iocroot}/jails/${uuid}/root"
     fi
+
+    echo "  Successfully created: ${uuid} (${tag})"
 }
 
 # Cloning jails ----------------------------------------------------------
@@ -282,6 +284,8 @@ __clone_jail () {
 
     mv $iocroot/jails/${uuid}/rc.conf \
     $iocroot/jails/${uuid}/root/etc/rc.conf
+
+    echo "  Successfully created: ${uuid} (${tag})"
 }
 
 # Destroy jails --------------------------------------------------------------
