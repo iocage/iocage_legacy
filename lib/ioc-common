@@ -2,8 +2,12 @@
 
 # Export every property specified on command line ----------------------
 __export_props () {
+    local _pname
+
     for i in "$@" ; do
         if [ "$(echo $i | grep -e ".*=.*")" ] ; then
+            _pname="$(echo $i|awk 'BEGIN { FS = "=" } ; { print $1 }')"
+            __validate_pname $_pname
             export "$i"
             export "iocset_${i}"
         fi
@@ -18,7 +22,9 @@ __export_props () {
 
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
-    local _name _property _dataset _pname _pval _found _CONF
+    local _name _property _dataset _pname _pval _found _CONF \
+          _type
+
     _name="$2"
     _property="$1"
 
@@ -43,7 +49,26 @@ __set_jail_prop () {
         __die "set failed, incorrect property syntax!"
     fi
 
-    _found="0"
+    _type="$(__validate_pname $_pname type)" || exit $?
+
+    if [ $_type == "custom" ] ; then
+        zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
+    elif [ $_type == "native" ] ; then
+        zfs set $prop="$_pval" $_dataset
+    fi
+
+    if [ "$_pname" == "tag" ] ; then
+        __unlink_tag $_dataset
+        __link_tag $_dataset
+    fi
+}
+
+__validate_pname () {
+    local _prop _pname _found
+
+    _pname="$1"
+    _type="$2"
+    _found=0
 
     _CONF="$CONF_NET
            $CONF_JAIL
@@ -53,22 +78,22 @@ __set_jail_prop () {
            $CONF_FTP
            $CONF_GIT"
 
-    for prop in $_CONF ; do
-        if [ "$prop" == "$_pname" ] ; then
+    for _prop in $_CONF ; do
+        if [ "$_prop" == "$_pname" ] ; then
             _found=1
-            zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
-            if [ "$_pname" == "tag" ] ; then
-                __unlink_tag $_dataset
-                __link_tag $_dataset
+            if [ $_type ] ; then
+                echo "custom"
             fi
             break
         fi
     done
 
-    for prop in $CONF_ZFS ; do
-        if [ "$prop" == "$_pname" ] ; then
-            zfs set $prop="$_pval" $_dataset
+    for _prop in $CONF_ZFS ; do
+        if [ "$_prop" == "$_pname" ] ; then
             _found=1
+            if [ $_type ] ; then
+                echo "native"
+            fi
             break
         fi
     done
