@@ -52,9 +52,9 @@ __set_jail_prop () {
     _type="$(__validate_pname $_pname type)" || exit $?
 
     if [ $_type == "custom" ] ; then
-        zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
+        zfs set org.freebsd.iocage:${_pname}="${_pval}" $_dataset
     elif [ $_type == "native" ] ; then
-        zfs set $prop="$_pval" $_dataset
+        zfs set $_pname="$_pval" $_dataset
     fi
 
     if [ "$_pname" == "tag" ] ; then
