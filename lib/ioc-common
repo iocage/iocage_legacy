@@ -184,8 +184,10 @@ __exec () {
 
 __chroot () {
     local _name _command
+    shift
     _name="$1"
-    _command="$2"
+    shift
+    _command="$@"
 
     if [ -z $_name ] ; then
         __die "missing UUID!"
