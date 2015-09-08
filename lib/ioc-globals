@@ -258,29 +258,3 @@ CONF_FTP="ftphost
 # git properties
 CONF_GIT="gitlocation
           branch"
-
-# Basejail filesystems
-bfs_list="bin
-          boot
-          lib
-          libexec
-          rescue
-          sbin
-          usr/bin
-          usr/include
-          usr/lib
-          usr/libexec
-          usr/sbin
-          usr/share
-          usr/src
-          usr/libdata
-          usr/lib32"
-
-# Basejail directories
-bdir_list="dev
-           tmp
-           var
-           etc
-           root
-           proc
-           mnt"

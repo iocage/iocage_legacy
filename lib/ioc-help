@@ -12,7 +12,7 @@ SYNOPSIS
   iocage clean [-a|-r|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
-  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage create [-t|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage deactivate ZPOOL
   iocage defaults
   iocage destroy [-f] UUID|TAG
@@ -134,19 +134,19 @@ SUBCOMMANDS
 
     Execute login to have a shell inside the jail
 
-  create [-b|-c|-e] [release=RELEASE] [property=value] [property=value]
+  create [-t|-c|-e] [release=RELEASE] [property=value] [property=value]
 
     By default create will deploy a new jail based on the host operating
     system's release. This can be changed by specifying the release option.
+    Default is to create a basejail with a common shared base.
     If the -c switch is specified the jail will be cloned from the current
-    hosts RELEASE (uname -r).
-    Default is to create a fully independent jail set.
+    hosts RELEASE (uname -r). These jails are not supported for upgrade.
     The -e switch will create an empty jail which can be used for unsupported
     or custom jails.
-    The -b flag will create a so called "basejail" with a common shared base.
+    The -t flag will create a jail with an independent base.
 
     Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
-             iocage create -b tag=mybasejail
+             iocage create -t tag=mybasejail
 
   deactivate ZPOOL
 
@@ -359,7 +359,8 @@ SUBCOMMANDS
 
   update UUID|TAG
 
-    Update jail to latest patch level. A back-out snapshot is created to allow
+    Will reclone the jail if it is a basejail, otherwise it updates the jail
+    to the latest patch level. A back-out snapshot is created to allow
     safe update/rollback.
 
   upgrade UUID|TAG [release=RELEASE]
@@ -367,14 +368,17 @@ SUBCOMMANDS
     By default this will upgrade jail RELEASE to match the host's RELEASE
     unless another RELEASE is specified with the "release" property.
 
-    Please note: Upgrading basejails is done by setting the jail's "release"
-    property to the required new RELEASE:
+    Please note: The upgrade process for basejails is done by setting the jail's
+    "release" property to the required new RELEASE and then merging /etc.
+    If you wish to do this yourself without having /etc merged do:
 
     iocage set release=10.1-RELEASE UUID|TAG
 
     For this the RELEASE must be locally available. The basejail
-    will re-clone its filesystems from the new release either by issuing
-    the upgrade command or at next jail start.
+    will re-clone its filesystems from the new release at next jail start.
+
+    WARNING: Cloned jails [-c] are not supported for upgrades.
+    Please use thick [-t] or our standard basejails for this feature.
 
   version | --version
 

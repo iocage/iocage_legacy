@@ -266,43 +266,33 @@ __fetch_release () {
         fi
     done
 
-    echo "* Updating base jail.."
-    sleep 2
-
-    _non_interactive="--not-running-from-cron"
-    if [ $(uname -U) -lt 1002000 ] ; then
-        _non_interactive=""
+    if [ "$?" == "0" ] ; then
+        cd ${iocroot}/download
+        zfs destroy ${pool}/iocage/download/${release}
     fi
+
+    echo "* Updating base jail template."
+    sleep 2
 
     if [ ! -d ${iocroot}/log ] ; then
         mkdir ${iocroot}/log
     fi
 
     if [ -e ${iocroot}/releases/${release}/root/etc/freebsd-update.conf ] ; then
-        env UNAME_r="${release}" env PAGER="/bin/cat" \
-            /usr/sbin/freebsd-update \
-            ${_non_interactive} \
-            -b ${iocroot}/releases/${release}/root \
-            -f ${iocroot}/releases/${release}/root/etc/freebsd-update.conf \
-            -d ${iocroot}/releases/${release}/root/var/db/freebsd-update/ fetch
-        env UNAME_r="${release}" env PAGER="/bin/cat" \
-            /usr/sbin/freebsd-update \
-            -b ${iocroot}/releases/${release}/root \
-            -f ${iocroot}/releases/${release}/root/etc/freebsd-update.conf \
-            -d ${iocroot}/releases/${release}/root/var/db/freebsd-update/ install
+        mount -t devfs devfs ${iocroot}/releases/${release}/root/dev
+        cat /etc/resolv.conf > \
+            ${iocroot}/releases/${release}/root/etc/resolv.conf
+        chroot ${iocroot}/releases/${release}/root \
+            env UNAME_r="${release}" env PAGER="/bin/cat" \
+            freebsd-update fetch
+        chroot ${iocroot}/releases/${release}/root \
+            env UNAME_r="${release}" env PAGER="/bin/cat" \
+            freebsd-update install
+        umount ${iocroot}/releases/${release}/root/dev
+        if [ "$?" == "0" ] ; then
+            rm -f ${iocroot}/releases/${release}/root/etc/resolv.conf
+        fi
     fi
-
-    __create_basejail ${release}
-    chflags -R noschg ${iocroot}/base/${release}/root
-    tar --exclude \.zfs --exclude usr/sbin/chown -C ${iocroot}/releases/${release}/root -cf - . | \
-    tar --exclude \.zfs --exclude usr/sbin/chown -C ${iocroot}/base/${release}/root -xf -
-
-    if [ ! -e "${iocroot}/base/${release}/root/usr/sbin/chown" ] ; then
-       cd ${iocroot}/base/${release}/root/usr/sbin && ln -s ../bin/chgrp chown
-    fi
-
-    etcupdate extract -D ${iocroot}/base/${release}/root \
-    -s ${iocroot}/base/${release}/root/usr/src
 }
 
 # reads tag property from given jail dataset

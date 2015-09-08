@@ -53,7 +53,7 @@ Start the jail:
   iocage clean [-a|-r|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
-  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage create [-t|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage deactivate ZPOOL
   iocage defaults
   iocage destroy [-f] UUID|TAG

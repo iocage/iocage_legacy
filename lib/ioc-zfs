@@ -96,42 +96,38 @@ __clean () {
     esac
 }
 
-__create_basejail () {
-    local _release
-
-    _release="$1"
-
-    echo ""
-    echo "* Creating basejail ZFS datasets... please wait."
-    zfs create -o compression=lz4 -p ${pool}/iocage/base/${_release}/root
-    zfs set mountpoint=/iocage/base/${_release}/root \
-        ${pool}/iocage/base/${_release}/root
-
-    for _fs in $(echo ${bfs_list}) ; do
-        zfs create -o compression=lz4 -p \
-            ${pool}/iocage/base/${_release}/root/${_fs}
-        zfs set mountpoint=/iocage/base/${_release}/root/${_fs} \
-            ${pool}/iocage/base/${_release}/root/${_fs}
-    done
-}
-
 __reclone_basejail () {
-    local _fulluuid _dataset _jail_release _fs
+    local _fulluuid _fs_list _dataset _jail_release
 
     _fulluuid="$1"
     _dataset="$2"
-    _jail_release="$(__get_jail_prop release $_fulluuid $_dataset)"
+    _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
+    _fs_list=$(zfs list -t snap -rH -o name ${pool}/iocage/releases | \
+             grep root@${_fulluuid})
 
-    zfs destroy -rRf $pool/iocage/base@$_fulluuid
-    zfs snapshot -r  $pool/iocage/base@$_fulluuid
-
-    echo "* $_fulluuid is a basejail, re-cloning jail.."
-
-    # Re-clone required filesystems
-    for _fs in $bfs_list ; do
-        zfs clone $pool/iocage/base/${_jail_release}/root/${_fs}@${_fulluuid} \
-                  $pool/iocage/jails/${_fulluuid}/root/${_fs}
+    # Unmounts all the basejails datasets so the root can be recloned
+    umount ${iocroot}/jails/${_fulluuid}/root/etc > /dev/null 2>&1
+    zfs umount ${pool}/iocage/jails/${_fulluuid}/var > /dev/null 2>&1
+    zfs umount ${pool}/iocage/jails/${_fulluuid}/usr/local > /dev/null 2>&1
+    zfs umount ${pool}/iocage/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+    for _fs in ${_fs_list} ; do
+        zfs destroy -rRf ${_fs}
     done
+    zfs snapshot ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid}
+
+    echo "* ${_fulluuid} is a basejail, re-cloning jail.."
+    # Recloning the root dataset and remounting the children
+    zfs clone -o readonly=on \
+        ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid} \
+        ${pool}/iocage/jails/${_fulluuid}/root
+    mount -t unionfs -o noatime,copymode=transparent \
+        ${iocroot}/jails/${_fulluuid}/etc \
+        ${iocroot}/jails/${_fulluuid}/root/etc
+    mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
+    zfs mount ${pool}/iocage/jails/${_fulluuid}/var
+    zfs mount ${pool}/iocage/jails/${_fulluuid}/usr/local
+    etcupdate extract -D ${iocroot}/jails/${_fulluuid}/root \
+        -s ${iocroot}/releases/${_jail_release}/root/usr/src
 }
 
 # This creates jails----------------------------------------------------
@@ -144,6 +140,7 @@ __create_jail () {
     _supported_release=$(echo "${release}" | grep "RELEASE")
     _zfsconfig="$(__configure_jail generate)"
     _configured="0"
+
     if [ -z "${_supported_release}" -a "${2}" != "-e" ] ; then
         echo "  You are not running a production RELEASE."
         echo "  ERROR: Please specify release=RELEASE."
@@ -157,51 +154,70 @@ __create_jail () {
         echo "  Please fetch ${release} or rerun iocage with release=RELEASE"
         echo ""
         echo "  These are the releases you have already fetched:"
-        echo "  ${_releases}"
+        printf "${_releases}\n"
         exit 1
     fi
 
     if [ "${2}" = "-c" ] ; then
-        fs_list=$(zfs list -rH -o name ${pool}/iocage/releases/${release})
+        export type=clonejail
+        _fs_list=$(zfs list -rH -o name ${pool}/iocage/releases/${release})
         zfs snapshot -r ${pool}/iocage/releases/${release}@${uuid}
-        for fs in ${fs_list} ; do
-            cfs=$(echo ${fs} | sed s#/releases/${release}#/jails/${uuid}#g)
-            eval "zfs clone ${_zfsconfig} \"${fs}@${uuid}\" \"${cfs}\""
+        for _fs in ${_fs_list} ; do
+            _cfs=$(echo ${_fs} | sed s#/releases/${release}#/jails/${uuid}#g)
+            eval "zfs clone ${_zfsconfig} \"${_fs}@${uuid}\" \"${_cfs}\""
         done
+        # Hack to make sure type is set.
+        __set_jail_prop type=clonejail ${uuid} ${pool}/iocage/jails/${uuid}
         _configured="1"
     elif [ "${2}" = "-e" ] ; then
         eval "zfs create -p ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
         zfs create -p ${pool}/iocage/jails/${uuid}/root
         _configured="1"
-    elif [ "${2}" = "-b" ] ; then
-        export type=basejail
-        zfs snapshot -r ${pool}/iocage/base@${uuid}
-        eval "zfs create -p ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
-        __set_jail_prop type=basejail ${uuid} ${pool}/iocage/jails/${uuid}
-        zfs create -o compression=lz4 -p ${pool}/iocage/jails/${uuid}/root/usr
-
-        for _fs in ${bfs_list} ; do
-            zfs clone -o compression=lz4 -o readonly=on \
-            ${pool}/iocage/base/${release}/root/${_fs}@${uuid} \
-            ${pool}/iocage/jails/${uuid}/root/${_fs}
-        done
-
-        for _dir in ${bdir_list} ; do
-            cp -a ${iocroot}/base/${release}/root/${_dir} \
-                  ${iocroot}/jails/${uuid}/root/${_dir}
-        done
-        _configured="1"
-    else
+    elif [ "$2" = "-t" ] ; then
+        export type=thickjail
         eval "zfs create -p ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
         _configured="1"
+        # Hack to make sure type is set.
+        __set_jail_prop type=thickjail ${uuid} ${pool}/iocage/jails/${uuid}
         zfs snapshot -r ${pool}/iocage/releases/${release}@${uuid}
         zfs send     -R ${pool}/iocage/releases/${release}/root@${uuid} | \
         zfs recv        ${pool}/iocage/jails/${uuid}/root
         zfs destroy  -r ${pool}/iocage/releases/${release}@${uuid}
         zfs destroy  -r ${pool}/iocage/jails/${uuid}/root@${uuid}
+    else
+        # Clones the root dataset from the RELEASE and makes sure to configure
+        # the properties on it.
+        _fs_list=$(zfs list -rH -o name ${pool}/iocage/releases/${release})
+        zfs snapshot ${pool}/iocage/releases/${release}/root@${uuid}
+        export type=basejail
+        for _fs in ${_fs_list} ; do
+            _cfs=$(echo ${_fs} | sed s#/releases/${release}#/jails/${uuid}#g)
+            if [ "${_cfs}" = "${pool}/iocage/jails/${uuid}/root" ] ; then
+                eval "zfs clone -o readonly=on\
+                      ${_zfsconfig} \"${_fs}@${uuid}\" \"${_cfs}\""
+            else
+                eval "zfs create ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
+            fi
+        done
+        # Hack to make sure type is set.
+        __set_jail_prop type=basejail ${uuid} ${pool}/iocage/jails/${uuid}
+        # Create all the datasets a basejail needs r/w on, also makes a unionfs
+        # and tmpfs mount for the jail.
+        zfs create -o compression=lz4 \
+            -o mountpoint=none \
+            ${pool}/iocage/jails/${uuid}/usr
+        zfs create -o compression=lz4 -p \
+            -o mountpoint=${iocroot}/jails/${uuid}/root/usr/local \
+            ${pool}/iocage/jails/${uuid}/usr/local
+        zfs create -o compression=lz4 -p \
+            -o mountpoint=${iocroot}/jails/${uuid}/root/var \
+            ${pool}/iocage/jails/${uuid}/var
+        mkdir ${iocroot}/jails/${uuid}/etc
+        mount -t unionfs -o noatime,copymode=transparent \
+            ${iocroot}/jails/${uuid}/etc/ ${iocroot}/jails/${uuid}/root/etc
+        mount -t tmpfs tmpfs ${iocroot}/jails/${uuid}/root/tmp
+        _configured="1"
     fi
-
-    touch ${iocroot}/jails/${uuid}/fstab
 
     # create tag link
     __link_tag ${pool}/iocage/jails/${uuid}
@@ -209,20 +225,23 @@ __create_jail () {
     # remove any residual clone snapshots carried over from the RELEASE datasets
     __snapremove ${uuid}@ALL ${pool}/iocage/jails/${uuid}
 
-    # at create time set the default rc.conf
-    if [ "${2}" != "-e" ] ; then
-        echo "hostname=\"${hostname}\"" > ${iocroot}/jails/${uuid}/root/etc/rc.conf
-        __jail_rc_conf >> \
-        ${iocroot}/jails/${uuid}/root/etc/rc.conf
-        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
-        ${iocroot}/jails/${uuid}/root/etc/resolv.conf
-    elif [ "${2}" = "-e" ] ; then
+    # Make sure the jail isn't a empty jail
+    if [ "${2}" = "-e" ] ; then
         echo ${uuid}
+        exit 0
     fi
 
-    zfs create -o compression=lz4 ${pool}/${jail_zfs_dataset}
-    zfs set mountpoint=none ${pool}/${jail_zfs_dataset}
-    zfs set jailed=on ${pool}/${jail_zfs_dataset}
+    touch ${iocroot}/jails/${uuid}/fstab
+
+    # at create time set the default rc.conf
+    echo "hostname=\"${hostname}\"" > \
+        ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    __jail_rc_conf >> \
+        ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+        ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+    zfs create -o compression=lz4 -o mountpoint=none -o jailed=on\
+        ${pool}/${jail_zfs_dataset}
 
     # configure the jail mountpoint
     __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid}
