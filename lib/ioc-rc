@@ -3,7 +3,8 @@
 __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid _jail_type \
           _tag _jail_hostid _jail_path _template _cpuset \
-          _procfs _state _vnet _nics _jzfs_dataset _jzfs
+          _procfs _state _vnet _nics _jzfs_dataset _jzfs \
+          _exec_fib
 
     # Get fulluuid and dataset in one step (dataset is optional)
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
@@ -24,6 +25,7 @@ __start_jail () {
     _procfs="$(__get_jail_prop mount_procfs $_fulluuid $_dataset)"
     _state=$(__is_running $_fulluuid)
     _vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
+    _exec_fib="$(__get_jail_prop exec_fib $_fulluuid $_dataset)"
     _nics="$(__get_jail_prop interfaces $_fulluuid $_dataset\
            |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
 
@@ -145,7 +147,7 @@ __start_jail () {
     __resolv_conf ${_fulluuid} > ${_jail_path}/root/etc/resolv.conf &
 
     echo -n "  + Starting services"
-    jexec ioc-${_fulluuid} $(__get_jail_prop exec_start $_fulluuid $_dataset) \
+    setfib $_exec_fib jexec ioc-${_fulluuid} $(__get_jail_prop exec_start $_fulluuid $_dataset) \
      >> $iocroot/log/${_fulluuid}-console.log 2>&1
 
     if [ $? -eq 1 ] ; then
@@ -219,6 +221,7 @@ __legacy_start () {
     local ip4_addr="$(__get_jail_prop ip4_addr $name $_dataset)"
     local ip6_addr="$(__get_jail_prop ip6_addr $name $_dataset)"
     local ip4="$(__get_jail_prop ip4 $name $_dataset)"
+    local _exec_fib="$(__get_jail_prop exec_fib $name $_dataset)"
 
     local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $name $_dataset)"
     local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $name $_dataset)"
@@ -306,7 +309,7 @@ __legacy_start () {
         exec.stop="$(__get_jail_prop exec_stop $name $_dataset)" \
         exec.clean="$(__get_jail_prop exec_clean $name $_dataset)" \
         exec.timeout="$(__get_jail_prop exec_timeout $name $_dataset)" \
-        exec.fib="$(__get_jail_prop exec_fib $name $_dataset)" \
+        exec.fib="$_exec_fib" \
         stop.timeout="$(__get_jail_prop stop_timeout $name $_dataset)" \
         mount.fstab="${jail_path}/fstab" \
         mount.devfs="$(__get_jail_prop mount_devfs $name $_dataset)" \
@@ -345,7 +348,7 @@ __legacy_start () {
         exec.stop="$(__get_jail_prop exec_stop $name $_dataset)" \
         exec.clean="$(__get_jail_prop exec_clean $name $_dataset)" \
         exec.timeout="$(__get_jail_prop exec_timeout $name $_dataset)" \
-        exec.fib="$(__get_jail_prop exec_fib $name $_dataset)" \
+        exec.fib="$_exec_fib" \
         stop.timeout="$(__get_jail_prop stop_timeout $name $_dataset)" \
         mount.fstab="${jail_path}/fstab" \
         mount.devfs="$(__get_jail_prop mount_devfs $name $_dataset)" \
