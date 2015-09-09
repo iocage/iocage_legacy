@@ -11,7 +11,7 @@ iocage is in the FreeBSD ports tree as sysutils/iocage.
 To install using binary packages, simply run: `pkg install iocage`
 
 - **[DOCUMENTATION](http://iocage.readthedocs.org/en/latest/index.html)**
-- **Mailing list**: iocage@googlegroups.com
+- **Mailing list**: https://groups.google.com/forum/#!forum/iocage
 - **Contributing**: If you would like to submit a pull request, we kindly ask you to open it against the `develop` branch.
 
 **FEATURES:**
