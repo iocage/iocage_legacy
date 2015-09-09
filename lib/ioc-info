@@ -330,7 +330,7 @@ __get_jail_prop () {
         _dataset="$(__find_jail $_name)" || exit $?
     fi
 
-    if [ -z $_dataset ] ; then
+    if [ -z "$_dataset" ] ; then
         __die "jail $_name not found!"
     fi
 
