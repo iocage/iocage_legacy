@@ -3,7 +3,7 @@
 __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid _jail_type \
           _tag _jail_hostid _jail_path _template _cpuset \
-          _procfs _state _vnet _nics _jzfs_dataset _jzfs \
+          _procfs _state _vnet _nics _jzfs_dataset _jzfs _clone_check \
           _exec_fib
 
     # Get fulluuid and dataset in one step (dataset is optional)
@@ -28,6 +28,7 @@ __start_jail () {
     _exec_fib="$(__get_jail_prop exec_fib $_fulluuid $_dataset)"
     _nics="$(__get_jail_prop interfaces $_fulluuid $_dataset\
            |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
+    _clone_check="$(zfs get -H origin ${_dataset} | awk '{print $3}')"
 
     if [ "$_state" ] ; then
         echo "* ${_fulluuid}: is already up"
@@ -37,6 +38,16 @@ __start_jail () {
     if [ $_jail_type == "basejail" ] ; then
         # Re-clone required filesystems
         __reclone_basejail $_fulluuid $_dataset
+    fi
+    if [ $_jail_type == "jail" ] ; then
+        # Check for thick or clone jails and migrate their type
+        if [ "${_clone_check}" = "-" ] ; then
+            __set_jail_prop type=thickjail ${_fulluuid} \
+                ${pool}/iocage/jails/${_fulluuid}
+        else
+            __set_jail_prop type=clonejail ${_fulluuid} \
+                ${pool}/iocage/jails/${_fulluuid}
+        fi
     fi
 
     for i in $_nics ; do
@@ -367,7 +378,7 @@ __reboot_jail () {
 __stop_jail () {
     local _fulluuid _dataset _fulluuid_dataset _jail_path _tag \
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
-          _ip4
+          _ip4 _jail_type
 
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
 
@@ -376,7 +387,7 @@ __stop_jail () {
     _fulluuid="$1"
     _dataset="$2"
 
-
+    _jail_type="$(__get_jail_prop type $_fulluuid $_dataset)"
     _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
     _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
     _exec_prestop="$(__findscript $_fulluuid prestop $_dataset)"
@@ -447,7 +458,16 @@ __stop_jail () {
     umount ${_jail_path}/root/dev/fd > /dev/null 2>&1
     umount ${_jail_path}/root/dev    > /dev/null 2>&1
     umount ${_jail_path}/root/proc   > /dev/null 2>&1
-    umount ${_jail_path}/root/tmp    > /dev/null 2>&1
+
+    if [ $_jail_type = "basejail" ] ; then
+        zfs    unmount ${_jail_path}/root           > /dev/null 2>&1
+        umount ${_jail_path}/root/tmp               > /dev/null 2>&1
+        umount ${_jail_path}/root/etc               > /dev/null 2>&1
+        umount ${_jail_path}/root/usr/home          > /dev/null 2>&1
+        umount ${_jail_path}/root/root              > /dev/null 2>&1
+        zfs    unmount ${_jail_path}/root/var       > /dev/null 2>&1
+        zfs    unmount ${_jail_path}/root/usr/local > /dev/null 2>&1
+    fi
 
     if [ -d $iocroot/jails/${_fulluuid}/recorded ] ; then
         umount -ft unionfs $iocroot/jails/${_fulluuid}/root > /dev/null 2>&1

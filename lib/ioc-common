@@ -265,7 +265,7 @@ __fetch_release () {
             tar -C ${iocroot}/releases/${release}/root -xf ${_file}
         fi
     done
-
+    mkdir ${iocroot}/releases/${release}/root/usr/home
     if [ "$?" == "0" ] ; then
         cd ${iocroot}/download
         zfs destroy ${pool}/iocage/download/${release}
