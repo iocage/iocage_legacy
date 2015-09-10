@@ -380,6 +380,11 @@ __stop_jail () {
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
           _ip4 _jail_type
 
+    if [ "$1" == "ALL" ] ; then
+        __stop_jail_all
+        exit $?
+    fi
+
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
 
     set $_fulluuid_dataset
@@ -479,6 +484,21 @@ __stop_jail () {
             rctl -r jail:ioc-${_fulluuid}
         fi
     fi
+}
+
+__stop_jail_all () {
+    local _jails _state
+    _jails=$(__find_jail ALL)
+    for _jail in ${_jails} ; do
+        _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+               ${_jail})
+        _state="$(__is_running ${_juuid} ; echo $?)"
+        while [ "${_state}" != "0" ] ; do
+            __stop_jail ${_juuid}
+            break
+        done
+    done
+    return $?
 }
 
 # Soft restart
