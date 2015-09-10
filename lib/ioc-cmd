@@ -133,7 +133,7 @@ __parse_cmd () {
             snapremove) __snapremove "$2"
                         exit
                 ;;
-            snapshot)   __snapshot "$2"
+            snapshot)   __snapshot "$2" "$3"
                         exit
                 ;;
             start)      __start_jail "$2"

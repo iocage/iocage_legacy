@@ -3,21 +3,40 @@
 __snapshot () {
     local _name _snapshot _dataset _date
 
-    _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-
-    if [ -z $_name ] ; then
-        __die "missing UUID!"
-    fi
-
-    _dataset="$(__find_jail $_name)" || exit $?
     _date=$(date "+%F_%T")
 
-    if [ ! -z $_snapshot ] ; then
-        zfs snapshot -r ${_dataset}@${_snapshot}
+    if [ "$1" == "-r" ] ; then
+        shift
+        _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+        _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+        _dataset="$(__find_jail $_name)" || exit $?
+
+        if [ -z $_name ] ; then
+            __die "missing UUID!"
+        fi
+
+
+        if [ ! -z $_snapshot ] ; then
+            zfs snapshot -r ${_dataset}@${_snapshot}
+        else
+            zfs snapshot -r ${_dataset}@ioc-${_date}
+        fi
     else
-        zfs snapshot -r ${_dataset}@ioc-${_date}
+        _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+        _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+        _dataset="$(__find_jail $_name)" || exit $?
+
+        if [ -z $_name ] ; then
+            __die "missing UUID!"
+        fi
+
+        if [ ! -z $_snapshot ] ; then
+            zfs snapshot ${_dataset}/root@${_snapshot}
+        else
+            zfs snapshot ${_dataset}/root@ioc-${_date}
+        fi
     fi
+
 }
 
 
