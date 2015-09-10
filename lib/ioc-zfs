@@ -294,7 +294,6 @@ __create_jail () {
                ${iocroot}/jails/${uuid}/etc/ ${iocroot}/jails/${uuid}/root/etc
         mkdir  ${iocroot}/jails/${uuid}/home
         mkdir  ${iocroot}/jails/${uuid}/root_home
-        umount ${iocroot}/jails/${uuid}/root/etc
         _configured="1"
     fi
 
@@ -330,7 +329,9 @@ __create_jail () {
     if [ "${pkglist}" != "none" ] ; then
         __pkg_install "${iocroot}/jails/${uuid}/root"
     fi
-
+    if [ "$type" == "basejail" ] ; then
+        umount ${iocroot}/jails/${uuid}/root/etc
+    fi
     echo "  Successfully created: ${uuid} (${tag})"
 }
 
