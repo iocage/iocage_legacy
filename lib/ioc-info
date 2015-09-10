@@ -291,6 +291,9 @@ __find_mypool () {
             # RC_PID set means we are running from rc
             __die "No pool selected for iocage. Exiting"
         else
+            if [ "$(whoami)" != "root" ] ; then
+                __die "Please run as root to activate a pool."
+            fi
             echo "Setting up zpool [$i] for iocage usage..."
             echo "If you wish to change zpool, use 'iocage activate'"
             zpool set comment=iocage $i
