@@ -1,9 +1,11 @@
 #!/bin/sh
 
 __update () {
-  local _name _dataset _fulluuid _mountpoint _date _jail_type _non_interactive
+  local _name _dataset _fulluuid _mountpoint _date _jail_type _non_interactive \
+        _resolv
 
   _name=$2
+  _resolv="0"
 
     # Start looking for any command switches, if nothing special is found
     # then proceed with the normal update procedure
@@ -44,7 +46,7 @@ __update () {
                     git -C $_mountpoint/root pull
                 ;;
                 *)
-                    echo "* Creating back-out snapshot."
+                    echo "* Creating back-out update snapshot."
                     __snapshot ${_fulluuid}@ioc-update_${_date}
 
                     # Override the release that freebsd-update uses and
@@ -57,7 +59,7 @@ __update () {
 
                     if [ -e ${iocroot}/releases/${release}/root/etc/freebsd-update.conf ] ; then
                         if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
-                            export _resolv=1
+                            export _resolv="1"
                             cat /etc/resolv.conf > \
                             ${_mountpoint}/root/etc/resolv.conf
                         fi
@@ -70,7 +72,7 @@ __update () {
                             env UNAME_r="${release}" env PAGER="/bin/cat" \
                             freebsd-update install
                         umount ${_mountpoint}/root/dev
-                        if [ "${_resolv}" = "1" ] ; then
+                        if [ "${_resolv}" == "1" ] ; then
                             if [ "$?" == "0" ] ; then
                                 rm -f ${_mountpoint}/root/etc/resolv.conf
                             fi
@@ -78,7 +80,8 @@ __update () {
                     fi
 
                     echo ""
-                    echo "* Once finished don't forget to remove the snapshot!"
+                    echo "* Update successful"
+                    printf "%1s Once finished don't forget to remove the snapshot! \n"
                 ;;
             esac
 
@@ -95,7 +98,7 @@ __update () {
 
 __upgrade () {
     local _name _fulluuid _jail_type _jail_release _mountpoint _date \
-          _oldrelease
+          _oldrelease _resolv
 
     _name="$1"
     _dataset="$(__find_jail ${_name})" || exit $?
@@ -103,6 +106,7 @@ __upgrade () {
     _jail_type="$(__get_jail_prop type ${_fulluuid})"
     _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
     _oldrelease="$(zfs get -H -o value org.freebsd.iocage:release ${_dataset})"
+    _resolv="0"
 
     if [ -z ${_name} ] ; then
         __die "missing UUID!"
@@ -158,15 +162,18 @@ __upgrade () {
             exit 1
         fi
     elif [ ${_jail_type} == "thickjail" ] ; then
-
-        echo "* Creating back-out snapshot."
-        __snapshot ${_fulluuid}@ioc-upgrade_${_date}
-
+        echo "* Updating jail to latest patch level first."
+        __update ${_fulluuid}
+        # The update routine sets this to the old RELEASE, setting it back
+        unset release
+        release=$(uname -r|cut -f 1,2 -d'-')
+        echo "* Creating back-out upgrade snapshot."
+        zfs snapshot ${_dataset}/root@ioc-upgrade_$(date +%F)
         echo "* Upgrading jail."
 
         if [ -e ${iocroot}/releases/${release}/root/etc/freebsd-update.conf ] ; then
             if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
-                export _resolv=1
+                export _resolv="1"
                 cat /etc/resolv.conf > \
                     ${_mountpoint}/root/etc/resolv.conf
             fi
@@ -181,20 +188,22 @@ __upgrade () {
                         env UNAME_r="${_oldrelease}" env PAGER="/bin/cat" \
                         freebsd-update -r ${release} install
                 done
-                if [ "${_resolv}" = "1" ] ; then
+                if [ "${_resolv}" == "1" ] ; then
                     rm -f ${_mountpoint}/root/etc/resolv.conf
                 fi
+                umount ${_mountpoint}/root/dev
+                # Set jail's zfs property to new release
+                zfs set org.freebsd.iocage:release="${release}" ${_dataset}
+            else
+                echo "* Upgrade failed, aborting install."
+                zfs rollback -rRf ${_dataset}/root@ioc-upgrade_$(date +%F)
+                zfs destroy ${_dataset}/root@ioc-upgrade_$(date +%F)
+                exit 1
             fi
-        umount ${_mountpoint}/root/dev
-        # Set jail's zfs property to new release
-        zfs set org.freebsd.iocage:release="$release" $_dataset
-        else
-           echo "* Upgrade failed, aborting install."
-           exit 1
         fi
-
         echo ""
-        echo "* Once finished don't forget to remove the snapshot!"
+        echo "* Upgrade successful"
+        printf "%1s Once finished don't forget to remove the snapshot! \n"
     else
         __die "upgrade is not supported for this type of jail"
     fi
