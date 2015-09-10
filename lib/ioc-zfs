@@ -28,72 +28,109 @@ __deactivate () {
 }
 
 __clean () {
-    local _answer
+    local _answer _base_exists _jail_type
 
     # Look for the right switch and then ask the user if they are sure
     case "$1" in
         -a)
             echo " "
-            echo "  WARNING: this will destroy $pool/iocage"
-            echo " "
-            echo "  Please make sure all jails are stopped before continuing."
+            echo "  WARNING: this will destroy ${pool}/iocage"
             echo " "
             echo -n "  Are you sure ? y[N]: "
             read _answer
 
-            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage"
-                zfs destroy -rRf $pool/iocage
-                rm -rf ${iocroot}
-                exit 0
+            if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
+                __stop_jail_all
+                if [ $? -eq 0 ] ; then
+                    echo "  Destroying ${pool}/iocage"
+                    zfs destroy -rRf ${pool}/iocage
+                    rm -rf ${iocroot}
+                    exit 0
+                else
+                    __die "some jails were unable to be stopped."
+                fi
             else
-                echo "  Command not confirmed.  No action taken."
-                exit 1
+                __die "command not confirmed.  no action taken."
             fi
         ;;
         -r)
             echo " "
-            echo "  WARNING: this will destroy all releases"
-            echo " "
-            echo "  Please make sure all basejails are stopped before continuing."
+            echo "  WARNING: this will destroy all releases and basejails"
             echo " "
             echo -n "  Are you sure ? y[N]: "
             read _answer
 
-            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage/base"
-                zfs destroy -rRf $pool/iocage/base
-                echo "  Destroying $pool/iocage/download"
-                zfs destroy -rRf $pool/iocage/download
-                echo "  Destroying $pool/iocage/releases"
-                zfs destroy -rRf $pool/iocage/releases
-                exit 0
+            if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
+                __clean_basejail
+                if [ $? -eq 0 ] ; then
+                    _base_exists="$(zfs get -H creation ${pool}/iocage/base > \
+                    /dev/null 2>&1 ; echo $?)"
+                    if [ "${_base_exists}" == "0" ] ; then
+                        echo "  Destroying ${pool}/iocage/base"
+                        zfs destroy -rRf ${pool}/iocage/base
+                    fi
+                    echo "  Destroying ${pool}/iocage/download"
+                    zfs destroy -rRf ${pool}/iocage/download
+                    echo "  Destroying ${pool}/iocage/releases"
+                    zfs destroy -rRf ${pool}/iocage/releases
+                    exit 0
+                else
+                    __die "some jails were unable to be stopped."
+                fi
             else
-                echo "  Command not confirmed.  No action taken."
-                exit 1
+                __die "command not confirmed.  no action taken."
             fi
         ;;
         -j)
             echo " "
             echo "  WARNING: this will destroy all jails"
             echo " "
-            echo "  Please make sure all jails are stopped before continuing."
-            echo " "
             echo -n "  Are you sure ? y[N]: "
             read _answer
 
-            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage/jails"
-                zfs destroy -rRf $pool/iocage/jails
-                echo "  Cleaning TAGs at $pool/iocage/tags"
-                rm -rf ${iocroot}/tags
-                exit 0
+            if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
+                __stop_jail_all
+                __clean_snapshots
+                if [ $? -eq 0 ] ; then
+                    echo "  Destroying ${pool}/iocage/jails"
+                    zfs destroy -rRf ${pool}/iocage/jails
+                    echo "  Cleaning TAGs at ${pool}/iocage/tags"
+                    rm -rf ${iocroot}/tags
+                    exit 0
+                else
+                    __die "some jails were unable to be stopped."
+                fi
             else
-                echo "  Command not confirmed.  No action taken."
-                exit 1
+                __die "command not confirmed.  no action taken."
             fi
         ;;
     esac
+}
+
+__clean_basejail () {
+    local _jails _juuid _jail_type
+    _jails=$(__find_jail ALL)
+
+    for _jail in ${_jails} ; do
+        _juuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+                ${_jail})"
+        _jail_type="$(__get_jail_prop type ${_juuid} 2> /dev/null)"
+        if [ "${_jail_type}" == "basejail" ] ; then
+            __destroy_jail "-f" "${_juuid}" > /dev/null 2>&1
+        fi
+    done
+
+    return $?
+}
+
+__clean_snapshots () {
+    local _snapshots
+
+    _snapshots="$(zfs list -Hrt snapshot -o name ${pool}/iocage)"
+    for _snap in $(echo ${_snapshots}) ; do
+        zfs destroy -rR ${_snap}
+    done
+    return $?
 }
 
 __reclone_basejail () {
@@ -260,11 +297,11 @@ __create_jail () {
         _configured="1"
         # Hack to make sure type is set.
         __set_jail_prop type=thickjail ${uuid} ${pool}/iocage/jails/${uuid}
-        zfs snapshot -r ${pool}/iocage/releases/${release}@${uuid}
-        zfs send     -R ${pool}/iocage/releases/${release}/root@${uuid} | \
+        zfs snapshot    ${pool}/iocage/releases/${release}/root@${uuid}
+        zfs send        ${pool}/iocage/releases/${release}/root@${uuid} | \
         zfs recv        ${pool}/iocage/jails/${uuid}/root
-        zfs destroy  -r ${pool}/iocage/releases/${release}@${uuid}
-        zfs destroy  -r ${pool}/iocage/jails/${uuid}/root@${uuid}
+        zfs destroy     ${pool}/iocage/releases/${release}/root@${uuid}
+        zfs destroy  -r ${pool}/iocage/jails/${uuid}@${uuid}
     else
         # Clones the root dataset from the RELEASE and makes sure to configure
         # the properties on it.
