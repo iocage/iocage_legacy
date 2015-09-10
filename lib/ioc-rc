@@ -7,7 +7,7 @@ __start_jail () {
           _exec_fib
 
     # Get fulluuid and dataset in one step (dataset is optional)
-    _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
+    _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
 
     set $_fulluuid_dataset
 
@@ -380,7 +380,7 @@ __stop_jail () {
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
           _ip4 _jail_type
 
-    _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
+    _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
 
     set $_fulluuid_dataset
 
