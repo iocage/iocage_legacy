@@ -83,9 +83,9 @@ Start the jail:
   iocage show property
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
-  iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
+  iocage snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
   iocage start UUID|TAG
-  iocage stop UUID|TAG
+  iocage stop UUID|TAG|ALL
   iocage uncap UUID|TAG
   iocage update UUID|TAG
   iocage upgrade UUID|TAG [release=RELEASE]

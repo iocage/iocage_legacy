@@ -44,7 +44,7 @@
 \fBiocage\fP \fIsnapremove\fP \fIUUID\fP|TAG@snapshotname|ALL
 \fBiocage\fP \fIsnapshot\fP [\fB-r\fP] \fIUUID\fP|TAG [\fIUUID\fP|TAG@snapshotname]
 \fBiocage\fP \fIstart\fP \fIUUID\fP|TAG
-\fBiocage\fP \fIstop\fP \fIUUID\fP|TAG
+\fBiocage\fP \fIstop\fP \fIUUID\fP|TAG|ALL
 \fBiocage\fP \fIuncap\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIupdate\fP \fIUUID\fP|TAG
 \fBiocage\fP \fIupgrade\fP \fIUUID\fP|TAG [\fIrelease=RELEASE\fP]
@@ -527,11 +527,12 @@ latest updates applied.
 
 .fam T
 .fi
-\fIstop\fP \fIUUID\fP|TAG
+\fIstop\fP \fIUUID\fP|TAG|ALL
 .PP
 .nf
 .fam C
-    Stop jail identified by UUID or TAG.
+    Stop jail identified by UUID or TAG. If ALL is specified, it will stop all
+    jails.
 
 .fam T
 .fi
