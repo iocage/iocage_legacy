@@ -408,46 +408,48 @@ __destroy_jail () {
         _name="$1"
     fi
 
-    _fulluuid_dataset="$(__get_uuid_and_dataset $_name)" || exit $?
+    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
 
-    set $_fulluuid_dataset
+    set ${_fulluuid_dataset}
     _fulluuid="$1"
     _dataset="$2"
 
-    if [ -z $_dataset ] ; then
-        __die "$_name not found!"
+    if [ -z ${_dataset} ] ; then
+        __die "${_name} not found!"
     fi
 
-    __check_children $_dataset
+    __check_children ${_dataset}
 
-    _origin="$(zfs get -H -o value origin $_dataset)"
-    _fulluuid="$(__check_name $_name)"
-    _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
-    _state="$(__is_running $_fulluuid)"
-    _jail_type="$(__get_jail_prop type $_fulluuid $_dataset)"
-    _jail_release="$(__get_jail_prop release $_fulluuid $_dataset)"
+    _origin="$(zfs get -H -o value origin ${_dataset})"
+    _fulluuid="$(__check_name ${_name})"
+    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _state="$(__is_running ${_fulluuid})"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+    _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
 
-    __check_children $_fulluuid $_dataset
+    __check_children ${_fulluuid} ${_dataset}
 
-    if [ ! -z $_state ] ; then
-        __die "cannot destroy $_name - jail is running!"
-    fi
-
-    if [ "$_force" -ne "1" ] ; then
+    if [ "${_force}" -ne "1" ] ; then
             echo " "
-            echo "  WARNING: this will destroy jail $_fulluuid"
-            echo "  Dataset: $_dataset"
+            echo "  WARNING: this will destroy jail ${_fulluuid}"
+            echo "  Dataset: ${_dataset}"
             echo " "
             echo -n "  Are you sure ? y[N]: "
             read _answer
 
-        if [ "$_answer" == "Y" ] || [ "$_answer" == "y" ] ; then
-            __destroy_func $_fulluuid $_dataset $_origin $_jail_type
+        if [ "${_answer}" == "Y" ] || [ "${_answer}" == "y" ] ; then
+            if [ ! -z ${_state} ] ; then
+                __die "cannot destroy ${_name} - jail is running!"
+            fi
+            __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
         else
             __die "Command not confirmed.  No action taken."
         fi
     else
-        __destroy_func $_fulluuid $_dataset $_origin $_jail_type
+        if [ ! -z ${_state} ] ; then
+            __stop_jail ${_fulluuid} ${_dataset}
+        fi
+        __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
     fi
 }
 
