@@ -42,7 +42,7 @@ SYNOPSIS
   iocage show property
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
-  iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
+  iocage snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
   iocage start UUID|TAG
   iocage stop UUID|TAG
   iocage uncap UUID|TAG
@@ -110,10 +110,10 @@ SUBCOMMANDS
   clean [-a|-r|-j]
 
     This removes the ZFS datasets associated with the flag called. The -a switch
-    will destroy everything associated with iocage. The -r switch will destroy all
-    releases that have been fetched. Basejails rely on these to exist, so be sure
-    you don't remove them if you have any. The -j switch will destroy the jails
-    dataset.
+    will destroy everything associated with iocage. The -r switch will destroy
+    all releases that have been fetched. Basejails rely on these to exist,
+    so be sure you don't use this flag if you have any. The -j switch will
+    destroy the jails dataset.
 
   clone UUID|TAG [UUID|TAG@snapshot] [property=value]
 
@@ -340,9 +340,11 @@ SUBCOMMANDS
     Destroy specified jail snapshot. If the keyword ALL is specified all
     snapshots will be destroyed for the jail.
 
-  snapshot UUID|TAG [UUID|TAG@snapshotname]
+  snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
 
-    Create a ZFS snapshot for jail. If no snapshot name is specified defaults
+    Create a ZFS snapshot for jail. If the -r flag is specified it will by
+    recursively snapshot POOL/iocage/jails/UUID. Otherwise it will only snapshot
+    POOL/iocage/jails/UUID/root. If no snapshot name is specified defaults
     to auto snapshot name based on current date and time.
 
   start UUID|TAG
