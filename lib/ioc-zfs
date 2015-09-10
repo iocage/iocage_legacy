@@ -111,16 +111,17 @@ __reclone_basejail () {
     _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                            /dev/null 2>&1 ; echo $?)"
     _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
-                 grep ${pool}/iocage/base)"
+                 grep ${pool}/iocage/base > \
+                 /dev/null 2>&1 ; echo $?)"
     _migrate=0
 
     # Check to see if the old ${pool}/iocage/base datasets are needed any longer
-    if [ -z "${_base_inuse}" ] ; then
+    if [ "${_base_inuse}" == "0" ] ; then
         zfs destroy -r ${pool}/iocage/base
     fi
 
     # Check to see if the user has the old style of jailed datasets
-    if [ "${_jailed_dataset_check}" = "0" ] ; then
+    if [ "${_jailed_dataset_check}" == "0" ] ; then
         zfs set jailed=off "${_jailed_dataset}"
         zfs rename -f "${_jailed_dataset}" \
                       "${pool}/iocage/jails/${_fulluuid}/data"
@@ -177,6 +178,9 @@ __reclone_basejail () {
     zfs snapshot ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid}
 
     echo "* ${_fulluuid} is a basejail, re-cloning jail.."
+    if [ ! -e "${iocroot}/releases/${release}/root/usr/home" ] ; then
+        mkdir ${iocroot}/releases/${release}/root/usr/home
+    fi
     # Recloning the root dataset and remounting the children
     zfs clone -o readonly=on \
         ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid} \
@@ -193,7 +197,7 @@ __reclone_basejail () {
     mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
     zfs mount ${pool}/iocage/jails/${_fulluuid}/var
     zfs mount ${pool}/iocage/jails/${_fulluuid}/usr/local
-    if [ "${_migrate}" = "1" ] ; then
+    if [ "${_migrate}" == "1" ] ; then
             mv    ${iocroot}/jails/${_fulluuid}/var_old/* \
                   ${iocroot}/jails/${_fulluuid}/root/var/
             rmdir ${iocroot}/jails/${_fulluuid}/var_old
@@ -448,12 +452,15 @@ __destroy_jail () {
 }
 
 __destroy_func () {
-    local _fulluuid _dataset _origin _jail_type
+    local _fulluuid _dataset _origin _jail_type _base_inuse
 
     _fulluuid="$1"
     _dataset="$2"
     _origin="$3"
     _jail_type="$4"
+    _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
+                 grep ${pool}/iocage/base > \
+                 /dev/null 2>&1 ; echo $?)"
 
     echo "  Destroying: $_fulluuid"
 
@@ -467,7 +474,9 @@ __destroy_func () {
     fi
 
     if [ $_jail_type == "basejail" ] ; then
-        zfs destroy -fr $pool/iocage/base@$_fulluuid
+        if [ "${_base_inuse}" == "0" ] ; then
+            zfs destroy -fr $pool/iocage/base@$_fulluuid
+        fi
     fi
 }
 
