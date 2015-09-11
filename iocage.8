@@ -1267,7 +1267,7 @@ tag="any string"
 .PP
 .nf
 .fam C
-    Custom string for aliasing jails.
+    Custom string for aliasing jails. Must be unique.
 
     Default: date@time
     Source: local
@@ -1322,17 +1322,17 @@ owner=root
 
 .fam T
 .fi
-priority=99 | 50 ..
+priority=99:0
+Start priority at boot time, smaller value means higher priority.
+Also, for shutdown the order will be reversed.
+.RS
 .PP
-.nf
-.fam C
-    Start priority at boot time, smaller value means higher priority.
-    Also, for shutdown the order will be reversed.
-
-    Default: 99.
-
-.fam T
-.fi
+Default: 99. Max: 99. Lowest: 0.
+.PP
+Anything \fIset\fP to 99 will automatically \fIstart\fP in the background parallel
+with other jails \fIset\fP to 99. Anything less than 99 will \fIstart\fP sequentially.
+.RE
+.PP
 last_started
 .PP
 .nf
