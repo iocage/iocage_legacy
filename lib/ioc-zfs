@@ -165,6 +165,7 @@ __reclone_basejail () {
         zfs set jailed=on "${pool}/iocage/jails/${_fulluuid}/data"
     fi
 
+    # If the length is over this, it's a old-style basejail
     if [ "${_old_base_check}" -gt "15" ] ; then
         local _bfs_list="bin
                          boot
@@ -173,10 +174,19 @@ __reclone_basejail () {
                          rescue
                          sbin
                          usr"
+        # If the user has a /usr/local, move it for migration
         if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/local" ] ; then
             mv    ${iocroot}/jails/${_fulluuid}/root/usr/local \
                   ${iocroot}/jails/${_fulluuid}/usr_local_old
         fi
+
+        # If the user had a ports tree, move it for migration
+        if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/ports" ] ; then
+            mv    ${iocroot}/jails/${_fulluuid}/root/usr/ports \
+                  ${iocroot}/jails/${_fulluuid}/ports
+        fi
+
+        # Move all the r/w required mountpoints for migration
         mv    ${iocroot}/jails/${_fulluuid}/root/etc \
               ${iocroot}/jails/${_fulluuid}/etc
         mv    ${iocroot}/jails/${_fulluuid}/root/root \
@@ -185,11 +195,17 @@ __reclone_basejail () {
               ${iocroot}/jails/${_fulluuid}/home
         mv    ${iocroot}/jails/${_fulluuid}/root/var \
               ${iocroot}/jails/${_fulluuid}/var_old
+
         zfs   umount -f ${pool}/iocage/jails/${_fulluuid}/root
+
+        # Destroy all the old datasets now
         for _fs in ${_bfs_list} ; do
             zfs destroy -rf ${pool}/iocage/jails/${_fulluuid}/root/${_fs}
         done
+
         zfs   destroy ${pool}/iocage/jails/${_fulluuid}/root
+
+        # Create the new datasets to be used
         zfs   create -o compression=lz4 \
               -o mountpoint=none \
               ${pool}/iocage/jails/${_fulluuid}/usr
@@ -206,18 +222,26 @@ __reclone_basejail () {
     umount ${iocroot}/jails/${_fulluuid}/root/etc > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/root > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/usr/home > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
     zfs umount ${pool}/iocage/jails/${_fulluuid}/var > /dev/null 2>&1
     zfs umount ${pool}/iocage/jails/${_fulluuid}/usr/local > /dev/null 2>&1
     zfs umount ${pool}/iocage/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+
+    # Destroy the old datasets
     for _fs in ${_fs_list} ; do
         zfs destroy -rRf ${_fs}
     done
+
+    # Set up the new RELEASE root dataset to be cloned from
     zfs snapshot ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid}
 
     echo "* ${_fulluuid} is a basejail, re-cloning jail.."
+
+    # Make sure the usr/home directory exists in the RELEASE
     if [ ! -e "${iocroot}/releases/${release}/root/usr/home" ] ; then
         mkdir ${iocroot}/releases/${release}/root/usr/home
     fi
+
     # Recloning the root dataset and remounting the children
     zfs clone -o readonly=on \
         ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid} \
@@ -231,9 +255,22 @@ __reclone_basejail () {
     mount -t unionfs -o noatime,copymode=transparent \
         ${iocroot}/jails/${_fulluuid}/home \
         ${iocroot}/jails/${_fulluuid}/root/usr/home
+
+    # Check to make sure the ports directory exist
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/ports" ] ; then
+        mkdir "${iocroot}/jails/${_fulluuid}/ports"
+    fi
+
+    mount -t unionfs -o noatime,copymode=transparent \
+        ${iocroot}/jails/${_fulluuid}/ports \
+        ${iocroot}/jails/${_fulluuid}/root/usr/ports
+
+    # Mount the rest of the mountpoints
     mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
     zfs mount ${pool}/iocage/jails/${_fulluuid}/var
     zfs mount ${pool}/iocage/jails/${_fulluuid}/usr/local
+
+    # If the user is being migrated, then move everything to their proper home
     if [ "${_migrate}" == "1" ] ; then
             mv    ${iocroot}/jails/${_fulluuid}/var_old/* \
                   ${iocroot}/jails/${_fulluuid}/root/var/
@@ -244,6 +281,8 @@ __reclone_basejail () {
             rmdir ${iocroot}/jails/${_fulluuid}/usr_local_old
         fi
     fi
+
+    # Extract a new current tree for etcupdate to compare against later
     etcupdate extract -D ${iocroot}/jails/${_fulluuid}/root \
         -s ${iocroot}/releases/${_jail_release}/root/usr/src
 }
@@ -333,6 +372,10 @@ __create_jail () {
         mkdir  ${iocroot}/jails/${uuid}/etc
         mount  -t unionfs -o noatime,copymode=transparent \
                ${iocroot}/jails/${uuid}/etc/ ${iocroot}/jails/${uuid}/root/etc
+        mkdir  ${iocroot}/jails/${uuid}/ports
+        mount  -t unionfs -o noatime,copymode=transparent \
+               ${iocroot}/jails/${uuid}/ports/ \
+               ${iocroot}/jails/${uuid}/root/usr/ports
         mkdir  ${iocroot}/jails/${uuid}/home
         mkdir  ${iocroot}/jails/${uuid}/root_home
         _configured="1"

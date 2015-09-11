@@ -266,6 +266,7 @@ __fetch_release () {
         fi
     done
     mkdir ${iocroot}/releases/${release}/root/usr/home
+    mkdir ${iocroot}/releases/${release}/root/usr/ports
     if [ "$?" == "0" ] ; then
         cd ${iocroot}/download
         zfs destroy ${pool}/iocage/download/${release}
