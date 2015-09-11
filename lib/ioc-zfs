@@ -235,8 +235,6 @@ __reclone_basejail () {
     # Set up the new RELEASE root dataset to be cloned from
     zfs snapshot ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid}
 
-    echo "* ${_fulluuid} is a basejail, re-cloning jail.."
-
     # Make sure the usr/home directory exists in the RELEASE
     if [ ! -e "${iocroot}/releases/${release}/root/usr/home" ] ; then
         mkdir ${iocroot}/releases/${release}/root/usr/home
