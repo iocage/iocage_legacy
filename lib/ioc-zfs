@@ -354,7 +354,7 @@ __create_jail () {
         __set_jail_prop type=basejail ${uuid} ${pool}/iocage/jails/${uuid}
         # Create all the datasets a basejail needs r/w on, also makes unionfs
         # and tmpfs mounts for the jail.
-        zfs    create -o compression=lz4 \
+        zfs    create -u -o compression=lz4 \
                -o mountpoint=none \
                ${pool}/iocage/jails/${uuid}/usr
         zfs    create -u -o compression=lz4 -p \
@@ -367,9 +367,6 @@ __create_jail () {
         mount  -t unionfs -o noatime,copymode=transparent \
                ${iocroot}/jails/${uuid}/etc/ ${iocroot}/jails/${uuid}/root/etc
         mkdir  ${iocroot}/jails/${uuid}/ports
-        mount  -t unionfs -o noatime,copymode=transparent \
-               ${iocroot}/jails/${uuid}/ports/ \
-               ${iocroot}/jails/${uuid}/root/usr/ports
         mkdir  ${iocroot}/jails/${uuid}/home
         mkdir  ${iocroot}/jails/${uuid}/root_home
         _configured="1"
@@ -396,7 +393,7 @@ __create_jail () {
         ${iocroot}/jails/${uuid}/root/etc/rc.conf
     __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
         ${iocroot}/jails/${uuid}/root/etc/resolv.conf
-    zfs create -o compression=lz4 -o mountpoint=none -o jailed=on\
+    zfs create -u -o compression=lz4 -o mountpoint=none -o jailed=on\
         ${pool}/${jail_zfs_dataset}
 
     # configure the jail mountpoint
