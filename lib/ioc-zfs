@@ -206,7 +206,7 @@ __reclone_basejail () {
         zfs   destroy ${pool}/iocage/jails/${_fulluuid}/root
 
         # Create the new datasets to be used
-        zfs   create -o compression=lz4 \
+        zfs   create -u -o compression=lz4 \
               -o mountpoint=none \
               ${pool}/iocage/jails/${_fulluuid}/usr
         zfs   create -u -o compression=lz4 -p \
