@@ -104,7 +104,9 @@ __validate_pname () {
 }
 
 __console () {
-    local _name _dataset _fulluuid _login_flags _jexec _exec_fib
+    local _name _dataset _fulluuid _login_flags _jexec _exec_fib \
+          _state
+
     _name=$1
 
     if [ -z $_name ] ; then
@@ -118,6 +120,7 @@ __console () {
     fi
 
     _fulluuid="$(__check_name $_name)"
+    _state=$(__is_running $_fulluuid)
     _login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
                   $pool/iocage/jails/$_fulluuid)
 
@@ -129,7 +132,11 @@ __console () {
         _jexec="setfib $_exec_fib jexec"
     fi
 
-    $_jexec ioc-${_fulluuid} login $_login_flags
+    if [ "$_state" ] ; then
+        $_jexec ioc-${_fulluuid} login $_login_flags
+    else
+        __die "can't console, jail: $_name is not running!"
+    fi
 }
 
 __exec () {
