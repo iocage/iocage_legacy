@@ -233,7 +233,6 @@ __reset_jail_props () {
     gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
     type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
     boot="$(zfs get -H -o value org.freebsd.iocage:boot $_dataset)"
-    boothost="$(zfs get -H -o value org.freebsd.iocage:boothost $_dataset)"
     vnet="$(zfs get -H -o value org.freebsd.iocage:vnet $_dataset)"
 
     __configure_jail $_dataset
