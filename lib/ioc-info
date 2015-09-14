@@ -475,7 +475,7 @@ __get_uuid_and_dataset () {
     _name="$1"
 
     if [ -z "$_name" ] ; then
-        __die "missing jail UUID or name!"
+        __die "missing jail UUID or TAG!"
     fi
 
     if [ "$2" ] ; then
