@@ -260,7 +260,7 @@ __fetch_release () {
     for _file in $(echo ${ftpfiles}) ; do
         if [ -e "${_file}" ] ; then
             echo "Extracting: ${_file}"
-	    chflags -R noschg ${iocroot}/releases/${_release}/root
+            chflags -R noschg ${iocroot}/releases/${_release}/root
             tar -C ${iocroot}/releases/${_release}/root -xf ${_file}
         fi
     done
@@ -344,4 +344,9 @@ __error () {
 __die () {
     echo "  ERROR: $@" >&2
     exit 1
+}
+
+# Log info to stdout
+__info () {
+    echo "  INFO: $@"
 }

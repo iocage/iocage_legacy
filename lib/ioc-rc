@@ -555,7 +555,8 @@ __rc_jails () {
         local boot_order=$(sort -n $boot_list)
         local shutdown_order=$(sort -rn $boot_list)
     else
-        __die "none of the jails have boot on"
+        __info "no jails found with property boot=on, exiting.."
+        exit 0
     fi
 
     if [ "$action" == "boot" ] ; then
