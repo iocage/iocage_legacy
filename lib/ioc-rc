@@ -543,12 +543,12 @@ __rc_jails () {
         local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                     $jail)"
         local boot="$(zfs get -H -o value org.freebsd.iocage:boot $jail)"
-        local boothost="$(zfs get -H -o value org.freebsd.iocage:boothost \
+        local _jail_hostid="$(zfs get -H -o value org.freebsd.iocage:hostid \
                         $jail)"
         local priority="$(zfs get -H -o value org.freebsd.iocage:priority \
                         $jail)"
 
-        if [ "$boot" == "on" ] && [ "$boothost" == "$hostid" ] ; then
+        if [ "$boot" == "on" ] && [ "$_jail_hostid" == "$hostid" ] ; then
             echo "${priority},${name}" >> $boot_list
         fi
     done
@@ -558,7 +558,7 @@ __rc_jails () {
         local shutdown_order=$(sort -rn $boot_list)
     else
         __info "no jails found with property boot=on or
-        boothost=$hostid on this host, exiting.."
+        with jail_hostid: $hostid on this host, exiting.."
         exit 0
     fi
 
