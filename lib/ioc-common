@@ -135,7 +135,7 @@ __console () {
     if [ "$_state" ] ; then
         $_jexec ioc-${_fulluuid} login $_login_flags
     else
-        __die "can't console, jail: $_name is not running!"
+        __die "jail: $_name is not running!"
     fi
 }
 
