@@ -110,6 +110,7 @@ last_started="none"
 type="jail"
 release=$(uname -r|cut -f 1,2 -d'-')
 hostid=$(cat /etc/hostid)
+boothost=$hostid
 jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/data"
 mount_procfs="0"
