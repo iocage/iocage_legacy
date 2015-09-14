@@ -233,7 +233,8 @@ CONF_CUSTOM="tag
              jail_zfs
              jail_zfs_dataset
              release
-             hack88"
+             hack88
+             start"
 
 # Native ZFS properties
 CONF_ZFS="compression

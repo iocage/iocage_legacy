@@ -412,6 +412,10 @@ __create_jail () {
         umount ${iocroot}/jails/${uuid}/root/etc
     fi
     echo "  Successfully created: ${uuid} (${tag})"
+
+    if [ ! -z "$start" ] ; then
+        __start_jail ${uuid} ${pool}/iocage/jails/${uuid}
+    fi
 }
 
 # Cloning jails ----------------------------------------------------------
