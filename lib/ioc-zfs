@@ -414,7 +414,7 @@ __create_jail () {
     echo "  Successfully created: ${uuid} (${tag})"
 
     if [ ! -z "$start" ] ; then
-        __start_jail ${uuid} ${pool}/iocage/jails/${uuid}
+        __start_jail "${uuid}" "${pool}/iocage/jails/${uuid}"
     fi
 }
 

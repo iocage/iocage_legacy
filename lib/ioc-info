@@ -310,6 +310,7 @@ __get_jail_prop () {
 
     _name="$2"
     _property="$1"
+    _dataset="$3"
     _found="0"
     _CONF="$CONF_NET
            $CONF_JAIL
@@ -327,9 +328,7 @@ __get_jail_prop () {
         __die "missing UUID or property!"
     fi
 
-    if [ "$3" ] ; then
-        _dataset="$3"
-    else
+    if [ -z "$_dataset" ] ; then
         _dataset="$(__find_jail $_name)" || exit $?
     fi
 

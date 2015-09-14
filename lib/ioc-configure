@@ -157,7 +157,7 @@ __resolv_conf () {
     local _name _resolver _resolver_default _fulluuid _dataset
     _fulluuid="$1"
     _dataset="$2"
-    _default_resolver="$(__get_default_prop resolver $_dataset)"
+    _default_resolver="$(__get_default_prop resolver deafult)"
     _resolver="$(__get_jail_prop resolver $_fulluuid $_dataset)"
 
     if [ "${_resolver}" != "none" ] ; then
