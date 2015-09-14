@@ -46,8 +46,6 @@ __configure_jail () {
                 _value="${type}"
             elif [ "$prop_name" = "boot" ] ; then
                 _value="${boot}"
-            elif [ "$prop_name" = "boothost" ] ; then
-                _value="$boothost}"
             elif [ "$prop_name" = "vnet" ] ; then
                 _value="${vnet}"
             elif [ "$prop_name" = "gitlocation" ] ; then
