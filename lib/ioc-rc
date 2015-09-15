@@ -548,7 +548,7 @@ __rc_jails () {
         local priority="$(zfs get -H -o value org.freebsd.iocage:priority \
                     $jail)"
 
-        if [ "$boot" == "on" -a "$_jail_hostid" == "$hostid" ; then
+        if [ "$boot" == "on" -a "$_jail_hostid" == "$hostid" ]; then
             echo "${priority},${name}" >> $boot_list
         fi
     done
