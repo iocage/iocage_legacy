@@ -465,14 +465,14 @@ __stop_jail () {
     umount ${_jail_path}/root/proc   > /dev/null 2>&1
 
     if [ $_jail_type = "basejail" ] ; then
-        zfs    unmount ${_jail_path}/root            > /dev/null 2>&1
-        umount ${_jail_path}/root/tmp                > /dev/null 2>&1
-        umount ${_jail_path}/root/etc                > /dev/null 2>&1
-        umount ${_jail_path}/root/usr/home           > /dev/null 2>&1
-        umount ${_jail_path}/root/usr/ports          > /dev/null 2>&1
-        umount ${_jail_path}/root/root               > /dev/null 2>&1
-        zfs    unmount ${_jail_path}/root/var        > /dev/null 2>&1
-        zfs    unmount ${_jail_path}/root/usr/local  > /dev/null 2>&1
+        umount ${_jail_path}/root/tmp        > /dev/null 2>&1
+        umount ${_jail_path}/root/etc        > /dev/null 2>&1
+        umount ${_jail_path}/root/usr/local  > /dev/null 2>&1
+        umount ${_jail_path}/root/usr/home   > /dev/null 2>&1
+        umount ${_jail_path}/root/usr/ports  > /dev/null 2>&1
+        umount ${_jail_path}/root/var        > /dev/null 2>&1
+        umount ${_jail_path}/root/root       > /dev/null 2>&1
+        zfs    umount ${_jail_path}/root     > /dev/null 2>&1
     fi
 
     if [ -d $iocroot/jails/${_fulluuid}/recorded ] ; then

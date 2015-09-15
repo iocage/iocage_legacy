@@ -90,102 +90,110 @@ __find_jail () {
 }
 
 __list_jails () {
-    local jails=$(__find_jail ALL)
-    local switch=$1
-    local all_jids=$(jls -N -h jid | grep -v -x jid )
-    local ioc_jids=""
-    local non_ioc_jids=""
+    local _jails _switch _all_jids _ioc_jids _non_ioc_jids _releases \
+          _temp_loop_var _state
+    _jails=$(__find_jail ALL)
+    _switch=$1
+    _all_jids=$(jls -N -h jid | grep -v -x jid )
 
-    if [ ! -z ${switch} ] && [ ${switch} == "--warden" ] ; then
+    if [ ! -z "${_switch}" -a "${_switch}" == "--warden" ] ; then
         __list_jails_warden
         exit 0
     fi
 
-    if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
+    if [ ! -z "${_switch}" -a "${_switch}" == "-r" ] ; then
         echo "Downloaded releases:"
-        local releases="$(zfs list -o name -Hr $pool/iocage/releases \
-                        | grep RELEASE$ | cut -d \/ -f 4)"
-        for rel in $(echo $releases) ; do
-            printf "%15s\n" "$rel"
+        _releases="$(zfs list -o name -Hr ${pool}/iocage/releases \
+                   | grep RELEASE$ | cut -d \/ -f 4)"
+        for _rel in $(echo ${_releases}) ; do
+            printf "%15s\n" "${_rel}"
         done
         exit 0
     fi
 
-    printf "%-4s  %-36s  %s  %s  %s\n" "JID" "UUID"  "BOOT"\
-           "STATE" "TAG"
-    for jail in $jails ; do
-        uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
-        boot=$(zfs get -H -o value org.freebsd.iocage:boot $jail)
-        tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
-        template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
-        # get jid for iocage jails
-        jid=$(jls -j ioc-${uuid} jid 2> /dev/null)
-        if [ -z "$jid"  ] ; then
-            jid="-"
-        fi
-        local ioc_jids=$ioc_jids" "$jid
+    if [ ! -z "${_switch}" -a "${_switch}" != "-t" ] ; then
+        __die "invalid switch ${_switch}"
+    fi
 
-        if [ "$jid" == '-' ] ; then
-            state=down
-        else
-            state=up
-        fi
+    # Setup the column names, this is all piped to column to deal with long TAGs
+    # nicely. Kudos to @freqlabs for the idea
+    {
+        printf "%s^%s^%s^%s^%s^%s\n" \
+            "JID" "UUID" "BOOT" "STATE" "TAG" "TYPE"
 
-        if [ -z ${switch} ] ; then
-            switch=zero
-        fi
+        # For every jail we need to get the property
+        for _jail in ${_jails} ; do
+            _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_jail})
+            _boot=$(zfs get -H -o value org.freebsd.iocage:boot ${_jail})
+            _tag=$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})
+            _template=$(zfs get -H -o value org.freebsd.iocage:template ${_jail})
+            _type="$(zfs get -H -o value org.freebsd.iocage:type ${_jail})"
+            # get jid for iocage jails
+            _jid=$(jls -j ioc-${_uuid} jid 2> /dev/null)
 
-        if [ $switch == "-t" ] ; then
-            if [ $template == "yes" ] ; then
-                printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
-                "$boot" "$state" "$tag"
+            if [ -z "${_jid}"  ] ; then
+                _jid="-"
             fi
-        elif [ $switch == "-b" ] ; then
-            jail_type="$(__get_jail_prop type $uuid)"
-            if [ $jail_type == "basejail" ] ; then
-                printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
-                "$boot" "$state" "$tag"
-            fi
-        elif [ $switch != "-t" ] ; then
-            if [ $template != "yes" ] ; then
-                printf "%-4s  %-+.36s  %-4s  %-4s   %s\n" "$jid" "$uuid"  \
-                "$boot" "$state" "$tag"
-            fi
-        fi
-    done
 
-    # create list of active jids not registered in iocage
-    for all_jail in $all_jids ; do
-        for ioc_jail in $ioc_jids ; do
-            if [ "$all_jail" == "$ioc_jail" ] ; then
-                local temp_loop_var=""
-                break
+            _ioc_jids=${_ioc_jids}" "${_jid}
+
+            if [ "${_jid}" == '-' ] ; then
+                _state=down
             else
-                local temp_loop_var=$all_jail
+                _state=up
+            fi
 
+            if [ -z "${_switch}" ] ; then
+                _switch=zero
+            fi
+
+            # If the -t switch is given, show templates otherwise, show the jails
+            if [ "${_switch}" == "-t" ] ; then
+                if [ "${_template}" == "yes" ] ; then
+                    printf "%s^%s^%s^%s^%s\n" "${_jid}" \
+                           "${_uuid}" "${_boot}" "${_state}" "${_tag}"
+                fi
+            elif [ "${_switch}" != "-t" ] ; then
+                if [ "${_template}" != "yes" ] ; then
+                    printf "%s^%s^%s^%s^%s^%s\n" "${_jid}" \
+                           "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
+                fi
             fi
         done
-    if [ -n "$temp_loop_var" ] ; then
-        local non_ioc_jids=$non_ioc_jids" "$temp_loop_var
-    fi
-    done
+        # create list of active jids not registered in iocage
+        for _all_jail in ${_all_jids} ; do
+            for _ioc_jail in ${_ioc_jids} ; do
+                if [ "${_all_jail}" == "${_ioc_jail}" ] ; then
+                    _temp_loop_var=""
+                    break
+                else
+                    _temp_loop_var="${_all_jail}"
 
-    # output non iocage jails currently active
-    if [ -n "$non_ioc_jids" ] ; then
-        if [ $switch != "-t" ] ; then
-            printf "%-+40s\n" "--- non iocage jails currently active ---"
-            printf "%-4s  %-36s  %-15s  %s \n" "JID" "PATH"\
-                  "IP4" "HOSTNAME"
-            for jid in $non_ioc_jids ; do
-                path=$(jls -j $jid  -h path | grep -v -x "path")
-                ip4=$(jls -j $jid  -h ip4.addr | grep -v -x "ip4.addr")
-                host_hostname=$(jls -j $jid  -h host.hostname | \
-                                grep -v -x "host.hostname")
-                printf "%-4s  %-36.36s  %-15s  %s\n" "$jid" "$path"  \
-                        "$ip4" "$host_hostname"
+                fi
             done
+
+        if [ -n "${_temp_loop_var}" ] ; then
+            _non_ioc_jids=${_non_ioc_jids}" "${_temp_loop_var}
         fi
-    fi
+        done
+
+        # output non iocage jails currently active
+        if [ -n "${_non_ioc_jids}" ] ; then
+            if [ "${_switch}" != "-t" ] ; then
+                printf "%-+40s\n" "--- non iocage jails currently active ---"
+                printf "%s^%s^%s^%s\n" "JID" "PATH"\
+                      "IP4" "HOSTNAME"
+                for _jid in "${_non_ioc_jids}" ; do
+                    _path=$(jls -j ${_jid}  -h path | grep -v -x "path")
+                    _ip4=$(jls -j ${_jid}  -h ip4.addr | grep -v -x "ip4.addr")
+                    _host_hostname=$(jls -j ${_jid}  -h host.hostname | \
+                                    grep -v -x "host.hostname")
+                    printf "%s^%s^%s^%s\n" "${_jid}" "${_path}"  \
+                            "${_ip4}" "${_host_hostname}"
+                done
+            fi
+        fi
+    } | column -ts^ # Format the table so everything is all nice
 }
 
 __list_jails_warden () {
@@ -195,43 +203,42 @@ __list_jails_warden () {
 
     _jails=$(__find_jail ALL)
     _switch=$1
-    _ioc_jids=""
 
-    for _jail in $_jails ; do
-        _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jail)
-        _boot=$(zfs get -H -o value org.freebsd.iocage:boot $_jail)
-        _tag=$(zfs get -H -o value org.freebsd.iocage:tag $_jail)
-        _template=$(zfs get -H -o value org.freebsd.iocage:template $_jail)
-        _interfaces=$(zfs get -H -o value org.freebsd.iocage:interfaces $_jail)
-        _ip4_addr=$(zfs get -H -o value org.freebsd.iocage:ip4_addr $_jail)
-        _ip6_addr=$(zfs get -H -o value org.freebsd.iocage:ip6_addr $_jail)
-        _vnet=$(zfs get -H -o value org.freebsd.iocage:vnet $_jail)
-        _vnet0_mac=$(zfs get -H -o value org.freebsd.iocage:vnet0_mac $_jail)
-        _vnet1_mac=$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_jail)
-        _vnet2_mac=$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_jail)
-        _vnet3_mac=$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_jail)
-        _type=$(zfs get -H -o value org.freebsd.iocage:type $_jail)
+    for _jail in ${_jails} ; do
+        _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_jail})
+        _boot=$(zfs get -H -o value org.freebsd.iocage:boot ${_jail})
+        _tag=$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})
+        _template=$(zfs get -H -o value org.freebsd.iocage:template ${_jail})
+        _interfaces=$(zfs get -H -o value org.freebsd.iocage:interfaces ${_jail})
+        _ip4_addr=$(zfs get -H -o value org.freebsd.iocage:ip4_addr ${_jail})
+        _ip6_addr=$(zfs get -H -o value org.freebsd.iocage:ip6_addr ${_jail})
+        _vnet=$(zfs get -H -o value org.freebsd.iocage:vnet ${_jail})
+        _vnet0_mac=$(zfs get -H -o value org.freebsd.iocage:vnet0_mac ${_jail})
+        _vnet1_mac=$(zfs get -H -o value org.freebsd.iocage:vnet1_mac ${_jail})
+        _vnet2_mac=$(zfs get -H -o value org.freebsd.iocage:vnet2_mac ${_jail})
+        _vnet3_mac=$(zfs get -H -o value org.freebsd.iocage:vnet3_mac ${_jail})
+        _type=$(zfs get -H -o value org.freebsd.iocage:type ${_jail})
 
         # get jid for iocage jails
         _jid=$(jls -j ioc-${_uuid} jid 2> /dev/null)
-        if [ -z "$_jid"  ] ; then
+        if [ -z "${_jid}"  ] ; then
             _jid="-"
         fi
 
-        _ioc_jids=$_ioc_jids" "$_jid
+        _ioc_jids=${_ioc_jids}" "${_jid}
 
-        if [ "$_jid" == '-' ] ; then
+        if [ "${_jid}" == '-' ] ; then
             _state=down
         else
             _state=up
         fi
 
-        printf "%s\n" "id: $_jid" "host: $_tag" "ipv4: $_ip4_addr" \
+        printf "%s\n" "id: ${_jid}" "host: ${_tag}" "ipv4: ${_ip4_addr}" \
                "alias-ipv4: " "bridge-ipv4: " "alias-bridge-ipv4: " \
-               "defaultrouter-ipv4: " "ipv6: $_ip6_addr" "alias-ipv6: " \
+               "defaultrouter-ipv4: " "ipv6: ${_ip6_addr}" "alias-ipv6: " \
                "bridge-ipv6: " "alias-bridge-ipv6: " "defaultrouter-ipv6: " \
-               "autostart: $_boot" "vnet: $_vnet" "status: $_state" \
-               "type: $_type"
+               "autostart: ${_boot}" "vnet: ${_vnet}" "status: ${_state}" \
+               "type: ${_type}"
     done
 }
 

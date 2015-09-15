@@ -15,7 +15,7 @@ To install using binary packages, simply run: `pkg install iocage`
 - **Contributing**: If you would like to submit a pull request, we kindly ask you to open it against the `develop` branch.
 
 **FEATURES:**
-- Templates, clones, basejails, fully independent jails
+- Templates, basejails and empty jails
 - Ease of use
 - Zero configuration files
 - Rapid thin provisioning within seconds
@@ -53,7 +53,7 @@ Start the jail:
   iocage clean [-a|-r|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
-  iocage create [-t|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage create [-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage deactivate ZPOOL
   iocage defaults
   iocage destroy [-f] UUID|TAG

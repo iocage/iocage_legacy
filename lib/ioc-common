@@ -28,38 +28,48 @@ __set_jail_prop () {
     _name="$2"
     _property="$1"
 
-    if [ -z "$_name" ] || [ -z "$_property" ] ; then
+    if [ -z "${_name}" -o -z "${_property}" ] ; then
         __die "missing property or UUID!"
     fi
 
     if [ "$3" ] ; then
         _dataset="$3"
     else
-        _dataset="$(__find_jail $_name)" || exit $?
+        _dataset="$(__find_jail ${_name})" || exit $?
     fi
 
-    if [ -z "$_dataset" ] ; then
-        __die "$_name not found!"
+    if [ -z "${_dataset}" ] ; then
+        __die "${_name} not found!"
     fi
 
-    _pname="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    _pval="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _pname="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $1 }')"
+    _pval="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
-    if [ -z "$_pname" ] || [ -z "$_pval" ] ; then
+    if [ -z "${_pname}" -o -z "${_pval}" ] ; then
         __die "set failed, incorrect property syntax!"
     fi
 
-    _type="$(__validate_pname $_pname type)" || exit $?
+    _type="$(__validate_pname ${_pname} type)" || exit $?
 
-    if [ $_type == "custom" ] ; then
-        zfs set org.freebsd.iocage:${_pname}="${_pval}" $_dataset
-    elif [ $_type == "native" ] ; then
-        zfs set $_pname="$_pval" $_dataset
+    if [ "${_type}" == "custom" ] ; then
+        zfs set org.freebsd.iocage:${_pname}="${_pval}" ${_dataset}
+    elif [ "${_type}" == "native" ] ; then
+        zfs set ${_pname}="${_pval}" ${_dataset}
     fi
 
-    if [ "$_pname" == "tag" ] ; then
-        __unlink_tag $_dataset
-        __link_tag $_dataset
+    if [ "${_pname}" == "tag" ] ; then
+        __unlink_tag ${_dataset}
+        __link_tag ${_dataset}
+    fi
+
+    if [ "${_pname}" == "jail_zfs" ] ; then
+        _jailed_dataset="${_dataset}/data"
+        _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
+                              /dev/null 2>&1 ; echo $?)"
+        if [ "${_jailed_dataset_check}" != "0" ] ; then
+            zfs create -o compression=lz4 -o mountpoint=none -o jailed=on \
+                ${_dataset}/data
+        fi
     fi
 }
 
@@ -271,8 +281,11 @@ __fetch_release () {
             tar -C ${iocroot}/releases/${_release}/root -xf ${_file}
         fi
     done
+
+    # Create these dirs for basejails
     mkdir ${iocroot}/releases/${_release}/root/usr/home
     mkdir ${iocroot}/releases/${_release}/root/usr/ports
+
     if [ "$?" == "0" ] ; then
         cd ${iocroot}/download
         zfs destroy ${pool}/iocage/download/${_release}

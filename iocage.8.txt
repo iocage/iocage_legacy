@@ -8,7 +8,7 @@ SYNOPSIS
   iocage clean [-a|-r|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
-  iocage create [-t|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage create [-e] [release=RELEASE] [pkglist=file] [property=value]
   iocage deactivate ZPOOL
   iocage defaults
   iocage destroy [-f] UUID|TAG
@@ -130,19 +130,16 @@ SUBCOMMANDS
 
     Execute login to have a shell inside the jail
 
-  create [-t|-c|-e] [release=RELEASE] [property=value] [property=value]
+  create [-e] [release=RELEASE] [property=value] [property=value]
 
     By default create will deploy a new jail based on the host operating
     system's release. This can be changed by specifying the release option.
-    Default is to create a basejail with a common shared base.
-    If the -c switch is specified the jail will be cloned from the current
-    hosts RELEASE (uname -r). These jails are not supported for upgrade.
+    By default a basejail is created that has a common shared base.
     The -e switch will create an empty jail which can be used for unsupported
     or custom jails.
-    The -t flag will create a jail with an independent base.
 
     Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
-             iocage create -t tag=mybasejail
+             iocage create tag=mybasejail
 
   deactivate ZPOOL
 
@@ -242,9 +239,9 @@ SUBCOMMANDS
 
   list [-b|-t|-r]
 
-    List all jails, if -b is specified list only basejails, with -t list only
-    templates, with -r list downloaded releases.
-    Non iocage jail listed, only if jail is in the UP state.
+    List all jails, if -t is specified list only templates,
+    with -r list downloaded releases.
+    Non iocage jails will be listed only if the jail is running.
 
   package UUID|TAG
 
@@ -376,8 +373,9 @@ SUBCOMMANDS
     For this the RELEASE must be locally available. The basejail
     will re-clone its filesystems from the new release at next jail start.
 
-    WARNING: Cloned jails [-c] are not supported for upgrades.
-    Please use thick [-t] or our standard basejails for this feature.
+    WARNING: Cloned jails (deprecated) [-c] are not supported for upgrades.
+    Please use thick (deprecated) [-t] or our standard basejails for
+    this feature.
 
   version | --version
 
@@ -930,11 +928,11 @@ PROPERTIES
     Default: timestamp
     Source: local
 
-  type=jail
+  type=basejail
 
-    Currently only jail is supported - this is for future use.
+    Currently only basejails, gitjails and empty jails are supported.
 
-    Default: jail
+    Default: basejail
     Source: local
 
   hostid=UUID
