@@ -152,7 +152,7 @@ __reclone_basejail () {
                  /dev/null 2>&1 ; echo $?)"
 
     # Check to see if the old ${pool}/iocage/base datasets are needed any longer
-    if [ "${_base_inuse}" == "0" ] ; then
+    if [ "${_base_inuse}" == "1" ] ; then
         zfs destroy -r ${pool}/iocage/base
     fi
 
@@ -174,16 +174,29 @@ __reclone_basejail () {
                   sbin
                   usr"
 
+        # Set up all the new stuff
+        mkdir ${iocroot}/jails/${_fulluuid}/_
+        mkdir ${iocroot}/jails/${_fulluuid}/_/usr
+
+        # Create these dirs for old RELEASEs fetched for the basejail
+        # Silencing in case they exist, nobody cares.
+        mkdir ${iocroot}/releases/${release}/root/usr/home  > /dev/null 2>&1
+        mkdir ${iocroot}/releases/${release}/root/usr/ports > /dev/null 2>&1
+
         # If the user has a /usr/local, move it for migration
         if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/local" ] ; then
             mv    ${iocroot}/jails/${_fulluuid}/root/usr/local \
                   ${iocroot}/jails/${_fulluuid}/_/usr/local
+        else
+            mkdir ${iocroot}/jails/${_fulluuid}/_/usr/local
         fi
 
         # If the user had a ports tree, move it for migration
         if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/ports" ] ; then
             mv    ${iocroot}/jails/${_fulluuid}/root/usr/ports \
                   ${iocroot}/jails/${_fulluuid}/_/usr/ports
+        else
+            mkdir ${iocroot}/jails/${_fulluuid}/_/usr/ports
         fi
 
         # Move all the r/w required mountpoints for migration
