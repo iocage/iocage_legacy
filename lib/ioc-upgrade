@@ -67,7 +67,7 @@ __update () {
                             ${_mountpoint}/root/dev
                         chroot ${_mountpoint}/root \
                             env UNAME_r="${release}" env PAGER="/bin/cat" \
-                            freebsd-update fetch
+                            freebsd-update --not-running-from-cron fetch
                         chroot ${_mountpoint}/root \
                             env UNAME_r="${release}" env PAGER="/bin/cat" \
                             freebsd-update install

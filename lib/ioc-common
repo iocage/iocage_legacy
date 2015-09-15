@@ -306,7 +306,7 @@ __fetch_release () {
             ${iocroot}/releases/${_release}/root/etc/resolv.conf
         chroot ${iocroot}/releases/${_release}/root \
             env UNAME_r="${_release}" env PAGER="/bin/cat" \
-            freebsd-update fetch
+            freebsd-update --not-running-from-cron fetch
         chroot ${iocroot}/releases/${_release}/root \
             env UNAME_r="${_release}" env PAGER="/bin/cat" \
             freebsd-update install
