@@ -125,40 +125,31 @@ __upgrade () {
     # If jail is a basejail then set the new release and reclone the datasets
     # also backup jail's /etc just in-case etcupdate doesn't go as planned
     if [ ${_jail_type} == "basejail" ] ; then
-        __reclone_basejail ${_fulluuid} > /dev/null 2>&1
         zfs set org.freebsd.iocage:release="${release}" ${_dataset}
-        cp -Rp ${_mountpoint}/root/etc \
-               ${_mountpoint}/etc.old
-        zfs snapshot ${_dataset}/var@ioc-upgrade_$(date +%F)
-        etcupdate -D ${_mountpoint}/root -F \
-            -s ${iocroot}/releases/${release}/root/usr/src
-        if [ -e ${_mountpoint}/root/var/spool/mqueue ] ; then
-            __chroot ${_fulluuid} newaliases
-        else
-            mkdir -p ${_mountpoint}/root/var/spool/mqueue
-            __chroot ${_fulluuid} newaliases
-        fi
+        __reclone_basejail ${_fulluuid}
+        cp -Rp ${_mountpoint}/_/etc \
+               ${_mountpoint}/_/etc.old
+        zfs snapshot ${_dataset}/root@ioc-upgrade_$(date +%F)
 
         # Check for zero exit code(success) otherwise bail and revert everything
         if [ $? -eq 0 ] ; then
-            __reclone_basejail ${_fulluuid} > /dev/null 2>&1
             echo ""
             echo "* Upgrade successful. Please restart jail and inspect."
             echo "* Remove:"
-            echo "    etc backup: ${_mountpoint}/etc.old"
-            echo "    /var snapshot: ${_dataset}/var@ioc-upgrade_$(date +%F)"
+            echo "    etc backup: ${_mountpoint}/_/etc.old"
+            echo "    snapshot: ${_dataset}/root@ioc-upgrade_$(date +%F)"
             echo "* if everything is OK."
             exit 0
         else
             echo ""
-            echo "* etcupdate failed! Backing out."
+            echo "* Upgrade failed! Backing out."
             zfs set org.freebsd.iocage:release="${_oldrelease}" ${_dataset}
-            zfs rollback -rRf ${_dataset}/var@ioc-upgrade_$(date +%F)
-            zfs destroy ${_dataset}/var@ioc-upgrade_$(date +%F)
+            zfs rollback -rRf ${_dataset}/root@ioc-upgrade_$(date +%F)
+            zfs destroy ${_dataset}/root@ioc-upgrade_$(date +%F)
             umount ${_mountpoint}/root/etc
-            rm -rf ${_mountpoint}/etc
-            mv ${_mountpoint}/etc.old \
-               ${_mountpoint}/etc
+            rm -rf ${_mountpoint}/_/etc
+            mv ${_mountpoint}/_/etc.old \
+               ${_mountpoint}/_/etc
             exit 1
         fi
     elif [ ${_jail_type} == "thickjail" ] ; then
