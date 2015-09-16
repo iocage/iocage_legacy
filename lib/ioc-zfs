@@ -340,6 +340,9 @@ __create_jail () {
         mount  -t unionfs -o noatime,copymode=transparent \
                   ${iocroot}/jails/${uuid}/_/etc/ \
                   ${iocroot}/jails/${uuid}/root/etc
+        if [ -e "/etc/localtime" ] ; then
+            cp /etc/localtime ${iocroot}/jails/${uuid}/_/etc/
+        fi
         _configured="1"
     fi
 
