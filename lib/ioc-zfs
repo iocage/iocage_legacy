@@ -153,7 +153,7 @@ __reclone_basejail () {
 
     # Check to see if the old ${pool}/iocage/base datasets are needed any longer
     if [ "${_base_inuse}" == "1" ] ; then
-        zfs destroy -r ${pool}/iocage/base
+        zfs destroy -r ${pool}/iocage/base > /dev/null 2>&1
     fi
 
     # Check to see if the user has the old style of jailed datasets

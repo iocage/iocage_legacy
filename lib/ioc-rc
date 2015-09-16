@@ -472,7 +472,6 @@ __stop_jail () {
         umount ${_jail_path}/root/usr/ports  > /dev/null 2>&1
         umount ${_jail_path}/root/var        > /dev/null 2>&1
         umount ${_jail_path}/root/root       > /dev/null 2>&1
-        zfs    umount ${_jail_path}/root     > /dev/null 2>&1
     fi
 
     if [ -d $iocroot/jails/${_fulluuid}/recorded ] ; then
