@@ -108,7 +108,8 @@ owner="root"
 priority="99"
 last_started="none"
 type="basejail"
-release=$(uname -r|cut -f 1,2 -d'-')
+release=""
+base=$(uname -r|cut -f 1,2 -d'-')
 hostid=$(cat /etc/hostid)
 jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/data"
@@ -233,6 +234,7 @@ CONF_CUSTOM="tag
              jail_zfs
              jail_zfs_dataset
              release
+              base
              hack88
              start"
 

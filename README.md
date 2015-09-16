@@ -50,10 +50,10 @@ Start the jail:
   iocage activate ZPOOL
   iocage cap UUID|TAG
   iocage chroot UUID|TAG [command]
-  iocage clean [-a|-r|-j]
+  iocage clean [-a|-b|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
-  iocage create [-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value]
   iocage deactivate ZPOOL
   iocage defaults
   iocage destroy [-f] UUID|TAG

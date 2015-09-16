@@ -9,10 +9,10 @@ SYNOPSIS
   iocage activate ZPOOL
   iocage cap UUID|TAG
   iocage chroot UUID|TAG [command]
-  iocage clean [-a|-r|-j]
+  iocage clean [-a|-b|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
-  iocage create [-e] [release=RELEASE] [pkglist=file] [property=value]
+  iocage create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value]
   iocage deactivate ZPOOL
   iocage defaults
   iocage destroy [-f] UUID|TAG
@@ -107,11 +107,11 @@ SUBCOMMANDS
     initial setup (set root password, configure networking). You can specify a
     command just like with the normal system chroot tool.
 
-  clean [-a|-r|-j]
+  clean [-a|-b|-j]
 
     This removes the ZFS datasets associated with the flag called. The -a switch
-    will destroy everything associated with iocage. The -r switch will destroy
-    all releases that have been fetched. Basejails rely on these to exist,
+    will destroy everything associated with iocage. The -b switch will destroy
+    all bases that have been fetched. Basejails rely on these to exist,
     so be sure you don't use this flag if you have any. The -j switch will
     destroy the jails dataset.
 
@@ -134,16 +134,19 @@ SUBCOMMANDS
 
     Execute login to have a shell inside the jail
 
-  create [-e] [release=RELEASE] [property=value] [property=value]
+  create [-e] [base=[RELEASE|NAME]] [property=value] [property=value]
 
     By default create will deploy a new jail based on the host operating
-    system's release. This can be changed by specifying the release option.
+    system's release. This can be changed by specifying the base option.
     By default a basejail is created that has a common shared base.
     The -e switch will create an empty jail which can be used for unsupported
     or custom jails.
 
     Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
              iocage create tag=mybasejail
+             iocage create tag=mybasejail base=10.2-RELEASE
+             iocage create tag=mycustombasejail base=nginx_postgres
+
 
   deactivate ZPOOL
 

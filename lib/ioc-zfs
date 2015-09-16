@@ -53,9 +53,9 @@ __clean () {
                 __die "command not confirmed.  no action taken."
             fi
         ;;
-        -r)
+        -b)
             echo " "
-            echo "  WARNING: this will destroy all releases and basejails"
+            echo "  WARNING: this will destroy all bases and basejails"
             echo " "
             echo -n "  Are you sure ? y[N]: "
             read _answer
@@ -63,16 +63,10 @@ __clean () {
             if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
                 __clean_basejail
                 if [ $? -eq 0 ] ; then
-                    _base_exists="$(zfs get -H creation ${pool}/iocage/base > \
-                    /dev/null 2>&1 ; echo $?)"
-                    if [ "${_base_exists}" == "0" ] ; then
-                        echo "  Destroying ${pool}/iocage/base"
-                        zfs destroy -rRf ${pool}/iocage/base
-                    fi
                     echo "  Destroying ${pool}/iocage/download"
                     zfs destroy -rRf ${pool}/iocage/download
-                    echo "  Destroying ${pool}/iocage/releases"
-                    zfs destroy -rRf ${pool}/iocage/releases
+                    echo "  Destroying ${pool}/iocage/base"
+                    zfs destroy -rRf ${pool}/iocage/base
                     exit 0
                 else
                     __die "some jails were unable to be stopped."
@@ -140,21 +134,13 @@ __reclone_basejail () {
     _fulluuid="$1"
     _dataset="$2"
     _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
-    _fs_list="$(zfs list -t snap -rH -o name ${pool}/iocage/releases | \
+    _fs_list="$(zfs list -t snap -rH -o name ${pool}/iocage/base | \
              grep root@${_fulluuid})"
     _old_base_check="$(zfs list -Hr ${pool}/iocage/jails/${_fulluuid} | \
                      grep -v data | wc -l)"
     _jailed_dataset="${pool}/iocage/jails/${_fulluuid}/root/data"
     _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                            /dev/null 2>&1 ; echo $?)"
-    _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
-                 grep ${pool}/iocage/base > \
-                 /dev/null 2>&1 ; echo $?)"
-
-    # Check to see if the old ${pool}/iocage/base datasets are needed any longer
-    if [ "${_base_inuse}" == "1" ] ; then
-        zfs destroy -r ${pool}/iocage/base > /dev/null 2>&1
-    fi
 
     # Check to see if the user has the old style of jailed datasets
     if [ "${_jailed_dataset_check}" == "0" ] ; then
@@ -180,8 +166,8 @@ __reclone_basejail () {
 
         # Create these dirs for old RELEASEs fetched for the basejail
         # Silencing in case they exist, nobody cares.
-        mkdir ${iocroot}/releases/${release}/root/usr/home  > /dev/null 2>&1
-        mkdir ${iocroot}/releases/${release}/root/usr/ports > /dev/null 2>&1
+        mkdir ${iocroot}/base/${base}/root/usr/home  > /dev/null 2>&1
+        mkdir ${iocroot}/base/${base}/root/usr/ports > /dev/null 2>&1
 
         # If the user has a /usr/local, move it for migration
         if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/local" ] ; then
@@ -232,16 +218,16 @@ __reclone_basejail () {
     done
 
     # Set up the new RELEASE root dataset to be cloned from
-    zfs snapshot ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid}
+    zfs snapshot ${pool}/iocage/base/${_jail_release}/root@${_fulluuid}
 
     # Make sure the usr/home directory exists in the RELEASE
-    if [ ! -e "${iocroot}/releases/${release}/root/usr/home" ] ; then
-        mkdir ${iocroot}/releases/${release}/root/usr/home
+    if [ ! -e "${iocroot}/base/${base}/root/usr/home" ] ; then
+        mkdir ${iocroot}/base/${base}/root/usr/home
     fi
 
     # Recloning the root dataset and remounting the children
     zfs clone -o readonly=on \
-        ${pool}/iocage/releases/${_jail_release}/root@${_fulluuid} \
+        ${pool}/iocage/base/${_jail_release}/root@${_fulluuid} \
         ${pool}/iocage/jails/${_fulluuid}/root
     mount -t unionfs -o noatime,copymode=transparent \
         ${iocroot}/jails/${_fulluuid}/_/etc \
@@ -276,11 +262,11 @@ __reclone_basejail () {
 # This creates jails----------------------------------------------------
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
-          _pname _isprop_zfsconfig
+          _pname _isprop _zfsconfig
 
-    _installed=$(zfs list -r ${pool}/iocage/releases|grep ${release})
-    _releases=$(__list_jails -r|grep -v "Downloaded releases:")
-    _supported_release=$(echo "${release}" | grep "RELEASE")
+    _installed=$(zfs list -r ${pool}/iocage/base | grep ${base})
+    _releases=$(__list_jails -r | grep -v "Downloaded releases:")
+    _supported_release=$(echo "${base}" | grep "RELEASE")
     _zfsconfig="$(__configure_jail generate)"
     _isprop="$(echo ${2} | awk 'BEGIN { FS = "=" } ; { print $2 }')"
     _configured="0"
@@ -294,8 +280,8 @@ __create_jail () {
     if [ -z "${_installed}" -a -z "${_releases}" -a "${2}" != "-e" ] ; then
         __die "No RELEASEs found locally, run iocage fetch first."
     elif [ -z "${_installed}" -a "${2}" != "-e" ] ; then
-        echo "  RELEASE ${release} not found locally."
-        echo "  Please fetch ${release} or rerun iocage with release=RELEASE"
+        echo "  RELEASE ${base} not found locally."
+        echo "  Please fetch ${base} or rerun iocage with release=RELEASE"
         echo ""
         echo "  These are the releases you have already fetched:"
         printf "${_releases}\n"
@@ -306,6 +292,16 @@ __create_jail () {
     if [ "${2}" != "-e" -a ! -z "${2}" ] ; then
         if [ ! "${_isprop}" ] ; then
             __die "invalid switch ${2}"
+        else
+            for _p in "$@" ; do
+                if [ "$(echo $_p | grep -e ".*=.*")" ] ; then
+                    _pname="$(echo ${_p} | \
+                            awk 'BEGIN { FS = "=" } ; { print $1 }')"
+                    if [ "${_pname}" == "release" ] ; then
+                        __die "please replace release= with base="
+                    fi
+                fi
+            done
         fi
     fi
 
@@ -316,11 +312,11 @@ __create_jail () {
     else
         # Clones the root dataset from the RELEASE and makes sure to configure
         # the properties on it.
-        _fs_list=$(zfs list -rH -o name ${pool}/iocage/releases/${release})
-        zfs snapshot ${pool}/iocage/releases/${release}/root@${uuid}
+        _fs_list=$(zfs list -rH -o name ${pool}/iocage/base/${base})
+        zfs snapshot ${pool}/iocage/base/${base}/root@${uuid}
         export type=basejail
         for _fs in ${_fs_list} ; do
-            _cfs=$(echo ${_fs} | sed s#/releases/${release}#/jails/${uuid}#g)
+            _cfs=$(echo ${_fs} | sed s#/base/${base}#/jails/${uuid}#g)
             if [ "${_cfs}" = "${pool}/iocage/jails/${uuid}/root" ] ; then
                 eval "zfs clone -o readonly=on\
                       ${_zfsconfig} \"${_fs}@${uuid}\" \"${_cfs}\""
@@ -552,7 +548,7 @@ __check_filesystems () {
                   iocage/.defaults
                   iocage/download
                   iocage/jails
-                  iocage/releases"
+                  iocage/base"
 
     # Loop through and make sure the filesystems exist. Make sure you are root
     for _fs in $(echo ${_filesystems}) ; do

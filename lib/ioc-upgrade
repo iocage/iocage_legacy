@@ -53,11 +53,11 @@ __update () {
                     # set the pager to cat so that it isn't interactive
                     echo "* Updating jail.."
 
-                    if [ $release != $_jail_release ] ; then
-                        release="$_jail_release"
+                    if [ ${base} != ${_jail_release} ] ; then
+                        base="${_jail_release}"
                     fi
 
-                    if [ -e ${iocroot}/releases/${release}/root/etc/freebsd-update.conf ] ; then
+                    if [ -e ${iocroot}/base/${base}/root/etc/freebsd-update.conf ] ; then
                         if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
                             export _resolv="1"
                             cat /etc/resolv.conf > \
@@ -66,10 +66,10 @@ __update () {
                         mount -t devfs devfs \
                             ${_mountpoint}/root/dev
                         chroot ${_mountpoint}/root \
-                            env UNAME_r="${release}" env PAGER="/bin/cat" \
+                            env UNAME_r="${base}" env PAGER="/bin/cat" \
                             freebsd-update --not-running-from-cron fetch
                         chroot ${_mountpoint}/root \
-                            env UNAME_r="${release}" env PAGER="/bin/cat" \
+                            env UNAME_r="${base}" env PAGER="/bin/cat" \
                             freebsd-update install
                         umount ${_mountpoint}/root/dev
                         if [ "${_resolv}" == "1" ] ; then
@@ -116,8 +116,8 @@ __upgrade () {
         __die "${_name} not found!"
     fi
 
-    if [ ! -d ${iocroot}/releases/${release} ] ; then
-        __error "${release} not found!"
+    if [ ! -d ${iocroot}/base/${base} ] ; then
+        __error "${base} not found!"
         echo "  Please run iocage fetch first."
         exit 1
     fi
@@ -125,7 +125,7 @@ __upgrade () {
     # If jail is a basejail then set the new release and reclone the datasets
     # also backup jail's /etc just in-case etcupdate doesn't go as planned
     if [ ${_jail_type} == "basejail" ] ; then
-        zfs set org.freebsd.iocage:release="${release}" ${_dataset}
+        zfs set org.freebsd.iocage:release="${base}" ${_dataset}
         __reclone_basejail ${_fulluuid}
         cp -Rp ${_mountpoint}/_/etc \
                ${_mountpoint}/_/etc.old
@@ -162,7 +162,7 @@ __upgrade () {
         zfs snapshot ${_dataset}/root@ioc-upgrade_$(date +%F)
         echo "* Upgrading jail."
 
-        if [ -e ${iocroot}/releases/${release}/root/etc/freebsd-update.conf ] ; then
+        if [ -e ${iocroot}/base/${base}/root/etc/freebsd-update.conf ] ; then
             if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
                 export _resolv="1"
                 cat /etc/resolv.conf > \
@@ -172,19 +172,19 @@ __upgrade () {
                 ${_mountpoint}/root/dev
             chroot ${_mountpoint}/root \
                 env UNAME_r="${_oldrelease}" env PAGER="/bin/cat" \
-                freebsd-update -r ${release} upgrade
+                freebsd-update -r ${base} upgrade
             if [ $? -eq 0 ] ; then
                 while [ $? -eq 0 ] ; do
                     chroot ${_mountpoint}/root \
                         env UNAME_r="${_oldrelease}" env PAGER="/bin/cat" \
-                        freebsd-update -r ${release} install
+                        freebsd-update -r ${base} install
                 done
                 if [ "${_resolv}" == "1" ] ; then
                     rm -f ${_mountpoint}/root/etc/resolv.conf
                 fi
                 umount ${_mountpoint}/root/dev
                 # Set jail's zfs property to new release
-                zfs set org.freebsd.iocage:release="${release}" ${_dataset}
+                zfs set org.freebsd.iocage:release="${base}" ${_dataset}
             else
                 echo "* Upgrade failed, aborting install."
                 zfs rollback -rRf ${_dataset}/root@ioc-upgrade_$(date +%F)
