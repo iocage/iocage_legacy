@@ -343,6 +343,7 @@ __create_jail () {
         if [ -e "/etc/localtime" ] ; then
             cp /etc/localtime ${iocroot}/jails/${uuid}/_/etc/
         fi
+
         _configured="1"
     fi
 
