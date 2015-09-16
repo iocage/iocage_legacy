@@ -133,7 +133,7 @@ __reclone_basejail () {
 
     _fulluuid="$1"
     _dataset="$2"
-    _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
+    _jail_release="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
     _fs_list="$(zfs list -t snap -rH -o name ${pool}/iocage/base | \
              grep root@${_fulluuid})"
     _old_base_check="$(zfs list -Hr ${pool}/iocage/jails/${_fulluuid} | \
