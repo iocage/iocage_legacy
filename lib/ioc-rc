@@ -4,7 +4,7 @@ __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid _jail_type \
           _tag _jail_hostid _jail_path _template _cpuset \
           _procfs _state _vnet _nics _jzfs_dataset _jzfs _clone_check \
-          _exec_fib _exec_start
+          _exec_fib _exec_start _bpf _dhcp _devfs_string
 
     # Get fulluuid and dataset in one step (dataset is optional)
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
@@ -18,6 +18,8 @@ __start_jail () {
 
     _exec_start="$(__get_jail_prop exec_start $_fulluuid $_dataset)"
     _jail_type="$(__get_jail_prop type $_fulluuid $_dataset)"
+    _bpf="$(__get_jail_prop bpf $_fulluuid $_dataset)"
+    _dhcp="$(__get_jail_prop dhcp $_fulluuid $_dataset)"
     _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
     _jail_hostid="$(__get_jail_prop hostid $_fulluuid $_dataset)"
     _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
@@ -30,16 +32,15 @@ __start_jail () {
     _nics="$(__get_jail_prop interfaces $_fulluuid $_dataset\
            |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     _clone_check="$(zfs get -H origin ${_dataset} | awk '{print $3}')"
+    _devfs_string="$(grep -Fxq \
+                  "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
+                  ; echo $?)"
 
     if [ "$_state" ] ; then
         echo "* ${_fulluuid}: is already up"
         exit 1
     fi
 
-    if [ $_jail_type == "basejail" ] ; then
-        # Re-clone required filesystems
-        __reclone_basejail $_fulluuid $_dataset
-    fi
     if [ $_jail_type == "jail" ] ; then
         # Check for thick or clone jails and migrate their type
         if [ "${_clone_check}" = "-" ] ; then
@@ -95,6 +96,26 @@ __start_jail () {
         __set_jail_prop enforce_statfs=1 $_fulluuid $_dataset
         __set_jail_prop allow_mount_zfs=1 $_fulluuid $_dataset
         zfs set jailed=on ${_jzfs_dataset}
+    fi
+
+    if [ "${_dhcp}" == "on" ] ; then
+        if [ "${_vnet}" != "on" ] ; then
+            __die "vnet is needed to use dhcp, please set vnet=on for ${_fulluuid}"
+        elif [ "${_bpf}" == "off" ] ; then
+            __die "bpf is needed to use dhcp, please set bpf=yes for ${_fulluuid}"
+        fi
+    fi
+
+    # Make doubly sure that bpf entry exists since FreeNAS wipes /etc on boot.
+    if [ "${_bpf}" == "on" ] ; then
+        if [ "${_devfs_string}" != "0" ] ; then
+            __bpf_devfs >> /etc/devfs.rules
+        fi
+    fi
+
+    if [ $_jail_type == "basejail" ] ; then
+        # Re-clone required filesystems
+        __reclone_basejail $_fulluuid $_dataset
     fi
 
     if [ $_vnet == "on" ] || [ $_vnet == "-" ] ; then

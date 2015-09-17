@@ -70,6 +70,11 @@ __set_jail_prop () {
             zfs create -o compression=lz4 -o mountpoint=none -o jailed=on \
                 ${_dataset}/data
         fi
+    # Do they want bpf exposed?
+    elif [ "${_pname}" == "bpf" ] ; then
+        if [ "${_devfs_string}" != "0" ] ; then
+            __bpf_devfs >> /etc/devfs.rules
+        fi
     fi
 }
 

@@ -102,6 +102,8 @@ wallclock="off"
 iocroot="/iocage"
 tag=$(date "+%F@%T")
 template="no"
+bpf="off"
+dhcp="off"
 boot="off"
 notes="none"
 owner="root"
@@ -223,7 +225,9 @@ CONF_JAIL="devfs_ruleset
 CONF_CUSTOM="tag
              template
              rlimits
+             bpf
              boot
+             dhcp
              notes
              owner
              priority

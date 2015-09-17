@@ -411,6 +411,22 @@ PROPERTIES
     Default: auto-guess
     Source: local
 
+  bpf=on | off
+
+    This controls whether to start the jail with BPF devices enabled.
+    Default is off.
+
+    Default: off
+    Source: local
+
+  dhcp=on | off
+
+    This controls whether to start the jail with DHCP.
+    Default is off, but if you want it on, vnet and bpf are required.
+
+    Default: off
+    Source: local
+
   ip4_addr="interface|ip-address/netmask"
 
     The IPv4 address for VNET and shared IP jails.

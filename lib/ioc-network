@@ -13,6 +13,17 @@ __get_next_mac () {
     echo ${_mac}
 }
 
+# The devfs entry needed for bpf devices in a jail
+__bpf_devfs () {
+cat << 'EOT'
+
+## IOCAGE -- Add DHCP to ruleset 4
+[devfsrules_jail_dhcp=5]
+add include $devfsrules_jail
+add path 'bpf*' unhide
+EOT
+}
+
 # Expects input: _nic _mac_offset _epair_leg _uuid
 # outputs a single mac address
 # Example: __validate_mac ${nic} ${_mac_offset} a ${_uuid}
@@ -46,12 +57,13 @@ __validate_mac () {
 # Expects $1 for action and $2 for UUID
 __networking () {
     local _action _uuid _jid _mac_epair_a mac_epair_b \
-          _mac_offset _dataset
+          _mac_offset _dataset _dhcp _dhcp_string
 
     _action="$1"
     _uuid="$2"
     _dataset="$3"
     _jid="$(jls -j ioc-${_uuid} jid)"
+    _dhcp="$(__get_jail_prop dhcp ${_uuid} ${_dataset})"
     local ip4="$(__get_jail_prop ip4_addr ${_uuid} $_dataset)"
     local ip6="$(__get_jail_prop ip6_addr ${_uuid} $_dataset)"
     local defaultgw="$(__get_jail_prop defaultrouter ${_uuid} $_dataset)"
@@ -91,7 +103,9 @@ __networking () {
             ifconfig ${nic}:${_jid} up
             let _mac_offset="_mac_offset + 2" > /dev/null
         done
+
         echo "$ip4_addr" | grep -q "AUTOIP4"
+
         if [ "$ip4" != "none" -a $? -ne 0 ] ; then
             local oIFS=$IFS
             local IFS=","
@@ -134,6 +148,22 @@ __networking () {
                __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $_uuid $_dataset
             fi
             jexec ioc-${2} ifconfig $new_iface ${auto_ip} up
+        fi
+
+        if [ "${_dhcp}" != "off" ] ; then
+            _dhcp_string="$(grep -Fxq \
+                         "ifconfig_vnet0=\"DHCP\"" \
+                         ${iocroot}/jails/${_uuid}/root/etc/rc.conf \
+                         ; echo $?)"
+
+            if [ "${_dhcp_string}" != "0" ] ; then
+                echo "" >> \
+                     ${iocroot}/jails/${_uuid}/root/etc/rc.conf
+                echo "ifconfig_vnet0=\"DHCP\"" >> \
+                     ${iocroot}/jails/${_uuid}/root/etc/rc.conf
+            fi
+
+            jexec ioc-${2} service dhclient start vnet0 > /dev/null 2>&1
         fi
     fi
 

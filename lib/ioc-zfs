@@ -269,6 +269,9 @@ __create_jail () {
     _supported_release=$(echo "${base}" | grep "RELEASE")
     _zfsconfig="$(__configure_jail generate)"
     _isprop="$(echo ${2} | awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _devfs_string="$(grep -Fxq \
+                  "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
+                  ; echo $?)"
     _configured="0"
 
     if [ -z "${_supported_release}" -a "${2}" != "-e" ] ; then
@@ -365,12 +368,21 @@ __create_jail () {
     __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
         ${iocroot}/jails/${uuid}/root/etc/resolv.conf
 
-    # Look to see if the user wants a jailed dataset, if they do then create it
     for _prop in "$@" ; do
         _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
+        # Look to see if the user wants a jailed dataset,
+        # if they do then create it
         if [ "${_pname}" == "jail_zfs" ] ; then
             zfs create -u -o compression=lz4 -o mountpoint=none -o jailed=on \
                 ${pool}/${jail_zfs_dataset}
+        # Do they want bpf exposed?
+        elif [ "${_pname}" == "bpf" ] ; then
+            if [ "${_devfs_string}" != "0" ] ; then
+                __bpf_devfs >> /etc/devfs.rules
+            fi
+
+        # Hack to make sure devfs_ruleset is set.
+        __set_jail_prop devfs_ruleset=5 ${uuid} ${pool}/iocage/jails/${uuid}
         fi
     done
 
