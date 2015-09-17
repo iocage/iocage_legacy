@@ -122,6 +122,15 @@ __start_jail () {
             echo "  ERROR: start failed for $_fulluuid"
             echo "  vnet=on but kernel is not VNET capable!"
             echo "  Turn vnet off for this jail or recompile kernel with VNET."
+            # Unmounts all the basejails overlays so the jail can be
+            # cleaned later
+            umount ${iocroot}/jails/${_fulluuid}/root/tmp       > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/etc       > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/root      > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/usr/home  > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/var       > /dev/null 2>&1
             exit 1
         fi
     else

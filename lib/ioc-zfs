@@ -204,7 +204,7 @@ __reclone_basejail () {
         zfs   destroy ${pool}/iocage/jails/${_fulluuid}/root
     fi
 
-    # Unmounts all the basejails datasets so the root can be recloned
+    # Unmounts all the basejails overlays so the root can be recloned
     umount ${iocroot}/jails/${_fulluuid}/root/etc       > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/root      > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
