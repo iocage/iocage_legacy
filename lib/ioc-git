@@ -3,11 +3,11 @@
 __pull () {
     local _gitlocation _jail_path
 
-    _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-                  ${pool}/iocage/.defaults)"
+    _gitlocation="$(__get_default_prop gitlocation)"
 
-    if [ "$_gitlocation" = "-" ] ; then
-        _gitlocation="none"
+    # We use github as the default location to clone from
+    if [ "$_gitlocation" = "-" -o "$_gitlocation" = "none" ] ; then
+        _gitlocation="https://github.com"
     fi
 
     # Make sure git is installed.
