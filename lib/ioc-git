@@ -69,6 +69,11 @@ __pull () {
         __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
         ${_jail_path}/root/etc/resolv.conf
     fi
+
+    # Make sure the log dir exists
+    if [ ! -d ${iocroot}/log ] ; then
+       mkdir ${iocroot}/log
+    fi
 }
 
 __push () {
