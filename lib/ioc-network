@@ -18,7 +18,7 @@ __bpf_devfs () {
 cat << 'EOT'
 
 ## IOCAGE -- Add DHCP to ruleset 4
-[devfsrules_jail_dhcp=4]
+[devfsrules_jail_dhcp=5]
 add include $devfsrules_jail
 add path 'bpf*' unhide
 EOT
