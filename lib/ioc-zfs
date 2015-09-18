@@ -379,6 +379,7 @@ __create_jail () {
         elif [ "${_pname}" == "bpf" ] ; then
             if [ "${_devfs_string}" != "0" ] ; then
                 __bpf_devfs >> /etc/devfs.rules
+                service devfs restart > /dev/null 2>&1
             fi
 
         # Hack to make sure devfs_ruleset is set.
