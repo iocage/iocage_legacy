@@ -509,7 +509,7 @@ __destroy_jail () {
             fi
             __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
         else
-            __die "Command not confirmed.  No action taken."
+            echo "  Command not confirmed.  No action taken."
         fi
     else
         if [ ! -z ${_state} ] ; then
