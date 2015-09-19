@@ -563,6 +563,11 @@ __check_filesystems () {
                   iocage/jails
                   iocage/base"
 
+    # Check for /etc/devfs.rules, this avoids an annoying error from grep later
+    if [ ! -e "/etc/devfs.rules" ] ; then
+        touch /etc/devfs.rules
+    fi
+
     # Loop through and make sure the filesystems exist. Make sure you are root
     for _fs in $(echo ${_filesystems}) ; do
         zfs get -H creation ${pool}/${_fs} > /dev/null 2>&1
