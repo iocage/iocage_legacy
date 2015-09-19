@@ -230,7 +230,6 @@ __chroot () {
     # If the jail is a basejail, mount all the overlays
     if [ "${_jail_type}" == "basejail" ] ; then
         if [ "${_state}" == "0" ] ; then
-            echo "JAIL IS OFF"
             mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/etc \
                 ${iocroot}/jails/${_fulluuid}/root/etc
@@ -265,7 +264,6 @@ __chroot () {
     # Unmount the overlays from before
     if [ "${_jail_type}" == "basejail" ] ; then
         if [ "${_state}" == "0" ] ; then
-            echo "Jail is OFF"
             umount ${iocroot}/jails/${_fulluuid}/root/etc       > /dev/null 2>&1
             umount ${iocroot}/jails/${_fulluuid}/root/root      > /dev/null 2>&1
             umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
