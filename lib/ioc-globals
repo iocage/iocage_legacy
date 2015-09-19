@@ -231,6 +231,7 @@ CONF_CUSTOM="tag
              notes
              owner
              priority
+             pkglist
              last_started
              type
              hostid

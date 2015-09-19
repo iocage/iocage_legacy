@@ -175,6 +175,7 @@ __pkg_install () {
     if [ -e $pkglist ] ; then
         echo "* Installing extra packages.."
         for i in $(cat $pkglist) ; do
+            __info "installing: $i"
             pkg -c $_chrootdir install -qy $i
         done
     fi

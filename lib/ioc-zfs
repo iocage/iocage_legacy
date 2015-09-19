@@ -393,7 +393,23 @@ __create_jail () {
     # Install extra packages
     # this requires working resolv.conf in jail
     if [ "${pkglist}" != "none" ] ; then
+        # Mount all the filesytems needed to properly install pkg's
+        # in a basejail
+        mount -t tmpfs tmpfs ${iocroot}/jails/${uuid}/root/tmp
+        mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
+        mount -t unionfs -o noatime,copymode=transparent \
+                 ${iocroot}/jails/${uuid}/_/usr/local/ \
+                 ${iocroot}/jails/${uuid}/root/usr/local
+        mount -t unionfs -o noatime,copymode=transparent \
+                 ${iocroot}/jails/${uuid}/_/var/ \
+                 ${iocroot}/jails/${uuid}/root/var
+
         __pkg_install "${iocroot}/jails/${uuid}/root"
+
+        umount ${iocroot}/jails/${uuid}/root/tmp
+        umount ${iocroot}/jails/${uuid}/root/dev
+        umount ${iocroot}/jails/${uuid}/root/usr/local
+        umount ${iocroot}/jails/${uuid}/root/var
     fi
 
     umount ${iocroot}/jails/${uuid}/root/etc
