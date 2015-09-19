@@ -163,8 +163,6 @@ SUBCOMMANDS
 
     With -f the jail will be destroyed without confirmation.
 
-    The keyword "ALL" will destroy all jails and templates irreversibly!
-
   df
 
     List disk space related information. Available fields:
