@@ -262,7 +262,7 @@ __reclone_basejail () {
 # This creates jails----------------------------------------------------
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
-          _pname _isprop _zfsconfig
+          _pname _prop _isprop _zfsconfig
 
     _installed=$(zfs list -r ${pool}/iocage/base | grep ${base})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
@@ -327,8 +327,7 @@ __create_jail () {
                 eval "zfs create ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
             fi
         done
-        # Hack to make sure type is set.
-        __set_jail_prop type=basejail ${uuid} ${pool}/iocage/jails/${uuid}
+
         # Create all the unionfs r/w directories needed
         mkdir  -p ${iocroot}/jails/${uuid}/_/usr/local
         mkdir     ${iocroot}/jails/${uuid}/_/var
@@ -382,8 +381,8 @@ __create_jail () {
                 service devfs restart > /dev/null 2>&1
             fi
 
-        # Hack to make sure devfs_ruleset is set.
-        __set_jail_prop devfs_ruleset=5 ${uuid} ${pool}/iocage/jails/${uuid}
+            # Set the right devfs ruleset for DHCP/BPF.
+            __set_jail_prop devfs_ruleset=5 ${uuid} ${pool}/iocage/jails/${uuid}
         fi
     done
 

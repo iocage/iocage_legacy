@@ -20,6 +20,17 @@ __configure_jail () {
             # find saved default value if any for the property
             _default_value="$(__get_default_prop $prop_name)"
 
+            # look for props specified on cmd line
+            _iocset_='iocset_'
+            _iocset_var="$iocset_$prop_name"
+            eval _iocset_cmd="\$$iocset_var"
+
+            if [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] && [ -z "$_iocset_cmd" ] ; then
+                _value="$_default_value"
+            else
+                _value="$prop"
+            fi
+
             if [ "$prop_name" = "tag" ] ; then
                 _value="$tag"
             elif [ "$prop_name" = "host_hostname" ] ; then
@@ -30,7 +41,7 @@ __configure_jail () {
                 _value="$uuid"
             elif [ "$prop_name" = "jail_zfs_dataset" ] ; then
                 _value="${jail_zfs_dataset}"
-            elif [ "$prop_name" = "release" ] ; then
+            elif [ "$prop_name" = "base" ] ; then
                 _value="${base}"
             elif [ "$prop_name" = "hack88" ] ; then
                 _value="${hack88}"
@@ -83,16 +94,6 @@ __configure_jail () {
                     ;;
                 esac
                 _value="$vnet3_mac"
-            fi
-            # look for props specified on cmd line
-            _iocset_='iocset_'
-            _iocset_var="$iocset_$prop_name"
-            eval _iocset_cmd="\$$iocset_var"
-
-            if [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] && [ -z "$_iocset_cmd" ] ; then
-                _value="$_default_value"
-            else
-                _value="$prop"
             fi
 
             if [ "$1" != "generate" ] ; then
@@ -220,7 +221,7 @@ __reset_jail_props () {
     vnet1_mac="$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_dataset)"
     vnet2_mac="$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_dataset)"
     vnet3_mac="$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_dataset)"
-    release="$(zfs get -H -o value org.freebsd.iocage:release $_dataset)"
+    base="$(zfs get -H -o value org.freebsd.iocage:release $_dataset)"
     hack88="$(zfs get -H -o value org.freebsd.iocage:hack88 $_dataset)"
     jail_zfs_dataset="$(zfs get -H -o value org.freebsd.iocage:jail_zfs_dataset\
         $_dataset)"

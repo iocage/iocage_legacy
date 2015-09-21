@@ -1,11 +1,16 @@
 #!/bin/sh
 
 __pull () {
-    local _gitlocation _jail_path
+    shift
+    local _gitlocation _jail_path _devfs_string _prop _pname
 
     _gitlocation="$(__get_default_prop gitlocation)"
+    _devfs_string="$(grep -Fxq \
+                  "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
+                  ; echo $?)"
 
-    # We use github as the default location to clone from
+    # Check if the user doesn't have a gitlocation set,
+    # we use github as the default location to clone from
     if [ "$_gitlocation" = "-" -o "$_gitlocation" = "none" ] ; then
         _gitlocation="https://github.com"
     fi
@@ -37,7 +42,10 @@ __pull () {
 
     # Create an empty jail structure that we clone the git repo into
     export type=gitjail
+
+    # Hack to get around create jail not accepting just -e anymore.
     __create_jail '' '-e'
+
     _jail_path="$(__get_jail_prop mountpoint ${uuid} \
                 ${pool}/iocage/jails/${uuid})"
 
@@ -74,6 +82,20 @@ __pull () {
     if [ ! -d ${iocroot}/log ] ; then
        mkdir ${iocroot}/log
     fi
+
+    for _prop in "$@" ; do
+        _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
+        # Do they want bpf exposed?
+        if [ "${_pname}" == "bpf" ] ; then
+            if [ "${_devfs_string}" != "0" ] ; then
+                __bpf_devfs >> /etc/devfs.rules
+                service devfs restart > /dev/null 2>&1
+            fi
+
+            # Set the right devfs ruleset for DHCP/BPF.
+            __set_jail_prop devfs_ruleset=5 ${uuid} ${pool}/iocage/jails/${uuid}
+        fi
+    done
 }
 
 __push () {
