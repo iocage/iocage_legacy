@@ -1,7 +1,6 @@
 #!/bin/sh
 
 __pull () {
-    shift
     local _gitlocation _jail_path _devfs_string _prop _pname
 
     _gitlocation="$(__get_default_prop gitlocation)"

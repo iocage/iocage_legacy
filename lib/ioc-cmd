@@ -90,6 +90,7 @@ __parse_cmd () {
                         exit
                 ;;
             pull)       __export_props "$@"
+                        shift
                         __pull "$@"
                         exit
                 ;;
