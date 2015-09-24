@@ -332,13 +332,8 @@ __fetch_release () {
     done
 
     # Create these dirs for basejails
-    mkdir ${iocroot}/base/${_release}/root/usr/home
-    mkdir ${iocroot}/base/${_release}/root/usr/ports
-
-    if [ "$?" == "0" ] ; then
-        cd ${iocroot}/download
-        zfs destroy ${pool}/iocage/download/${_release}
-    fi
+    mkdir ${iocroot}/base/${_release}/root/usr/home > /dev/null 2>&1
+    mkdir ${iocroot}/base/${_release}/root/usr/ports > /dev/null 2>&1
 
     echo "* Updating base jail template."
     sleep 2
