@@ -87,7 +87,8 @@ __networking () {
         for i in $nics ; do
             local nic=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')
             local bridge=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')
-            local memberif=$(ifconfig $bridge | grep member | head -n1 | cut -d' ' -f2)
+            local memberif=$(ifconfig $bridge | grep member | head -n1 | \
+                           cut -d' ' -f2)
             local brmtu=$(ifconfig $memberif | head -n1 |cut -d' ' -f6)
             epair_a=$(ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
@@ -111,7 +112,8 @@ __networking () {
             local IFS=","
             for i in $ip4 ; do
                 local IFS=$oIFS
-                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | sed "s/DEFAULT/$default_iface/g")
+                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | \
+                      sed "s/DEFAULT/$default_iface/g")
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
                 jexec ioc-${2} ifconfig $iface $ip up
                 local IFS=","
@@ -121,7 +123,8 @@ __networking () {
 
         if [ "$ip6" != "none" ] ; then
             for i in $ip6_list ; do
-                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | sed "s/DEFAULT/$default_iface/g")
+                iface=$(echo $i |awk 'BEGIN { FS = "|" } ; { print $1 }' | \
+                      sed "s/DEFAULT/$default_iface/g")
                 ip="$(echo $i |awk 'BEGIN { FS = "|" } ; { print $2 }')"
                 jexec ioc-${2} ifconfig $iface inet6 $ip up
             done

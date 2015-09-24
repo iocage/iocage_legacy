@@ -264,13 +264,7 @@ __chroot () {
     # Unmount the overlays from before
     if [ "${_jail_type}" == "basejail" ] ; then
         if [ "${_state}" == "0" ] ; then
-            umount ${iocroot}/jails/${_fulluuid}/root/etc       > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/root      > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/usr/home  > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/var       > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/tmp       > /dev/null 2>&1
+            __umount_basejail "${_fulluuid}"
         fi
     fi
 }

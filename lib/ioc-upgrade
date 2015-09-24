@@ -62,22 +62,7 @@ __update () {
                     fi
                     # Re-clone required filesystems
                     __reclone_basejail "${_fulluuid}" "${_dataset}"
-                    # Unmounts all the basejails overlays and tmpfs so the jail
-                    # can be manipulated
-                    umount ${iocroot}/jails/${_fulluuid}/root/etc \
-                           > /dev/null 2>&1
-                    umount ${iocroot}/jails/${_fulluuid}/root/root \
-                           > /dev/null 2>&1
-                    umount ${iocroot}/jails/${_fulluuid}/root/usr/local \
-                           > /dev/null 2>&1
-                    umount ${iocroot}/jails/${_fulluuid}/root/usr/home \
-                           > /dev/null 2>&1
-                    umount ${iocroot}/jails/${_fulluuid}/root/usr/ports \
-                           > /dev/null 2>&1
-                    umount ${iocroot}/jails/${_fulluuid}/root/var \
-                           > /dev/null 2>&1
-                    umount ${iocroot}/jails/${_fulluuid}/root/tmp \
-                           > /dev/null 2>&1
+                    __umount_basejail "${_fulluuid}"
                 ;;
                 gitjail)
                     # Update the local git repo to the latest remote
@@ -177,22 +162,7 @@ __upgrade () {
             echo "    etc backup: ${_mountpoint}/_/etc.old"
             echo "    snapshot: ${_dataset}/root@ioc-upgrade_$(date +%F)"
             echo "* if everything is OK."
-            # Unmounts all the basejails overlays and tmpfs so the jail
-            # can be manipulated
-            umount ${iocroot}/jails/${_fulluuid}/root/etc \
-                   > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/root \
-                   > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/usr/local \
-                   > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/usr/home \
-                   > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/usr/ports \
-                   > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/var \
-                   > /dev/null 2>&1
-            umount ${iocroot}/jails/${_fulluuid}/root/tmp \
-                   > /dev/null 2>&1
+            __umount_basejail "${_fulluuid}"
             exit 0
         else
             echo ""
@@ -204,6 +174,8 @@ __upgrade () {
             rm -rf ${_mountpoint}/_/etc
             mv ${_mountpoint}/_/etc.old \
                ${_mountpoint}/_/etc
+            __reclone_basejail
+            __umount_basejail "${_fulluuid}"
             exit 1
         fi
     elif [ ${_jail_type} == "thickjail" ] ; then
