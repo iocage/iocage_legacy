@@ -38,8 +38,46 @@ __update () {
             # Check all jail types and do the right thing
             case $_jail_type in
                 basejail)
+                    if [ -e ${iocroot}/base/${base}/root/etc/freebsd-update.conf ] ; then
+                        if [ ! -e ${iocroot}/base/${base}/root/etc/resolv.conf ] ; then
+                            export _resolv="1"
+                            cat /etc/resolv.conf > \
+                            ${iocroot}/base/${base}/root/etc/resolv.conf
+                        fi
+                        mount -t devfs devfs \
+                            ${iocroot}/base/${base}/root/dev
+                        chroot ${iocroot}/base/${base}/root/ \
+                            env UNAME_r="${base}" env PAGER="/bin/cat" \
+                            freebsd-update --not-running-from-cron fetch
+                        chroot ${iocroot}/base/${base}/root \
+                            env UNAME_r="${base}" env PAGER="/bin/cat" \
+                            freebsd-update install
+                        umount ${iocroot}/base/${base}/root/dev
+                        if [ "${_resolv}" == "1" ] ; then
+                            if [ "$?" == "0" ] ; then
+                                rm -f \
+                                    ${iocroot}/base/${base}/root/etc/resolv.conf
+                            fi
+                        fi
+                    fi
                     # Re-clone required filesystems
-                    __reclone_basejail $_name
+                    __reclone_basejail "${_fulluuid}" "${_dataset}"
+                    # Unmounts all the basejails overlays and tmpfs so the jail
+                    # can be manipulated
+                    umount ${iocroot}/jails/${_fulluuid}/root/etc \
+                           > /dev/null 2>&1
+                    umount ${iocroot}/jails/${_fulluuid}/root/root \
+                           > /dev/null 2>&1
+                    umount ${iocroot}/jails/${_fulluuid}/root/usr/local \
+                           > /dev/null 2>&1
+                    umount ${iocroot}/jails/${_fulluuid}/root/usr/home \
+                           > /dev/null 2>&1
+                    umount ${iocroot}/jails/${_fulluuid}/root/usr/ports \
+                           > /dev/null 2>&1
+                    umount ${iocroot}/jails/${_fulluuid}/root/var \
+                           > /dev/null 2>&1
+                    umount ${iocroot}/jails/${_fulluuid}/root/tmp \
+                           > /dev/null 2>&1
                 ;;
                 gitjail)
                     # Update the local git repo to the latest remote
@@ -139,6 +177,22 @@ __upgrade () {
             echo "    etc backup: ${_mountpoint}/_/etc.old"
             echo "    snapshot: ${_dataset}/root@ioc-upgrade_$(date +%F)"
             echo "* if everything is OK."
+            # Unmounts all the basejails overlays and tmpfs so the jail
+            # can be manipulated
+            umount ${iocroot}/jails/${_fulluuid}/root/etc \
+                   > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/root \
+                   > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/usr/local \
+                   > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/usr/home \
+                   > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/usr/ports \
+                   > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/var \
+                   > /dev/null 2>&1
+            umount ${iocroot}/jails/${_fulluuid}/root/tmp \
+                   > /dev/null 2>&1
             exit 0
         else
             echo ""
