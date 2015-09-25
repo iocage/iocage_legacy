@@ -122,9 +122,8 @@ __clean_snapshots () {
 
     _snapshots="$(zfs list -Hrt snapshot -o name ${pool}/iocage)"
     for _snap in $(echo ${_snapshots}) ; do
-        zfs destroy -rR ${_snap} > /dev/null 2>&1 ; echo $?
+        zfs destroy -rR ${_snap} > /dev/null 2>&1
     done
-    return $?
 }
 
 # Accepts two arguments. Which is used as the UUID for the umount operations
@@ -161,6 +160,7 @@ __migrate_basejail () {
     # Create these dirs for old RELEASEs fetched for the basejail
     # Silencing in case they exist, nobody cares.
     mkdir ${iocroot}/base/${_base}/root/usr/home  > /dev/null 2>&1
+    cd ${iocroot}/base/${_base}/root && ln -s usr/home home 2>&1
     mkdir ${iocroot}/base/${_base}/root/usr/ports > /dev/null 2>&1
 
     # If the user has a /usr/local, move it for migration
@@ -250,6 +250,7 @@ __reclone_basejail () {
     # Make sure the usr/home directory exists in the RELEASE
     if [ ! -e "${iocroot}/base/${_jail_release}/root/usr/home" ] ; then
         mkdir ${iocroot}/base/${_jail_release}/root/usr/home
+        cd ${iocroot}/base/${_jail_release}/root && ln -s usr/home home 2>&1
     fi
 
     # Set up the new RELEASE root dataset to be cloned from

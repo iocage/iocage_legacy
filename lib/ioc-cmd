@@ -83,9 +83,6 @@ __parse_cmd () {
             list)       __list_jails "$2"
                         exit
                 ;;
-            package)    __package "$2"
-                        exit
-                ;;
             promote)    __promote "$2"
                         exit
                 ;;
@@ -104,9 +101,6 @@ __parse_cmd () {
                         exit
                 ;;
             reboot)     __reboot_jail "$2"
-                        exit
-                ;;
-            record)     __record "$2" "$3"
                         exit
                 ;;
             reset)      __reset_jail_props "$2"

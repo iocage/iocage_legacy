@@ -226,7 +226,7 @@ __chroot () {
 
     _fulluuid="$(__check_name $_name)"
     _jailroot="$(zfs get -Ho value mountpoint $_dataset)"
-    _jail_type="$(__get_jail_prop type ${_fulluuid} 2> /dev/null)"
+    _jail_type="$(__get_jail_prop type ${_fulluuid})"
     _state="$(__is_running ${_fulluuid} ; echo $?)"
 
     # If the jail is a basejail, mount all the overlays
@@ -335,6 +335,7 @@ __fetch_release () {
 
     # Create these dirs for basejails
     mkdir ${iocroot}/base/${_release}/root/usr/home > /dev/null 2>&1
+    cd ${iocroot}/base/${_release}/root && ln -s usr/home home 2>&1
     mkdir ${iocroot}/base/${_release}/root/usr/ports > /dev/null 2>&1
 
     echo "* Updating base jail template."

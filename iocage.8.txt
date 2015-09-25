@@ -24,12 +24,10 @@ SYNOPSIS
   iocage inuse UUID|TAG
   iocage limits [UUID|TAG]
   iocage list [-b|-t|-r]
-  iocage package UUID|TAG
   iocage promote UUID|TAG
   iocage rcboot
   iocage reboot UUID|TAG
   iocage rcshutdown
-  iocage record start|stop UUID|TAG
   iocage reset UUID|TAG|ALL
   iocage restart UUID|TAG
   iocage rollback UUID|TAG@snapshotname
@@ -218,9 +216,9 @@ SUBCOMMANDS
   import UUID [property=value]
 
     Import full jail images or differential packages. Images need to be
-    present in /iocage/images and packages in /iocage/packages along with
-    checksum files. You can use short UUIDs - do not specify the full filename
-    only the UUID.
+    present in /iocage/images along with checksum files. You can use short
+    UUIDs - do not specify the full filename only the UUID. These jails
+    become what we call "thickjails" and are not supported for all operations.
 
   init-host IP ZPOOL
 
@@ -244,13 +242,6 @@ SUBCOMMANDS
     with -r list downloaded releases.
     Non iocage jails will be listed only if the jail is running.
 
-  package UUID|TAG
-
-    Package recorded jail session into /iocage/packages. Creates SHA256
-    checksum and prunes empty directories, files and some residual files like
-    utx.* and .history. Before packaging any jails, make sure no unwanted files
-    contaminated or leaked into the recorded package.
-
   promote UUID|TAG
 
     Promote a cloned jail to a fully independent copy. For more details please
@@ -273,12 +264,6 @@ SUBCOMMANDS
     shutdown.
     Jails will be stopped in an ordered fashion based on their "priority"
     property.
-
-  record start|stop UUID|TAG
-
-    The record function will record every changed file in a directory called
-    /iocage/jails/UUID/recorded. This is achieved by using a unionfs overlay
-    mount. Used for differential package creation.
 
   reset UUID|TAG|ALL
 
@@ -1323,18 +1308,6 @@ EXAMPLES
   Clone jail from template:
 
     iocage clone UUID-of-template tag=myjail
-
-  Record all changeing files in a jail
-
-    iocage record start UUID
-
-  Stop recording
-
-    iocage record stop UUID
-
-  Create package from recorded session
-
-    iocage package UUID
 
   Import package on another host
 
