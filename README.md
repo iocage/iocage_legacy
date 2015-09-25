@@ -69,12 +69,10 @@ Start the jail:
   iocage inuse UUID|TAG
   iocage limits [UUID|TAG]
   iocage list [-b|-t|-r]
-  iocage package UUID|TAG
   iocage promote UUID|TAG
   iocage rcboot
   iocage reboot UUID|TAG
   iocage rcshutdown
-  iocage record start|stop UUID|TAG
   iocage reset UUID|TAG|ALL
   iocage restart UUID|TAG
   iocage rollback UUID|TAG@snapshotname
