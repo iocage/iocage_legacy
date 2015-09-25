@@ -76,6 +76,8 @@ __set_jail_prop () {
             __bpf_devfs >> /etc/devfs.rules
             service devfs restart > /dev/null 2>&1
         fi
+    elif [ "${_pname}" == "notes" ] ; then
+        zfs set org.freebsd.iocage:notes="${notes}" ${_dataset}
     fi
 }
 
