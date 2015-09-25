@@ -77,7 +77,7 @@ __set_jail_prop () {
             service devfs restart > /dev/null 2>&1
         fi
     elif [ "${_pname}" == "notes" ] ; then
-        zfs set org.freebsd.iocage:notes="${notes}" ${_dataset}
+        zfs set org.freebsd.iocage:${_pname}="${notes}" ${_dataset}
     fi
 }
 
