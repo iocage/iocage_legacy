@@ -126,6 +126,9 @@ __start_jail () {
 
             if [ $? -eq 1 ] ; then
                 echo "  ! Start                FAILED"
+                if [ "${_jail_type}" == "basejail" ] ; then
+                    __umount_basejail ${_fulluuid}
+                fi
                 exit 1
             else
                 echo "  + Started                  OK"
@@ -136,6 +139,9 @@ __start_jail () {
 
             if [ $? -eq 1 ] ; then
                 echo "         FAILED"
+                if [ "${_jail_type}" == "basejail" ] ; then
+                    __umount_basejail ${_fulluuid}
+                fi
                 exit 1
             else
                 echo "         OK"
@@ -152,6 +158,9 @@ __start_jail () {
         __legacy_start $_fulluuid $_dataset
         if [ $? -eq 1 ] ; then
             echo "  ! Start                FAILED"
+            if [ "${_jail_type}" == "basejail" ] ; then
+                __umount_basejail ${_fulluuid}
+            fi
             exit 1
         else
             echo "  + Started (shared IP mode) OK"
@@ -168,6 +177,9 @@ __start_jail () {
         cpuset -l $_cpuset -j $jid
         if [ $? -eq 1 ] ; then
             echo "    FAILED"
+            if [ "${_jail_type}" == "basejail" ] ; then
+                __umount_basejail ${_fulluuid}
+            fi
             exit 1
         else
             echo "    OK"
@@ -186,6 +198,9 @@ __start_jail () {
 
     if [ $? -eq 1 ] ; then
         echo "        FAILED"
+        if [ "${_jail_type}" == "basejail" ] ; then
+            __umount_basejail ${_fulluuid}
+        fi
         exit 1
     else
         echo "        OK"
