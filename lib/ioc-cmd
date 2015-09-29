@@ -58,6 +58,21 @@ __parse_cmd () {
                         exit
                 ;;
             fetch)      __export_props "$@"
+
+                        # Check if the user is specifying a git plugin and also
+                        # check to see if they want a thick plugin
+                        if [ $(echo $* | grep -q "/" ; echo $?) = "0" ] ; then
+                            shift
+                            if [ $1 = "-t" ] ; then
+                                shift
+                                __fetch_plugin_thick "$@"
+                                exit
+                            else
+                                __fetch_plugin "$@"
+                                exit
+                            fi
+                        fi
+
                         __fetch_release
                         exit
                 ;;
@@ -86,9 +101,7 @@ __parse_cmd () {
             promote)    __promote "$2"
                         exit
                 ;;
-            pull)       __export_props "$@"
-                        shift
-                        __pull "$@"
+            pull)       __pull "$2"
                         exit
                 ;;
             push)       __push "$2"
@@ -140,7 +153,7 @@ __parse_cmd () {
             uncap)      __rctl_uncap "$2"
                         exit
                 ;;
-            update)     __update "$2" "$3"
+            update)     __update "$2"
                         exit
                 ;;
             upgrade)     __upgrade "$2"

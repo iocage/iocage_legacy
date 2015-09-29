@@ -1,16 +1,15 @@
 #!/bin/sh
 
-__pull () {
-    local _gitlocation _jail_path _devfs_string _prop _pname
+__fetch_plugin () {
+    local _gitlocation _jail_path _prop _pname _repocheck
 
     _gitlocation="$(__get_default_prop gitlocation)"
-    _devfs_string="$(grep -Fxq \
-                  "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
-                  ; echo $?)"
+    _plugin="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $2 }')"
+    _repocheck="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $1 }')"
 
     # Check if the user doesn't have a gitlocation set,
     # we use github as the default location to clone from
-    if [ "$_gitlocation" = "-" -o "$_gitlocation" = "none" ] ; then
+    if [ "${_gitlocation}" = "-" -o "${_gitlocation}" = "none" ] ; then
         _gitlocation="https://github.com"
     fi
 
@@ -26,15 +25,82 @@ __pull () {
             _gitlocation="$1"
         ;;
         *)
-            if [ "$_gitlocation" = "none" -a -z "$iocset_gitlocation" ] ; then
+            if [ "${_gitlocation}" = "none" -a -z "${iocset_gitlocation}" ] ; then
                 echo ""
                 echo "  ERROR: You must either specify gitlocation= or set a default"
                 echo "  iocage set gitlocation=LOCATION default"
                 echo ""
                 exit 1
-            elif [ -n "$iocset_gitlocation" ] ; then
+            elif [ -n "${iocset_gitlocation}" ] ; then
                 unset _gitlocation
-                _gitlocation="$iocset_gitlocation"
+                _gitlocation="${iocset_gitlocation}"
+            fi
+        ;;
+    esac
+
+    __create_jail $@ 1> /dev/null
+    _jail_path="$(__get_jail_prop mountpoint ${uuid} \
+                ${pool}/iocage/jails/${uuid})"
+
+    # Begin git clone process
+    cd ${_jail_path}/_
+    git init --quiet .
+    git remote add origin "${_gitlocation}/$1" 1> /dev/null
+    if [ -z "${iocset_branch}" ] ; then
+        __spinner "INFO: fetching plugin ${_plugin}:  " \
+            "git fetch --quiet --depth 1 origin"
+        git checkout --quiet master
+    else
+        __spinner "INFO: fetching plugin ${_plugin}:  " \
+            "git fetch --quiet --depth 1 origin "${iocset_branch}""
+        git checkout --quiet "${iocset_branch}"
+    fi
+
+    # Check if user has a custom git location set
+    if [ "${_repocheck}" = "iocage" -o "${_repocheck}" = "pbi-cages" ] ; then
+        echo "  WARNING: Pushing will be disabled, please set a custom repo."
+        echo "  You can do this by issuing: iocage set gitlocation=URL default"
+        git branch --unset-upstream 1> /dev/null
+    fi
+}
+
+__fetch_plugin_thick () {
+    local _gitlocation _jail_path _devfs_string _prop _pname _plugin _repocheck
+
+    _gitlocation="$(__get_default_prop gitlocation)"
+    _plugin="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $2 }')"
+    _repocheck="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $1 }')"
+    _devfs_string="$(grep -Fxq \
+                  "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
+                  ; echo $?)"
+
+    # Check if the user doesn't have a gitlocation set,
+    # we use github as the default location to clone from
+    if [ "${_gitlocation}" = "-" -o "${_gitlocation}" = "none" ] ; then
+        _gitlocation="https://github.com"
+    fi
+
+    # Make sure git is installed.
+    if [ ! -e "/usr/local/bin/git" ] ; then
+        __die "git is not installed. Please install git first."
+    fi
+
+    # Check to see if the url begins with these otherwise use gitlocation
+    case "$1" in
+        http://*|https://*|git://*)
+            unset _gitlocation
+            _gitlocation="$1"
+        ;;
+        *)
+            if [ "${_gitlocation}" = "none" -a -z "${iocset_gitlocation}" ] ; then
+                echo ""
+                echo "  ERROR: You must either specify gitlocation= or set a default"
+                echo "  iocage set gitlocation=LOCATION default"
+                echo ""
+                exit 1
+            elif [ -n "${iocset_gitlocation}" ] ; then
+                unset _gitlocation
+                _gitlocation="${iocset_gitlocation}"
             fi
         ;;
     esac
@@ -43,26 +109,29 @@ __pull () {
     export type=gitjail
 
     # Hack to get around create jail not accepting just -e anymore.
-    __create_jail '' '-e'
-
+    __create_jail '' '-e' $@ 1> /dev/null
     _jail_path="$(__get_jail_prop mountpoint ${uuid} \
                 ${pool}/iocage/jails/${uuid})"
 
     # Begin git clone process
     cd ${_jail_path}/root
-    if [ -z "$iocset_branch" ] ; then
-        git clone --depth 1 $_gitlocation/$1 .
+    if [ -z "${iocset_branch}" ] ; then
+        __spinner "INFO: fetching plugin ${_plugin}:  " \
+            "git clone --quiet --depth 1 ${_gitlocation}/$1 ."
     else
-        git clone -b $iocset_branch --depth 1 $_gitlocation/$1.git .
+        __spinner "INFO: fetching plugin ${_plugin}:  " \
+            "git clone --quiet -b ${iocset_branch} --depth 1 \
+             ${_gitlocation}/$1.git ."
     fi
 
     # Check if user has a custom git location set
-    if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
+    if [ "${_repocheck}" != "iocage" -o "${_repocheck}" != "pbi-cages" ] ; then
         touch ${_jail_path}/fstab
     else
+    # Check if user has a custom git location set
         echo "  WARNING: Pushing will be disabled, please set a custom repo."
         echo "  You can do this by issuing: iocage set gitlocation=URL default"
-        git branch --unset-upstream
+        git branch --unset-upstream 1> /dev/null
         touch ${_jail_path}/fstab
     fi
 
@@ -97,37 +166,84 @@ __pull () {
     done
 }
 
-__push () {
-  local _gitlocation _gitrepo _answer _match
+__pull () {
+    local _name _fulluuid _mountpoint
 
-  _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-                ${pool}/iocage/.defaults)"
-
-  # Make sure git is installed.
-  if [ ! -e "/usr/local/bin/git" ] ; then
-      __die "git is not installed. Please install git first."
-  fi
-
-  # Check if user has a custom git location set
-  if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
-      # Will add all files and open a dialog for a git commit
-      git add -A
-      git commit
-      git push
-  else
-      echo -n "Please enter a git repo to push to: "
-      read _answer
-      if [ -z "$_answer" ] ; then
-          _answer="$_gitrepo"
-      else
-          _gitrepo="$_answer"
-          _match="1"
-          git add -A
-          git commit
-          git push -u "$2"
-    if [ -z $_match ] ; then
-        __die "invalid repo $_gitrepo specified."
+    if [ -z $1 ] ; then
+        __die "please provide a jail name"
     fi
-  fi
-fi
+
+    _name="$1"
+    _fulluuid="$(__check_name ${_name})"
+    _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
+
+    # Fetch the new data and then merge it in
+    __info "checking for plugin updates"
+    echo ""
+    git -C ${_mountpoint}/_ fetch origin 1> /dev/null \
+    && git -C ${_mountpoint}/_ merge --ff-only 1> /dev/null
+    if [ $? -eq 0 ] ; then
+        __info "checking for freebsd updates"
+        __update "${_name}" 1> /dev/null
+    fi
+}
+
+## NOT WORKING YET
+__push () {
+    local _gitlocation _gitrepo _answer _match
+
+    if [ $# -lt 1 ] ; then
+        __die "please specify either a user/repo or a complete url"
+    fi
+
+    _gitlocation="$(__get_default_prop gitlocation)"
+
+    # Make sure git is installed.
+    if [ ! -e "/usr/local/bin/git" ] ; then
+        __die "git is not installed. Please install git first."
+    fi
+
+    # Check if user has a custom git location set
+    if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
+        # Will add all files and open a dialog for a git commit
+        git add -A
+        git commit
+        git push
+    else
+        echo -n "Please enter a git repo to push to: "
+        read _answer
+        if [ -z "$_answer" ] ; then
+            _answer="$_gitrepo"
+        else
+            _gitrepo="$_answer"
+            _match="1"
+            git add -A
+            git commit
+            git push -u "$2"
+        fi
+
+        if [ -z $_match ] ; then
+            __die "invalid repo $_gitrepo specified."
+        fi
+    fi
+}
+
+# Takes two arguments one is which text gets displayed and the other
+# is the command
+__spinner () {
+    local _spinner
+    _spinner='/-\|'
+
+    printf "$1"
+
+    while true; do
+        printf '\b%.1s' "${_spinner}"
+        _spinner=${_spinner#?}${_spinner%???}
+        sleep .1
+    done &
+
+    trap "kill $!" 2 3
+    $2
+    printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
+    return $?
 }

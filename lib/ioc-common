@@ -74,7 +74,7 @@ __set_jail_prop () {
     elif [ "${_pname}" == "bpf" ] ; then
         if [ "${_devfs_string}" != "0" ] ; then
             __bpf_devfs >> /etc/devfs.rules
-            service devfs restart > /dev/null 2>&1
+            service devfs restart 1> /dev/null
         fi
     elif [ "${_pname}" == "notes" ] ; then
         zfs set org.freebsd.iocage:${_pname}="${notes}" ${_dataset}
@@ -356,7 +356,7 @@ __fetch_release () {
             env UNAME_r="${_release}" env PAGER="/bin/cat" \
             freebsd-update install
         umount ${iocroot}/base/${_release}/root/dev
-        if [ "$?" == "0" ] ; then
+        if [ $? -eq 0 ] ; then
             rm -f ${iocroot}/base/${_release}/root/etc/resolv.conf
         fi
     fi

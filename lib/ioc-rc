@@ -110,7 +110,7 @@ __start_jail () {
     if [ "${_bpf}" == "on" ] ; then
         if [ "${_devfs_string}" != "0" ] ; then
             __bpf_devfs >> /etc/devfs.rules
-            service devfs restart > /dev/null 2>&1
+            service devfs restart 1> /dev/null
         fi
     fi
 

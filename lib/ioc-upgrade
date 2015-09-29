@@ -20,8 +20,8 @@ __update () {
             # status output
             case $_jail_type in
                 gitjail)
-                    git -C $_mountpoint/root remote update
-                    git -C $_mountpoint/root status -uno
+                    git -C $_mountpoint/_ remote update
+                    git -C $_mountpoint/_ status -uno
                 ;;
             esac
         ;;
@@ -54,7 +54,7 @@ __update () {
                             freebsd-update install
                         umount ${iocroot}/base/${base}/root/dev
                         if [ "${_resolv}" == "1" ] ; then
-                            if [ "$?" == "0" ] ; then
+                            if [ $? -eq 0 ] ; then
                                 rm -f \
                                     ${iocroot}/base/${base}/root/etc/resolv.conf
                             fi
@@ -96,7 +96,7 @@ __update () {
                             freebsd-update install
                         umount ${_mountpoint}/root/dev
                         if [ "${_resolv}" == "1" ] ; then
-                            if [ "$?" == "0" ] ; then
+                            if [ $? -eq 0 ] ; then
                                 rm -f ${_mountpoint}/root/etc/resolv.conf
                             fi
                         fi
