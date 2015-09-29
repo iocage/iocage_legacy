@@ -42,8 +42,8 @@ __clean () {
             if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
                 __stop_jail_all
                 if [ $? -eq 0 ] ; then
-                    echo "  Destroying ${pool}/iocage"
-                    zfs destroy -rRf ${pool}/iocage
+                    __spinner "  INFO: destroying ${pool}/iocage:  " \
+                              "zfs destroy -rRf ${pool}/iocage"
                     rm -rf ${iocroot}
                     exit 0
                 else
@@ -86,8 +86,8 @@ __clean () {
                 __stop_jail_all
                 __clean_snapshots
                 if [ $? -eq 0 ] ; then
-                    echo "  Destroying ${pool}/iocage/jails"
-                    zfs destroy -rRf ${pool}/iocage/jails
+                    __spinner "  INFO: destroying ${pool}/iocage/jails:  " \
+                              "zfs destroy -rRf ${pool}/iocage/jails"
                     echo "  Cleaning TAGs at ${pool}/iocage/tags"
                     rm -rf ${iocroot}/tags
                     exit 0
@@ -312,7 +312,7 @@ __create_jail () {
     fi
 
     if [ -z "${_installed}" -a -z "${_releases}" -a "${2}" != "-e" ] ; then
-        __die "No RELEASEs found locally, run iocage fetch first."
+        __die "no RELEASEs found locally, run iocage fetch first."
     elif [ -z "${_installed}" -a "${2}" != "-e" ] ; then
         echo "  RELEASE ${base} not found locally."
         echo "  Please fetch ${base} or rerun iocage with release=RELEASE"

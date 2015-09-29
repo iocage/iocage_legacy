@@ -417,3 +417,23 @@ __die () {
 __info () {
     echo "  INFO: $@"
 }
+
+# Takes two arguments one is which text gets displayed and the other
+# is the command
+__spinner () {
+    local _spinner
+    _spinner='/-\|'
+
+    printf "$1"
+
+    while true; do
+        printf '\b%.1s' "${_spinner}"
+        _spinner=${_spinner#?}${_spinner%???}
+        sleep .1
+    done &
+
+    trap "kill $!" 2 3
+    $2
+    printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
+    return $?
+}

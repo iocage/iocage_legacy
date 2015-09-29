@@ -58,10 +58,12 @@ __parse_cmd () {
                         exit
                 ;;
             fetch)      __export_props "$@"
+                        local _gitcheck=$(echo $* | grep -v "ftp" | \
+                                        grep -q "/" ; echo $?)
 
                         # Check if the user is specifying a git plugin and also
                         # check to see if they want a thick plugin
-                        if [ $(echo $* | grep -q "/" ; echo $?) = "0" ] ; then
+                        if [ "${_gitcheck}" = "0" ] ; then
                             shift
                             if [ $1 = "-t" ] ; then
                                 shift

@@ -47,11 +47,11 @@ __fetch_plugin () {
     git init --quiet .
     git remote add origin "${_gitlocation}/$1" 1> /dev/null
     if [ -z "${iocset_branch}" ] ; then
-        __spinner "INFO: fetching plugin ${_plugin}:  " \
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
             "git fetch --quiet --depth 1 origin"
         git checkout --quiet master
     else
-        __spinner "INFO: fetching plugin ${_plugin}:  " \
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
             "git fetch --quiet --depth 1 origin "${iocset_branch}""
         git checkout --quiet "${iocset_branch}"
     fi
@@ -116,10 +116,10 @@ __fetch_plugin_thick () {
     # Begin git clone process
     cd ${_jail_path}/root
     if [ -z "${iocset_branch}" ] ; then
-        __spinner "INFO: fetching plugin ${_plugin}:  " \
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
             "git clone --quiet --depth 1 ${_gitlocation}/$1 ."
     else
-        __spinner "INFO: fetching plugin ${_plugin}:  " \
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
             "git clone --quiet -b ${iocset_branch} --depth 1 \
              ${_gitlocation}/$1.git ."
     fi
@@ -226,24 +226,4 @@ __push () {
             __die "invalid repo $_gitrepo specified."
         fi
     fi
-}
-
-# Takes two arguments one is which text gets displayed and the other
-# is the command
-__spinner () {
-    local _spinner
-    _spinner='/-\|'
-
-    printf "$1"
-
-    while true; do
-        printf '\b%.1s' "${_spinner}"
-        _spinner=${_spinner#?}${_spinner%???}
-        sleep .1
-    done &
-
-    trap "kill $!" 2 3
-    $2
-    printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
-    return $?
 }
