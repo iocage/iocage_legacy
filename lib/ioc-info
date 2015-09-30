@@ -243,23 +243,12 @@ __list_jails_warden () {
 }
 
 __print_disk () {
-    local jails=$(__find_jail ALL)
+    local _format="%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %s\n"
 
-    printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" \
-           "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
-
-    for jail in $jails ; do
-        uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
-        crt=$(zfs get -H -o value compressratio $jail)
-        res=$(zfs get -H -o value reservation $jail)
-        qta=$(zfs get -H -o value quota $jail)
-        use=$(zfs get -H -o value used $jail)
-        ava=$(zfs get -H -o value available $jail)
-        tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
-
-        printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" \
-               "$uuid" "$crt" "$res" "$qta" "$use" "$ava" "$tag"
-    done
+    printf "${_format}" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
+    zfs list -t filesystem -rd1 -H -o org.freebsd.iocage:host_hostuuid,compressratio,reservation,quota,used,available,org.freebsd.iocage:tag \
+        ${pool}/iocage/jails | sed "1 d" | \
+        awk -F '\t' '{printf "'"${_format}"'", $1, $2, $3, $4, $5, $6, $7}'
 }
 
 __find_mypool () {
