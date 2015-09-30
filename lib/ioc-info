@@ -248,7 +248,7 @@ __print_disk () {
     printf "${_format}" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
     zfs list -t filesystem -rd1 -H -o org.freebsd.iocage:host_hostuuid,compressratio,reservation,quota,used,available,org.freebsd.iocage:tag \
         ${pool}/iocage/jails | sed "1 d" | \
-        awk -F '\t' '{printf "'"${_format}"'", $1, $2, $3, $4, $5, $6, $7}'
+        awk -F "\t" '{printf "'"${_format}"'", $1, $2, $3, $4, $5, $6, $7}'
 }
 
 __find_mypool () {
