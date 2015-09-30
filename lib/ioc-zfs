@@ -40,7 +40,7 @@ __clean () {
             read _answer
 
             if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
-                __stop_jail_all
+                __stop_jail_all > /dev/null 2>&1
                 if [ $? -eq 0 ] ; then
                     __spinner "  INFO: destroying ${pool}/iocage:  " \
                               "zfs destroy -rRf ${pool}/iocage"
@@ -63,10 +63,10 @@ __clean () {
             if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
                 __clean_basejail
                 if [ $? -eq 0 ] ; then
-                    echo "  Destroying ${pool}/iocage/download"
-                    zfs destroy -rRf ${pool}/iocage/download
-                    echo "  Destroying ${pool}/iocage/base"
-                    zfs destroy -rRf ${pool}/iocage/base
+                    __spinner "  INFO: destroying ${pool}/iocage/download:  " \
+                              "zfs destroy -rRf ${pool}/iocage/download"
+                    __spinner "  INFO: destroying ${pool}/iocage/base:  " \
+                              "zfs destroy -rRf ${pool}/iocage/base"
                     exit 0
                 else
                     __die "some jails were unable to be stopped."
@@ -83,13 +83,13 @@ __clean () {
             read _answer
 
             if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
-                __stop_jail_all
                 __clean_snapshots
+                __stop_jail_all > /dev/null 2>&1
                 if [ $? -eq 0 ] ; then
                     __spinner "  INFO: destroying ${pool}/iocage/jails:  " \
                               "zfs destroy -rRf ${pool}/iocage/jails"
-                    echo "  Cleaning TAGs at ${pool}/iocage/tags"
-                    rm -rf ${iocroot}/tags
+                    __spinner "  INFO: cleaning TAGs at ${pool}/iocage/tags:  " \
+                              "rm -rf ${iocroot}/tags"
                     exit 0
                 else
                     __die "some jails were unable to be stopped."
