@@ -183,9 +183,9 @@ __list_jails () {
                 printf "%-+40s\n" "--- non iocage jails currently active ---"
                 printf "%s^%s^%s^%s\n" "JID" "PATH"\
                       "IP4" "HOSTNAME"
-                for _jid in "${_non_ioc_jids}" ; do
-                    _path=$(jls -j ${_jid}  -h path | grep -v -x "path")
-                    _ip4=$(jls -j ${_jid}  -h ip4.addr | grep -v -x "ip4.addr")
+                for _jid in ${_non_ioc_jids} ; do
+                    _path=$(jls -j ${_jid} -h path | grep -v -x "path")
+                    _ip4=$(jls -j ${_jid} -h ip4.addr | grep -v -x "ip4.addr")
                     _host_hostname=$(jls -j ${_jid}  -h host.hostname | \
                                     grep -v -x "host.hostname")
                     printf "%s^%s^%s^%s\n" "${_jid}" "${_path}"  \

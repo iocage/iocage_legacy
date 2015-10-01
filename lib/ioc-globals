@@ -7,7 +7,6 @@ uuid=$(uuidgen)
 pkglist="none"
 
 # Network defaults for jails start here
-
 # detect VNET kernel and adjust jail default
 # if supported turn it on by default
 if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
