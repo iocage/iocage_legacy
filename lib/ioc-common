@@ -264,8 +264,8 @@ __chroot () {
     chroot ${_jailroot}/root $_command
 
     # Unmount the overlays from before
-    if [ "${_jail_type}" == "basejail" ] ; then
-        if [ "${_state}" == "0" ] ; then
+    if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
+        if [ "${_state}" = "0" ] ; then
             __umount_basejail "${_fulluuid}"
         fi
     fi

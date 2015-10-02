@@ -126,7 +126,7 @@ __export () {
     echo "* Checksum created: $iocroot/images/$_fulluuid.sha256"
 
     # Unmount the overlays from before
-    if [ "${_jail_type}" == "basejail" ] ; then
+    if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
             __umount_basejail "${_fulluuid}"
     fi
 }

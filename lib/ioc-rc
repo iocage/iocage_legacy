@@ -114,10 +114,16 @@ __start_jail () {
         fi
     fi
 
-    if [ $_jail_type == "basejail" ] ; then
+    if [ "${_jail_type}" = "basejail" ] ; then
         # Re-clone required filesystems
         __reclone_basejail $_fulluuid $_dataset
     fi
+
+    if [ "${_jail_type}" = "clonejail" ] ; then
+        # Mount old filesystems
+        __mount_basejail $_fulluuid
+    fi
+
 
     if [ $_vnet == "on" ] || [ $_vnet == "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
@@ -126,9 +132,11 @@ __start_jail () {
 
             if [ $? -eq 1 ] ; then
                 echo "  ! Start                FAILED"
-                if [ "${_jail_type}" == "basejail" ] ; then
+
+                if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                     __umount_basejail ${_fulluuid}
                 fi
+
                 exit 1
             else
                 echo "  + Started                  OK"
@@ -139,9 +147,11 @@ __start_jail () {
 
             if [ $? -eq 1 ] ; then
                 echo "         FAILED"
-                if [ "${_jail_type}" == "basejail" ] ; then
+
+                if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                     __umount_basejail ${_fulluuid}
                 fi
+
                 exit 1
             else
                 echo "         OK"
@@ -150,7 +160,11 @@ __start_jail () {
             echo "  ERROR: start failed for $_fulluuid"
             echo "  vnet=on but kernel is not VNET capable!"
             echo "  Turn vnet off for this jail or recompile kernel with VNET."
-            __umount_basejail "${_fulluuid}"
+
+            if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
+                __umount_basejail ${_fulluuid}
+            fi
+
             exit 1
         fi
     else
@@ -158,7 +172,7 @@ __start_jail () {
         __legacy_start $_fulluuid $_dataset
         if [ $? -eq 1 ] ; then
             echo "  ! Start                FAILED"
-            if [ "${_jail_type}" == "basejail" ] ; then
+            if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                 __umount_basejail ${_fulluuid}
             fi
             exit 1
@@ -177,7 +191,7 @@ __start_jail () {
         cpuset -l $_cpuset -j $jid
         if [ $? -eq 1 ] ; then
             echo "    FAILED"
-            if [ "${_jail_type}" == "basejail" ] ; then
+            if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                 __umount_basejail ${_fulluuid}
             fi
             exit 1
@@ -198,7 +212,7 @@ __start_jail () {
 
     if [ $? -eq 1 ] ; then
         echo "        FAILED"
-        if [ "${_jail_type}" == "basejail" ] ; then
+        if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
             __umount_basejail ${_fulluuid}
         fi
         exit 1
@@ -502,7 +516,7 @@ __stop_jail () {
     umount ${_jail_path}/root/dev    > /dev/null 2>&1
     umount ${_jail_path}/root/proc   > /dev/null 2>&1
 
-    if [ $_jail_type = "basejail" ] ; then
+    if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
             __umount_basejail "${_fulluuid}"
     fi
 
