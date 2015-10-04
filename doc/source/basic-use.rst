@@ -143,7 +143,7 @@ Example, to turn off VNET capability for all newly created jails run:
 
 ``iocage set vnet=off default``
 
-Destroy a jails
+Destroy a jail
 ---------------
 
 To destroy a jail, simply run:
