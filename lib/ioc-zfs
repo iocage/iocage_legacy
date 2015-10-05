@@ -381,7 +381,7 @@ __create_jail () {
     fi
 
     # at create time set the default rc.conf
-    echo "hostname=\"${hostname}\"" > \
+    echo "hostname=\"${host_hostname}\"" > \
         ${iocroot}/jails/${uuid}/root/etc/rc.conf
     __jail_rc_conf >> \
         ${iocroot}/jails/${uuid}/root/etc/rc.conf
@@ -513,7 +513,7 @@ __clone_jail () {
         mv ${iocroot}/jails/${uuid}/rc.conf \
            ${iocroot}/jails/${uuid}/root/etc/rc.conf
     else
-        echo "hostname=\"${hostname}\"" > \
+        echo "hostname=\"${host_hostname}\"" > \
             ${iocroot}/jails/${uuid}/root/etc/rc.conf
         __jail_rc_conf >> \
             ${iocroot}/jails/${uuid}/root/etc/rc.conf

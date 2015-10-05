@@ -20,7 +20,6 @@ ipv6="on"
 interfaces="vnet0:bridge0,vnet1:bridge1"
 host_hostname=$uuid
 exec_fib=0
-hostname=$uuid
 ip4_addr="none"
 ip4_autostart="none"
 ip4_autoend="none"
@@ -60,7 +59,7 @@ children_max="0"
 login_flags='-f root'
 securelevel="2"
 host_hostuuid=$uuid
-allow_set_hostname=0
+allow_set_hostname=1
 allow_sysvipc=0
 allow_raw_sockets=0
 allow_chflags=0
@@ -166,7 +165,6 @@ CONF_RCTL="memoryuse
 CONF_NET="interfaces
           vnet
           host_hostname
-          hostname
           ip4_addr
           ip4_autostart
           ip4_autoend

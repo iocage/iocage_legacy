@@ -34,9 +34,7 @@ __configure_jail () {
             if [ "$prop_name" = "tag" ] ; then
                 _value="$tag"
             elif [ "$prop_name" = "host_hostname" ] ; then
-                _value="$uuid"
-            elif [ "$prop_name" = "hostname" ] ; then
-                _value="$uuid"
+                _value="${host_hostname}"
             elif [ "$prop_name" = "host_hostuuid" ] ; then
                 _value="$uuid"
             elif [ "$prop_name" = "jail_zfs_dataset" ] ; then

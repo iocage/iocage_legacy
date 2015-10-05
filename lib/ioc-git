@@ -137,7 +137,7 @@ __fetch_plugin_thick () {
 
     # Check for rc.conf and resolv.conf, create them if they don't exist.
     if [ ! -e "${_jail_path}/root/etc/rc.conf" ] ; then
-        echo "hostname=\"${hostname}\"" > ${_jail_path}/root/etc/rc.conf
+        echo "hostname=\"${host_hostname}\"" > ${_jail_path}/root/etc/rc.conf
         __jail_rc_conf >> ${_jail_path}/root/etc/rc.conf
     fi
 
