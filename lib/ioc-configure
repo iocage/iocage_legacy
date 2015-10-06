@@ -2,8 +2,7 @@
 
 # Configure properties -------------------------------------------------
 __configure_jail () {
-    local _value _default_value _CONF \
-          _iocset _iocset_var _iocset_cmd
+    local _value _CONF
 
     _CONF="$CONF_NET
            $CONF_JAIL
@@ -17,82 +16,70 @@ __configure_jail () {
         prop_name=$prop
         eval prop="\$${prop}"
         if [ ! -z "$prop" ] ; then
-            # find saved default value if any for the property
-            _default_value="$(__get_default_prop $prop_name)"
-
-            # look for props specified on cmd line
-            _iocset_='iocset_'
-            _iocset_var="$iocset_$prop_name"
-            eval _iocset_cmd="\$$iocset_var"
-
-            if [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] && [ -z "$_iocset_cmd" ] ; then
-                _value="$_default_value"
-            else
-                _value="$prop"
-            fi
-
-            if [ "$prop_name" = "tag" ] ; then
-                _value="$tag"
-            elif [ "$prop_name" = "host_hostname" ] ; then
-                _value="${host_hostname}"
-            elif [ "$prop_name" = "host_hostuuid" ] ; then
-                _value="$uuid"
-            elif [ "$prop_name" = "jail_zfs_dataset" ] ; then
-                _value="${jail_zfs_dataset}"
-            elif [ "$prop_name" = "base" ] ; then
-                _value="${base}"
-            elif [ "$prop_name" = "hack88" ] ; then
-                _value="${hack88}"
-            elif [ "$prop_name" = "resolver" ] ; then
-                _value="${resolver}"
-            elif [ "$prop_name" = "ip4_autostart" ] ; then
-                _value="${ip4_autostart}"
-            elif [ "$prop_name" = "ip4_autoend" ] ; then
-                _value="${ip4_autoend}"
-            elif [ "$prop_name" = "ip4_autosubnet" ] ; then
-                _value="${ip4_autosubnet}"
-            elif [ "$prop_name" = "type" ] ; then
-                _value="${type}"
-            elif [ "$prop_name" = "boot" ] ; then
-                _value="${boot}"
-            elif [ "$prop_name" = "vnet" ] ; then
-                _value="${vnet}"
-            elif [ "$prop_name" = "gitlocation" ] ; then
-                case "$gitlocation" in
-                    "-")
-                        gitlocation="https://github.com"
+            case "${prop_name}" in
+                tag) _value="${tag}"
                     ;;
-                esac
-                _value="${gitlocation}"
-            elif [ "$prop_name" = "vnet0_mac" ] ; then
-                case "$vnet0_mac" in
-                    "-")
-                        vnet0_mac="none"
+                host_hostname) _value="${host_hostname}"
                     ;;
-                esac
-                _value="$vnet0_mac"
-            elif [ "$prop_name" = "vnet1_mac" ] ; then
-                case "$vnet1_mac" in
-                    "-")
-                        vnet1_mac="none"
+                host_hostuuid) _value="${host_hostuuid}"
                     ;;
-                esac
-                _value="$vnet1_mac"
-            elif [ "$prop_name" = "vnet2_mac" ] ; then
-                case "$vnet2_mac" in
-                    "-")
-                        vnet2_mac="none"
+                jail_zfs_dataset) _value="${jail_zfs_dataset}"
                     ;;
-                esac
-                _value="$vnet2_mac"
-            elif [ "$prop_name" = "vnet3_mac" ] ; then
-                case "$vnet3_mac" in
-                    "-")
-                        vnet3_mac="none"
+                base) case "${base}" in
+                          "-") base="$(zfs get -H -o value org.freebsd.iocage:base $1)"
+                              ;;
+                      esac
+                      _value="${base}"
                     ;;
-                esac
-                _value="$vnet3_mac"
-            fi
+                hack88) _value="${hack88}"
+                    ;;
+                resolver) _value="${resolver}"
+                    ;;
+                ip4_autostart) _value="${ip4_autostart}"
+                    ;;
+                ip4_autoend) _value="${ip4_autoend}"
+                    ;;
+                ip4_autosubnet) _value="${ip4_autosubnet}"
+                    ;;
+                type) _value="${type}"
+                    ;;
+                boot) _value="${boot}"
+                    ;;
+                vnet) _value="${vnet}"
+                    ;;
+                gitlocation) case "${gitlocation}" in
+                                 "-") gitlocation="https://github.com"
+                                     ;;
+                             esac
+                             _value="${gitlocation}"
+                    ;;
+                vnet0_mac) case "${vnet0_mac}" in
+                               "-") vnet0_mac="none"
+                                   ;;
+                           esac
+                           _value="${vnet0_mac}"
+                    ;;
+                vnet1_mac) case "${vnet1_mac}" in
+                               "-") vnet1_mac="none"
+                                   ;;
+                           esac
+                           _value="${vnet1_mac}"
+                    ;;
+                vnet2_mac) case "${vnet2_mac}" in
+                               "-") vnet2_mac="none"
+                                   ;;
+                           esac
+                           _value="${vnet2_mac}"
+                    ;;
+                vnet3_mac) case "${vnet3_mac}" in
+                               "-") vnet3_mac="none"
+                                   ;;
+                           esac
+                           _value="${vnet3_mac}"
+                    ;;
+                *) _value="${prop}"
+                    ;;
+            esac
 
             if [ "$1" != "generate" ] ; then
                 echo "** $prop_name=$_value"
@@ -107,19 +94,8 @@ __configure_jail () {
     for prop in $CONF_ZFS ; do
         prop_name=$prop
         eval prop="\$${prop}"
-        _default_value="$(__get_default_prop $prop_name)"
         if [ ! -z "$prop" ] && [ "$prop" != "readonly" ] ; then
-             # look for props specified on cmd line
-            _iocset_='iocset_'
-            _iocset_var="$iocset_$prop_name"
-            eval _iocset_cmd="\$$iocset_var"
-
-            # find saved default value if any for the property
-            if [ "$_default_value" != "none" ] && [ "$_default_value" != "$prop" ] && [ -z "$_iocset_cmd" ] ; then
-                _value="$_default_value"
-            else
-                _value="$prop"
-            fi
+            _value="$prop"
 
             if [ "$1" != "generate" ] ; then
                 echo "** $prop_name=$_value"
@@ -219,7 +195,14 @@ __reset_jail_props () {
     vnet1_mac="$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_dataset)"
     vnet2_mac="$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_dataset)"
     vnet3_mac="$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_dataset)"
+    # Migrate old RELEASE to new base
     base="$(zfs get -H -o value org.freebsd.iocage:release $_dataset)"
+
+    # Unset  release property afterwards
+    if [ "${base}" != "-" ] ; then
+        zfs inherit -r org.freebsd.iocage:release "${_dataset}"
+    fi
+
     hack88="$(zfs get -H -o value org.freebsd.iocage:hack88 $_dataset)"
     jail_zfs_dataset="$(zfs get -H -o value org.freebsd.iocage:jail_zfs_dataset\
         $_dataset)"
@@ -234,6 +217,7 @@ __reset_jail_props () {
     type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
     boot="$(zfs get -H -o value org.freebsd.iocage:boot $_dataset)"
     vnet="$(zfs get -H -o value org.freebsd.iocage:vnet $_dataset)"
+    host_hostname="$(zfs get -H -o value org.freebsd.iocage:host_hostname $_dataset)"
 
     __configure_jail $_dataset
 }
