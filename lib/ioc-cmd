@@ -134,9 +134,6 @@ __parse_cmd () {
                         __set_jail_prop "$2" "$3"
                         exit
                 ;;
-            show)       __show "$2"
-                        exit
-                ;;
             snaplist)   __snaplist "$2"
                         exit
                 ;;

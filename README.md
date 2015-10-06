@@ -62,7 +62,7 @@ Start the jail:
   iocage export UUID|TAG
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
                 ftpfiles="base.txz doc.txz lib32.txz src.txz"]
-  iocage get property|all UUID|TAG
+  iocage get [-r] property|all UUID|TAG
   iocage help
   iocage import UUID [property=value]
   iocage init-host IP ZPOOL
@@ -78,7 +78,6 @@ Start the jail:
   iocage rollback UUID|TAG@snapshotname
   iocage runtime UUID|TAG
   iocage set property=value UUID|TAG
-  iocage show property
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
   iocage snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]

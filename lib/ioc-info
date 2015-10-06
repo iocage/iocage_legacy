@@ -316,6 +316,11 @@ __get_jail_prop () {
            $CONF_FTP
            $CONF_GIT"
 
+    if [ "${1}" = "-r" ] ; then
+        __show "${2}"
+        return
+    fi
+
     if [ -z "$_property" ] ; then
         __die "get failed, incorrect property syntax!"
     fi

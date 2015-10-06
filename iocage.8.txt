@@ -17,7 +17,7 @@ SYNOPSIS
   iocage export UUID|TAG
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
                 ftpfiles="base.txz doc.txz lib32.txz src.txz"]
-  iocage get property|all UUID|TAG
+  iocage get [-r] property|all UUID|TAG
   iocage help
   iocage import UUID [property=value]
   iocage init-host IP ZPOOL
@@ -33,7 +33,6 @@ SYNOPSIS
   iocage rollback UUID|TAG@snapshotname
   iocage runtime UUID|TAG
   iocage set property=value UUID|TAG
-  iocage show property
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
   iocage snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
@@ -200,7 +199,7 @@ SUBCOMMANDS
     Newly created jails or basejails will automatically have the latest
     latest updates applied.
 
-  get property|all UUID|TAG
+  get [-r] property|all UUID|TAG
 
     Get named property or if "all" keyword is specified dump all properties
     known to iocage.
@@ -208,6 +207,8 @@ SUBCOMMANDS
     To display whether resource limits are enforced for a jail:
 
     iocage get rlimits UUID|TAG
+    iocage get -r rlimits
+    iocage get all UUID|TAG
 
   help
 
@@ -295,15 +296,6 @@ SUBCOMMANDS
   set property=value UUID|TAG
 
     Set a property to value.
-
-  show property
-
-    Shows the given property for all jails and templates. Useful to compare
-    settings/properties for all jails.
-
-    To get the last successfull start time for all jails:
-
-        iocage show last_started
 
   snaplist UUID|TAG
 
@@ -1315,7 +1307,7 @@ EXAMPLES
 
   Get the last successful start time for all jails
 
-    iocage show last_started
+    iocage get -r last_started
 
 HINTS
   iocage marks a ZFS pool in the pool's comment field and identifies the
