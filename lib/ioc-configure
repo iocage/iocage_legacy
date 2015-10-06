@@ -227,7 +227,7 @@ __reset_jail_props_all () {
     _jails="$(__find_jail ALL)"
 
     for jail in $_jails ; do
-       _dataset="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
-       __reset_jail_props "$_dataset"
+        _dataset="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
+        __reset_jail_props "$_dataset"
     done
 }
