@@ -5,7 +5,7 @@ __snapshot () {
 
     _date=$(date "+%F_%T")
 
-    if [ "$1" == "-r" ] ; then
+    if [ "$1" = "-r" ] ; then
         shift
         _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
         _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
