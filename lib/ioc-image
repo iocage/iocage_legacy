@@ -3,59 +3,56 @@
 __import_thick () {
     local _name _image _icount _icksum _new_cksum _old_cksum _uuid
 
-    _name=$1
+    _name="${1}"
     _image="$(find ${iocroot}/images/ -name ${_name}\*.tar.xz)"
     _icount="$(echo ${_image}|wc -w)"
+    _ibase="$(echo ${_image} | cut -d "_" -f 2 | \
+        awk 'BEGIN { FS = "." } ; { print $1"."$2 }')"
     _icksum="$(find ${iocroot}/images/ -name ${_name}\*.sha256)"
 
-    if [ -z ${_name} ] ; then
-        echo "  ERROR: Missing image UUID!"
-        exit 1
-    fi
-
-    if [ ${_icount} -gt 1 ] ; then
-        echo "  ERROR: Multiple matching images, please narrow down UUID."
-        exit 1
-    fi
-
-    if [ ${_icount} -gt 0 ] ; then
+    if [ "${_icount}" -gt 0 ] ; then
         echo "* Found image ${_image}"
         echo "* Importing image ${_image}"
 
-        if [ ! -f ${_icksum} ] ; then
+        if [ ! -f "${_icksum}" ] ; then
             echo "  ERROR: Missing checksum file!"
             exit 1
         fi
 
         _new_cksum="$(sha256 -q ${_image})"
         _old_cksum="$(cat ${_icksum})"
-        export type=thickjail
-        _uuid="$(__create_jail "" -e)"
 
-        if [ ${_new_cksum} != ${_old_cksum} ] ; then
+        if [ "${_new_cksum}" != "${_old_cksum}" ] ; then
             echo "  ERROR: Checksum mismatch. Exiting."
             exit 1
         else
-            tar -xvJf ${_image} -C ${iocroot}/jails/${_uuid}/root
+            # Because any jail being imported this way are thickjails
+            export type=thickjail
+            _uuid="$(__create_jail "" -e)"
+            tar -xvJf "${_image}" -C "${iocroot}/jails/${_uuid}/root"
+            zfs set org.freebsd.iocage:base="${_ibase}" \
+            "${pool}/iocage/jails/${_uuid}"
         fi
 
     else
         __die "image ${_name} not found!"
     fi
 
-    cat ${iocroot}/jails/${_uuid}/root/etc/rc.conf | \
+    cat "${iocroot}/jails/${_uuid}/root/etc/rc.conf" | \
     sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/${_uuid}/g" \
-    > ${iocroot}/jails/${_uuid}/rc.conf
+    > "${iocroot}/jails/${_uuid}/rc.conf"
 
-    mv ${iocroot}/jails/${_uuid}/rc.conf \
-    ${iocroot}/jails/${_uuid}/root/etc/rc.conf
+    mv "${iocroot}/jails/${_uuid}/rc.conf" \
+    "${iocroot}/jails/${_uuid}/root/etc/rc.conf"
 }
 
 __import () {
-    local _name _fulluuid _tag _image _icount _idate _jail_base _spinner
+    local _name _fulluuid _tag _image _icount _ibase _idate _jail_base _spinner
 
     _name="${1}"
-    _image="$(find ${iocroot}/images/ -name ${_name}-*)"
+    _image="$(find ${iocroot}/images/ ! -name '*.sha256' -name ${_name}*)"
+    _ibase="$(echo ${_image} | cut -d "_" -f 2 | \
+        awk 'BEGIN { FS = "." } ; { print $1"."$2 }')"
     _idate="$(echo ${_image} | cut -d "-" -f 6-)"
     _icount="$(echo ${_image} | wc -w)"
 
@@ -67,10 +64,18 @@ __import () {
         __die "multiple matching images, please narrow down UUID."
     fi
 
+    if [ "$(echo ${_image} | grep -E 'thickjail.*.tar.xz')" ] ; then
+        __export_props "$@"
+        __import_thick "${_name}"
+        exit $?
+    fi
+
     if [ -e "${iocroot}/jails/${_name}" ] ; then
         _fulluuid="$(__check_name ${_name})"
         _tag="$(__get_jail_prop tag ${_fulluuid})"
         __die "${_name} has already been imported (${_tag})"
+    elif [ ! -e "${iocroot}/base/${_ibase}" ] ; then
+        __die "please fetch ${_ibase} first."
     else
         # __spinner needs to be recreated here as we redirect with zfs send
         _spinner='/-\|'
@@ -85,7 +90,6 @@ __import () {
 
         trap "kill $!" 2 3
         zfs recv -d "${pool}" < "${_image}"
-        zfs destroy "${pool}/iocage/jails/${_name}@ioc-export-${_idate}"
         printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
     fi
 }
@@ -103,14 +107,17 @@ __post_import_tasks () {
         "${pool}/iocage/base/${_jail_base}/root@${_name}" \
         "${pool}/iocage/jails/${_name}/root"
 }
+
 __export () {
-    local _name _dataset _date _fulluuid _spinner
+    local _name _dataset _date _fulluuid _jail_base  _spinner
 
     _name="${1}"
     _dataset=$(__find_jail ${_name})
     _fulluuid="$(__check_name ${_name})"
     _tag="$(__get_jail_prop tag ${_fulluuid})"
     _date=$(date "+%F")
+    _jail_base="$(__get_jail_prop base ${_fulluuid})"
+    _export_name="${iocroot}/images/${_fulluuid}-basejail-${_date}_${_jail_base}"
 
     if [ -z "${_name}" ] ; then
         __die "missing UUID or TAG!"
@@ -124,60 +131,56 @@ __export () {
         mkdir ${iocroot}/images
     fi
 
-    if [ -e "${iocroot}/images/${_fulluuid}" ] ; then
-        __die "${_fulluuid} has already been exported (${_tag})"
-    else
-        # __spinner needs to be recreated here as we redirect with zfs send
-        _spinner='/-\|'
+    # __spinner needs to be recreated here as we redirect with zfs send
+    _spinner='/-\|'
 
-        printf "  INFO: exporting ${_fulluuid} (${_tag}):  "
+    printf "  INFO: exporting ${_fulluuid} (${_tag}):  "
 
-        while true; do
-            printf '\b%.1s' "${_spinner}"
-            _spinner=${_spinner#?}${_spinner%???}
-            sleep .1
-        done &
+    while true; do
+        printf '\b%.1s' "${_spinner}"
+        _spinner=${_spinner#?}${_spinner%???}
+        sleep .1
+    done &
 
-        trap "kill $!" 2 3
-        zfs snapshot "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}"
-        zfs send -p "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}" > \
-                    "${iocroot}/images/${_fulluuid}-${_date}"
-        zfs destroy "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}"
-        printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
-    fi
-
+    trap "kill $!" 2 3
+    zfs snapshot "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}"
+    zfs send -p "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}" > \
+                "${_export_name}"
+    zfs destroy "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}"
+    printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
 }
 
 __export_thick () {
-    # Export full jail
-    # sha256
-    local _name _dataset _fulluuid _jail_path _state _mountpoint _jail_type
+    # Export a thiickjail with a sha256 checksum
+    local _name _dataset _date _fulluuid _jail_path _jail_base _state \
+          _mountpoint
 
-    _name=$1
-    _dataset=$(__find_jail $_name)
-    _fulluuid="$(__check_name $_name)"
-    _jail_path="$(__get_jail_prop mountpoint $_fulluuid)"
-    _jail_type="$(__get_jail_prop type ${_fulluuid})"
+    _name="${1}"
+    _dataset=$(__find_jail ${_name})
+    _date=$(date "+%F")
+    _fulluuid="$(__check_name ${_name})"
+    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid})"
+    _jail_base="$(__get_jail_prop base ${_fulluuid})"
     _state=$(jls|grep ${_jail_path} | wc -l)
-    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
+    _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
 
-    if [ -z $_name ] ; then
+    if [ -z "${_name}" ] ; then
         echo "  ERROR: Missing UUID!"
         exit 1
     fi
 
-    if [ -z $_dataset ] ; then
-        echo "  ERROR: $_name not found."
+    if [ -z "${_dataset}" ] ; then
+        echo "  ERROR: ${_name} not found."
         exit 1
     fi
 
-    if [ $_dataset == "multiple" ] ; then
+    if [ "${_dataset}" = "multiple" ] ; then
         echo "  ERROR: Multiple matching UUIDs!"
         exit 1
     fi
 
-    if [ "$_state" -gt "0" ] ; then
-        echo "  ERROR: $_fulluuid is running!"
+    if [ "${_state}" -gt "0" ] ; then
+        echo "  ERROR: ${_fulluuid} is running!"
         echo "  Stop jail before exporting!"
         exit 1
     fi
@@ -186,14 +189,18 @@ __export_thick () {
         mkdir ${iocroot}/images
     fi
 
-    echo "* Exporting ${_fulluuid}"
-    tar -cvJf ${iocroot}/images/${_fulluuid}.tar.xz -C ${_mountpoint}/root . && \
-    sha256 -q ${iocroot}/images/${_fulluuid}.tar.xz > ${iocroot}/images/${_fulluuid}.sha256
-    echo "* Image saved to: ${iocroot}/images/${_fulluuid}.tar.xz"
-    echo "* Checksum created: ${iocroot}/images/${_fulluuid}.sha256"
-
-    # Unmount the overlays from before
-    if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-            __umount_basejail "${_fulluuid}"
+    # thickjails aren't supported for creation with 2.0
+    # this is to migrate their property.
+    if [ "${_jail_base}" = "none" ] ; then
+        _jail_base="$(__get_jail_prop release ${_fulluuid})"
     fi
+
+    _export_name="${iocroot}/images/${_fulluuid}-thickjail-${_date}_${_jail_base}"
+
+    echo "* Exporting ${_fulluuid}"
+    tar -cvJf "${_export_name}.tar.xz" -C \
+        "${_mountpoint}/root" . \
+    && sha256 -q "${_export_name}.tar.xz" > "${_export_name}.sha256"
+    echo "* Image saved to: ${_export_name}.tar.xz"
+    echo "* Checksum created: ${_export_name}.sha256"
 }

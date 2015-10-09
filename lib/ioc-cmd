@@ -55,7 +55,15 @@ __parse_cmd () {
                         __exec "$@"
                         exit
                 ;;
-            export)     __export "$2"
+            export)        local _fulluuid _jail_type
+                           _fulluuid="$(__check_name ${2})"
+                           _jail_type="$(__get_jail_prop type ${_fulluuid})"
+                           if [ "${_jail_type}" = "thickjail" ] ; then
+                               __export_thick "$2"
+                           else
+                               __export "$2"
+                           fi
+
                         exit
                 ;;
             fetch)      __export_props "$@"
@@ -91,9 +99,9 @@ __parse_cmd () {
             inuse)      __rctl_inuse "$2"
                         exit
                 ;;
-            import)     __export_props "$@"
-                        __import "$2"
-                        __post_import_tasks "$2"
+            import)     shift
+                        __import "$@"
+                        __post_import_tasks "$1"
                         exit
                 ;;
             limits)     __rctl_list "$2"

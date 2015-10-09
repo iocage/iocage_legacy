@@ -424,7 +424,7 @@ __spinner () {
     local _spinner
     _spinner='/-\|'
 
-    printf "$1"
+    printf "${1}"
 
     while true; do
         printf '\b%.1s' "${_spinner}"
