@@ -200,7 +200,8 @@ __migrate_basejail () {
 
 __reclone_basejail () {
     local _fulluuid _fs_list _dataset _jail_release _jailed_dataset \
-          _jailed_dataset_check _jail_datasets _base_inuse _origin _tag _uuid
+          _jailed_dataset_check _jail_datasets _base_inuse _origin _tag _uuid \
+          _jail_mount _hack88 _shortuuid
 
     _fulluuid="$1"
     _dataset="$2"
@@ -212,6 +213,9 @@ __reclone_basejail () {
     _jailed_dataset="${pool}/iocage/jails/${_fulluuid}/root/data"
     _jail_datasets="$(__find_jail ALL)"
     _jail_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+    _jail_mount="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
+    _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
     _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                            /dev/null 2>&1 ; echo $?)"
 
@@ -239,11 +243,17 @@ __reclone_basejail () {
     fi
 
     # Check to see if the old ${pool}/iocage/base datasets are needed any longer
-    if [ "${_base_inuse}" == "1" ] ; then
+    if [ "${_base_inuse}" = "1" ] ; then
         zfs destroy -r ${pool}/iocage/base_old > /dev/null 2>&1
     fi
 
-    __umount_basejail "${_fulluuid}"
+    # Look for hack88, if it exists, pass the short uuid
+    if [ "${_hack88}" = "1" ] ; then
+        __umount_basejail "${_shortuuid}"
+    else
+        __umount_basejail "${_fulluuid}"
+    fi
+
     zfs destroy -f ${pool}/iocage/jails/${_fulluuid}/root > /dev/null 2>&1
 
     if [ $? -eq 1 ] ; then
@@ -277,7 +287,12 @@ __reclone_basejail () {
         cd ${iocroot}/base/${_jail_release}/root && ln -s usr/home home 2>&1
     fi
 
-    __mount_basejail "${_fulluuid}"
+    # Look for hack88, if it exists, pass the short uuid
+    if [ "${_hack88}" = "1" ] ; then
+        __mount_basejail "${_shortuuid}"
+    else
+        __mount_basejail "${_fulluuid}"
+    fi
 }
 
 # This creates jails----------------------------------------------------
@@ -736,6 +751,8 @@ __check_children () {
 # Accepts one argument. Which is used as the UUID for the mount operations
 __mount_basejail () {
     local _fulluuid="$1"
+
+    # Mount the overlays needed for basejails
     mount -t unionfs -o noatime,copymode=transparent \
         ${iocroot}/jails/${_fulluuid}/_/etc \
         ${iocroot}/jails/${_fulluuid}/root/etc

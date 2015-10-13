@@ -430,7 +430,7 @@ __reboot_jail () {
 __stop_jail () {
     local _fulluuid _dataset _fulluuid_dataset _jail_path _tag \
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
-          _ip4 _jail_type
+          _ip4 _jail_type _hack88 _shortuuid
 
     if [ "$1" == "ALL" ] ; then
         __stop_jail_all
@@ -439,30 +439,32 @@ __stop_jail () {
 
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
 
-    set $_fulluuid_dataset
+    set ${_fulluuid_dataset}
 
     _fulluuid="$1"
     _dataset="$2"
 
-    _jail_type="$(__get_jail_prop type $_fulluuid $_dataset)"
-    _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
-    _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
-    _exec_prestop="$(__findscript $_fulluuid prestop $_dataset)"
-    _exec_stop="$(__get_jail_prop exec_stop $_fulluuid $_dataset)"
-    _exec_poststop="$(__findscript $_fulluuid poststop $_dataset)"
-    _vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
-    _state="$(__is_running $_fulluuid)"
-    _ip4="$(__get_jail_prop ip4 $_fulluuid $_dataset)"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+    _exec_prestop="$(__findscript ${_fulluuid} prestop ${_dataset})"
+    _exec_stop="$(__get_jail_prop exec_stop ${_fulluuid} ${_dataset})"
+    _exec_poststop="$(__findscript ${_fulluuid} poststop ${_dataset})"
+    _vnet="$(__get_jail_prop vnet ${_fulluuid} ${_dataset})"
+    _state="$(__is_running ${_fulluuid})"
+    _ip4="$(__get_jail_prop ip4 ${_fulluuid} ${_dataset})"
+    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
+    _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
 
-    if [ -z "$_state" ] ; then
+    if [ -z "${_state}" ] ; then
         echo "* ${_fulluuid}: is already down"
         exit 1
     fi
 
-    echo "* Stopping $_fulluuid ($_tag)"
+    echo "* Stopping ${_fulluuid} (${_tag})"
 
     echo -n "  + Running pre-stop"
-    eval "$_exec_prestop"
+    eval "${_exec_prestop}"
     if [ $? -ne 1 ] ; then
         echo "         OK"
     else
@@ -471,7 +473,8 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
-    jexec ioc-${_fulluuid} $_exec_stop >> $iocroot/log/${_fulluuid}-console.log 2>&1
+    jexec "ioc-${_fulluuid}" "${_exec_stop}" >> \
+        "${iocroot}/log/${_fulluuid}-console.log" 2>&1
 
     if [ $? -ne 1 ] ; then
         echo "        OK"
@@ -479,9 +482,9 @@ __stop_jail () {
         echo "    FAILED"
     fi
 
-    if [ $_vnet == "on" ] ; then
+    if [ "${_vnet}" = "on" ] ; then
         echo -n "  + Tearing down VNET"
-        __networking stop $_fulluuid $_dataset
+        __networking stop "${_fulluuid}" "${_dataset}"
         if [ $? -eq 1 ] ; then
             echo "        FAILED"
         else
@@ -489,13 +492,13 @@ __stop_jail () {
         fi
     else
         # don't try to tear down networking if we have "inherit" set
-        if [ "$_ip4" != 'inherit' ] ; then
-            __stop_legacy_networking $_fulluuid $_dataset
+        if [ "${_ip4}" != 'inherit' ] ; then
+            __stop_legacy_networking "${_fulluuid}" "${_dataset}"
         fi
     fi
 
     echo -n "  + Removing jail process"
-    jail -r ioc-${_fulluuid}
+    jail -r "ioc-${_fulluuid}"
 
     if [ $? -ne 1 ] ; then
         echo "    OK"
@@ -504,30 +507,34 @@ __stop_jail () {
     fi
 
     echo -n "  + Running post-stop"
-    eval "$_exec_poststop"
+    eval "${_exec_poststop}"
     if [ $? -ne 1 ] ; then
         echo "        OK"
     else
         echo "    FAILED"
     fi
 
-    umount -afvF ${_jail_path}/fstab > /dev/null 2>&1
-    umount ${_jail_path}/root/dev/fd > /dev/null 2>&1
-    umount ${_jail_path}/root/dev    > /dev/null 2>&1
-    umount ${_jail_path}/root/proc   > /dev/null 2>&1
+    umount -afvF "${_jail_path}/fstab" > /dev/null 2>&1
+    umount "${_jail_path}/root/dev/fd" > /dev/null 2>&1
+    umount "${_jail_path}/root/dev"    > /dev/null 2>&1
+    umount "${_jail_path}/root/proc"   > /dev/null 2>&1
 
     if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
+        if [ "${_hack88}" = "1" ] ; then
+            __umount_basejail "${_shortuuid}"
+        else
             __umount_basejail "${_fulluuid}"
+        fi
     fi
 
-    if [ -d $iocroot/jails/${_fulluuid}/recorded ] ; then
-        umount -ft unionfs $iocroot/jails/${_fulluuid}/root > /dev/null 2>&1
+    if [ -d "${iocroot}/jails/${_fulluuid}/recorded" ] ; then
+        umount -ft unionfs "${iocroot}/jails/${_fulluuid}/root" > /dev/null 2>&1
     fi
 
     if [ ! -z $(sysctl -qn kern.features.rctl) ] ; then
-        local rlimits="$(rctl | grep $_fulluuid| wc -l)"
-        if [ $rlimits -gt "0" ] ; then
-            rctl -r jail:ioc-${_fulluuid}
+        local rlimits="$(rctl | grep ${_fulluuid}| wc -l)"
+        if [ "${rlimits}" -gt "0" ] ; then
+            rctl -r "jail:ioc-${_fulluuid}"
         fi
     fi
 }
