@@ -273,8 +273,11 @@ __chroot () {
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local _rel_exist _release _non_interactive
+    local _rel_exist _release _host_release _non_interactive _dist
+
     _release=$(uname -r|cut -f 1,2 -d'-')
+    # Needed to check for PC-BSD import
+    _host_release=$(uname -r|cut -f 1,2 -d'-')
 
     if [ -z "${iocset_release}" ] ; then
         __print_release
@@ -314,7 +317,14 @@ __fetch_release () {
         ftpdir="/pub/FreeBSD/releases/amd64/${_release}"
     fi
 
-    cd ${iocroot}/download/${_release}
+    if [ -e "/usr/local/tmp/iocage-dist" -a "${_release}" = "${_host_release}" ] ; then
+        cd "/usr/local/tmp/iocage-dist"
+        _dist=1
+    else
+        cd ${iocroot}/download/${_release}
+        _dist=0
+    fi
+
     for _file in ${ftpfiles} ; do
         if [ ! -e "${_file}" ] ; then
             fetch http://${ftphost}${ftpdir}/${_file}
@@ -359,6 +369,10 @@ __fetch_release () {
         if [ $? -eq 0 ] ; then
             rm -f ${iocroot}/base/${_release}/root/etc/resolv.conf
         fi
+    fi
+
+    if [ "${_dist}" = "1" ] ; then
+        rm -rf "/usr/local/tmp/iocage-dist"
     fi
 }
 
