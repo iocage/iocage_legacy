@@ -703,9 +703,8 @@ __check_filesystems () {
         zfs mount -a
     fi
 
-    export jail_datasets="$(zfs list -d1 -rH -o name ${pool}/iocage/jails \
-                          | grep -E \
-                          "^${pool}/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
+    export jail_datasets="$(zfs list -d2 -rH -o name ${pool}/iocage \
+                          | grep -Ev "jails$|base$|download|${pool}/iocage$")"
 
     # Checks to see if the user changed the altroot and modify ioc-globals
     # If the user decided to unset their altroot, they need to run again as

@@ -59,15 +59,15 @@ __find_jail () {
     local _name _jlist _jail _tag _found
     _name="$1"
 
-    if [ "${_name}" == "ALL" ] ; then
+    if [ "${_name}" = "ALL" ] ; then
         for _jail in ${jail_datasets} ; do
             echo ${_jail}
         done
-    elif [ "${_name}" == "default" ] ; then
+    elif [ "${_name}" = "default" ] ; then
         echo "${pool}/iocage/.defaults"
     else
         for _jail in ${jail_datasets} ; do
-            _found="$(echo ${_jail} | grep -iE "^${pool}/iocage/jails/${_name}")"
+            _found="$(echo ${_jail} | grep -iE "^${pool}/iocage/${_name}")"
             _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
 
             if [ "${#_found}" -gt 0 ] ; then
@@ -92,7 +92,7 @@ __find_jail () {
 __list_jails () {
     local _jails _switch _all_jids _ioc_jids _non_ioc_jids _releases \
           _temp_loop_var _state
-    _jails=$(__find_jail ALL)
+    _jails=$(__find_jail ALL | grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
     _switch=$1
     _all_jids=$(jls -N -h jid | grep -v -x jid )
 
@@ -148,10 +148,10 @@ __list_jails () {
             fi
 
             # If the -t switch is given, show templates otherwise, show the jails
-            if [ "${_switch}" == "-t" ] ; then
-                if [ "${_template}" == "yes" ] ; then
-                    printf "%s^%s^%s^%s^%s\n" "${_jid}" \
-                           "${_uuid}" "${_boot}" "${_state}" "${_tag}"
+            if [ "${_switch}" = "-t" ] ; then
+                if [ "${_template}" = "yes" ] ; then
+                    printf "%s^%s^%s^%s^%s^%s\n" "${_jid}" \
+                           "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
                 fi
             elif [ "${_switch}" != "-t" ] ; then
                 if [ "${_template}" != "yes" ] ; then

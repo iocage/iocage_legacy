@@ -42,6 +42,8 @@ __set_jail_prop () {
         __die "${_name} not found!"
     fi
 
+    _fulluuid="$(__check_name ${_name})"
+
     _pname="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $1 }')"
     _pval="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
@@ -51,18 +53,18 @@ __set_jail_prop () {
 
     _type="$(__validate_pname ${_pname} type)" || exit $?
 
-    if [ "${_type}" == "custom" ] ; then
+    if [ "${_type}" = "custom" ] ; then
         zfs set org.freebsd.iocage:${_pname}="${_pval}" ${_dataset}
-    elif [ "${_type}" == "native" ] ; then
+    elif [ "${_type}" = "native" ] ; then
         zfs set ${_pname}="${_pval}" ${_dataset}
     fi
 
-    if [ "${_pname}" == "tag" ] ; then
+    if [ "${_pname}" = "tag" ] ; then
         __unlink_tag ${_dataset}
         __link_tag ${_dataset}
     fi
 
-    if [ "${_pname}" == "jail_zfs" ] ; then
+    if [ "${_pname}" = "jail_zfs" ] ; then
         _jailed_dataset="${_dataset}/data"
         _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                               /dev/null 2>&1 ; echo $?)"
@@ -71,13 +73,28 @@ __set_jail_prop () {
                 ${_dataset}/data
         fi
     # Do they want bpf exposed?
-    elif [ "${_pname}" == "bpf" ] ; then
+    elif [ "${_pname}" = "bpf" ] ; then
         if [ "${_devfs_string}" != "0" ] ; then
             __bpf_devfs >> /etc/devfs.rules
             service devfs restart 1> /dev/null
         fi
-    elif [ "${_pname}" == "notes" ] ; then
+    elif [ "${_pname}" = "notes" ] ; then
         zfs set org.freebsd.iocage:${_pname}="${notes}" ${_dataset}
+    elif [ "${_pname}" = "template" ] ; then
+        if [ "${_pval}" = "yes" ] ; then
+            __unlink_tag "${_dataset}"
+            _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+            zfs set org.freebsd.iocage:type="template" "${_dataset}"
+            zfs rename -f "${pool}/iocage/jails/${_fulluuid}" \
+                          "${pool}/iocage/base/${_tag}"
+        elif [ "${_pval}" = "no" ] ; then
+            _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+            zfs set org.freebsd.iocage:type="basejail" "${_dataset}"
+            zfs rename -f "${pool}/iocage/base/${_tag}" \
+                          "${pool}/iocage/jails/${_fulluuid}"
+            _dataset="${pool}/iocage/jails/${_fulluuid}"
+            __link_tag "${_dataset}"
+        fi
     fi
 }
 
