@@ -24,7 +24,7 @@ debootstrap:**
 
 **Edit the jail's fstab and add these lines:**
 
-``/iocage/jails/UUID/root/fstab``
+``/iocage/jails/UUID/fstab``
 
      ::
 
