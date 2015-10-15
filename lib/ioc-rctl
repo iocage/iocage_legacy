@@ -3,9 +3,8 @@
 __rctl_limits () {
     local _fulluuid _dataset _value _limit _action _prop _failed \
           _rlimits
-    
-    _failed=0
 
+    _failed=0
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
 
     set $_fulluuid_dataset
@@ -111,7 +110,8 @@ __rctl_inuse_all () {
     local _jails _fulluuid _tag _print_head\
           _line _res _jail _header
 
-    _jails="$(__find_jail ALL)"
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
     _print_head=1
 
     for _jail in $(echo $_jails) ; do

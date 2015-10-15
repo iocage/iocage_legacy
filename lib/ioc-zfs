@@ -103,7 +103,8 @@ __clean () {
 
 __clean_basejail () {
     local _jails _juuid _jail_type
-    _jails=$(__find_jail ALL)
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
 
     for _jail in ${_jails} ; do
         _juuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
@@ -211,7 +212,8 @@ __reclone_basejail () {
     _old_base_check="$(zfs list -Hr ${pool}/iocage/jails/${_fulluuid} | \
                      grep -v data | wc -l)"
     _jailed_dataset="${pool}/iocage/jails/${_fulluuid}/root/data"
-    _jail_datasets="$(__find_jail ALL)"
+    _jail_datasets="$(__find_jail ALL | \
+                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>"))"
     _jail_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _jail_mount="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
     _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
@@ -734,7 +736,8 @@ __check_children () {
 
     _fulluuid="$1"
     _dataset="$2"
-    _jail_datasets="$(__find_jail ALL)"
+    _jail_datasets="$(__find_jail ALL | \
+                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>"))"
 
     for _fs in $_jail_datasets ; do
         _origin="$(zfs get -H -o value origin $_fs | cut -f1 -d@)"

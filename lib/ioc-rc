@@ -542,7 +542,9 @@ __stop_jail () {
 
 __stop_jail_all () {
     local _jails _state
-    _jails=$(__find_jail ALL)
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
+
     for _jail in ${_jails} ; do
         _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                ${_jail})
@@ -589,10 +591,11 @@ __restart_jail () {
 
 __rc_jails () {
     local action=$1
-    local jails=$(__find_jail ALL)
+    local _jails=$(__find_jail ALL | \
+                 grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
     local boot_list="/tmp/iocage.$$"
 
-    for jail in $jails ; do
+    for jail in $_jails ; do
         local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                     $jail)"
         local boot="$(zfs get -H -o value org.freebsd.iocage:boot $jail)"

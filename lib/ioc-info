@@ -67,7 +67,7 @@ __find_jail () {
         echo "${pool}/iocage/.defaults"
     else
         for _jail in ${jail_datasets} ; do
-            _found="$(echo ${_jail} | grep -iE "^${pool}/iocage/${_name}")"
+            _found="$(echo ${_jail} | grep -iE "${_name}$")"
             _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
 
             if [ "${#_found}" -gt 0 ] ; then
@@ -201,7 +201,8 @@ __list_jails_warden () {
           _ip4_addr _ip6_addr _vnet _vnet0_mac \
           _vnet1_mac _vnet2_mac _vnet3_mac _type
 
-    _jails=$(__find_jail ALL)
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
     _switch=$1
 
     for _jail in ${_jails} ; do

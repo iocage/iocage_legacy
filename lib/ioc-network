@@ -147,7 +147,7 @@ __networking () {
                new_iface="$default_iface"
                __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}" $_uuid $_dataset
             else
-               new_iface="$cur_ip4_iface"
+                new_iface="$cur_ip4_iface"
                __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $_uuid $_dataset
             fi
             jexec ioc-${2} ifconfig $new_iface ${auto_ip} up
@@ -179,38 +179,39 @@ __networking () {
 }
 
 __get_autoip4 () {
-     local _autobase _autostart _autoend _autoip _freeip _dataset
+    local _autobase _autostart _autoend _autoip _freeip _dataset _jails
 
 
-     _dataset="$2"
-     unset _auto_ip4
-     _autobase=$(netstat -f inet -nrW | grep '^default' |\
-               awk '{ print $2 }' | cut -d '.' -f 1-3)
-     _autostart=$(__get_jail_prop ip4_autostart default)
-     _autoend=$(__get_jail_prop ip4_autoend default)
-     _autosubnet=$(__get_jail_prop ip4_autosubnet default)
-     local jails=$(__find_jail ALL)
+    _dataset="$2"
+    unset _auto_ip4
+    _autobase=$(netstat -f inet -nrW | grep '^default' |\
+              awk '{ print $2 }' | cut -d '.' -f 1-3)
+    _autostart=$(__get_jail_prop ip4_autostart default)
+    _autoend=$(__get_jail_prop ip4_autoend default)
+    _autosubnet=$(__get_jail_prop ip4_autosubnet default)
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
 
-     # Do some basic sanity checking
-     if [ -z "$_autostart" ] ; then
+    # Do some basic sanity checking
+    if [ -z "$_autostart" ] ; then
         __die "AUTOIP4 is specified, but ip4_autostart is not set!"
-     fi
-     if [ -z "$_autoend" ] ; then
+    fi
+    if [ -z "$_autoend" ] ; then
         __die "AUTOIP4 is specified, but ip4_autoend is not set!"
-     fi
-     if [ -z "$_autosubnet" -o "$_autosubnet" = "none" ] ; then
-	_autosubnet="24"
-     fi
+    fi
+    if [ -z "$_autosubnet" -o "$_autosubnet" = "none" ] ; then
+        _autosubnet="24"
+    fi
 
-     # Now loop through all the jails, and find a free IP we can use
-     # that fits within the autostart/autoend ranges
-     _autoip=$_autostart
-     while :
-     do
+    # Now loop through all the jails, and find a free IP we can use
+    # that fits within the autostart/autoend ranges
+    _autoip=$_autostart
+    while :
+    do
         _freeip="YES"
         _nextaddr="${_autobase}.${_autoip}"
         # Is this address in use?
-        for jail in $jails ; do
+        for jail in $_jails ; do
             local juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid\
                         $jail)
             local jip4="$(__get_jail_prop ip4_addr ${juuid} $_dataset)"
@@ -235,10 +236,10 @@ __get_autoip4 () {
             __die" IP4 Address outside of bounds"
         fi
         break
-     done
+    done
 
-     # Set our new ip address
-     auto_ip4="$_nextaddr/$_autosubnet"
+    # Set our new ip address
+    auto_ip4="$_nextaddr/$_autosubnet"
 }
 
 __stop_legacy_networking () {
