@@ -426,7 +426,8 @@ __create_jail () {
             fi
 
             # Set the right devfs ruleset for DHCP/BPF.
-            __set_jail_prop devfs_ruleset=5 ${uuid} ${pool}/iocage/jails/${uuid}
+            zfs set org.freebsd.iocage:devfs_ruleset=5 \
+                ${pool}/iocage/jails/${uuid}
         fi
     done
 
