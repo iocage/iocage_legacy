@@ -47,6 +47,10 @@ __configure_jail () {
                     ;;
                 vnet) _value="${vnet}"
                     ;;
+                mount_procfs) _value="${mount_procfs}"
+                    ;;
+                mount_linprocfs) _value="${mount_linprocfs}"
+                    ;;
                 gitlocation) case "${gitlocation}" in
                                  "-") gitlocation="https://github.com"
                                      ;;
@@ -190,6 +194,7 @@ __reset_jail_props () {
 
     # Cache properties to set again later
     uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
+    host_hostuuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
     tag="$(zfs get -H -o value org.freebsd.iocage:tag $_dataset)"
     vnet0_mac="$(zfs get -H -o value org.freebsd.iocage:vnet0_mac $_dataset)"
     vnet1_mac="$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_dataset)"
@@ -218,6 +223,8 @@ __reset_jail_props () {
     boot="$(zfs get -H -o value org.freebsd.iocage:boot $_dataset)"
     vnet="$(zfs get -H -o value org.freebsd.iocage:vnet $_dataset)"
     host_hostname="$(zfs get -H -o value org.freebsd.iocage:host_hostname $_dataset)"
+    mount_procfs="$(zfs get -H -o value org.freebsd.iocage:mount_procfs $_dataset)"
+    mount_linprocfs="$(zfs get -H -o value org.freebsd.iocage:mount_linprocfs $_dataset)"
 
     __configure_jail $_dataset
 }
