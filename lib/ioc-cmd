@@ -21,9 +21,6 @@ __parse_cmd () {
             cap)        __rctl_limits "$2"
                         exit
                 ;;
-            chroot)     __chroot "$@"
-                        exit
-                ;;
             clean)      __clean "$2"
                         exit
                 ;;

@@ -4,7 +4,6 @@ NAME
 SYNOPSIS
   iocage activate ZPOOL
   iocage cap UUID|TAG
-  iocage chroot UUID|TAG [command]
   iocage clean [-a|-b|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
@@ -93,12 +92,6 @@ SUBCOMMANDS
   cap UUID|TAG
 
     Reapply resource limits on jail while it is running.
-
-  chroot UUID|TAG [command]
-
-    Chroot into jail, without actually starting the jail itself. Useful for
-    initial setup (set root password, configure networking). You can specify a
-    command just like with the normal system chroot tool.
 
   clean [-a|-b|-j]
 
