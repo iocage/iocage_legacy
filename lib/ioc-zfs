@@ -213,7 +213,7 @@ __reclone_basejail () {
                      grep -v data | wc -l)"
     _jailed_dataset="${pool}/iocage/jails/${_fulluuid}/root/data"
     _jail_datasets="$(__find_jail ALL | \
-                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>"))"
+                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")"
     _jail_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _jail_mount="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
     _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
@@ -222,7 +222,7 @@ __reclone_basejail () {
                            /dev/null 2>&1 ; echo $?)"
 
     # Check to see if the user has the old style of jailed datasets
-    if [ "${_jailed_dataset_check}" == "0" ] ; then
+    if [ "${_jailed_dataset_check}" = "0" ] ; then
         zfs set jailed=off "${_jailed_dataset}"
         zfs rename -f "${_jailed_dataset}" \
                       "${pool}/iocage/jails/${_fulluuid}/data"
@@ -230,7 +230,7 @@ __reclone_basejail () {
     fi
 
     # Migrate from release to base property
-    if [ "${_jail_release}" == "none" ] ; then
+    if [ "${_jail_release}" = "none" ] ; then
         _old_jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
         __set_jail_prop base="${_old_jail_release}" "${_fulluuid}"
         unset _jail_release
@@ -737,7 +737,7 @@ __check_children () {
     _fulluuid="$1"
     _dataset="$2"
     _jail_datasets="$(__find_jail ALL | \
-                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>"))"
+                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")"
 
     for _fs in $_jail_datasets ; do
         _origin="$(zfs get -H -o value origin $_fs | cut -f1 -d@)"
