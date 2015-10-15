@@ -465,6 +465,7 @@ __stop_jail () {
 
     echo -n "  + Running pre-stop"
     eval "${_exec_prestop}"
+
     if [ $? -ne 1 ] ; then
         echo "         OK"
     else
@@ -473,7 +474,7 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
-    jexec "ioc-${_fulluuid}" "${_exec_stop}" >> \
+    jexec "ioc-${_fulluuid}" ${_exec_stop} >> \
         "${iocroot}/log/${_fulluuid}-console.log" 2>&1
 
     if [ $? -ne 1 ] ; then
