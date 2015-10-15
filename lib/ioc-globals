@@ -114,6 +114,7 @@ hostid=$(cat /etc/hostid)
 jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/data"
 mount_procfs="0"
+mount_linprocfs="0"
 hack88="0"
 
 # Native ZFS properties
@@ -200,6 +201,7 @@ CONF_JAIL="devfs_ruleset
            exec_system_user
            mount_fdescfs
            mount_procfs
+           mount_linprocfs
            enforce_statfs
            children_max
            login_flags

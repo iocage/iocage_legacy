@@ -663,6 +663,13 @@ PROPERTIES
     Default: 0
     Source: local
 
+  mount_linprocfs=0 | 1
+
+    Mount a linprocfs(5) filesystem in the jail's /usr/compat/linux/proc directory.
+
+    Default: 0
+    Source: local
+
   enforce_statfs=2 | 1 | 0
 
     This determines which information processes in a jail are able to

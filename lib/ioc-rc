@@ -2,9 +2,9 @@
 
 __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid _jail_type \
-          _tag _jail_hostid _jail_path _template _cpuset \
+          _tag _jail_hostid _jail_path _jail_base _template _cpuset \
           _procfs _state _vnet _nics _jzfs_dataset _jzfs _clone_check \
-          _exec_fib _exec_start _bpf _dhcp _devfs_string
+          _exec_fib _exec_start _bpf _dhcp _devfs_string _linprocfs
 
     # Get fulluuid and dataset in one step (dataset is optional)
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
@@ -23,9 +23,11 @@ __start_jail () {
     _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
     _jail_hostid="$(__get_jail_prop hostid $_fulluuid $_dataset)"
     _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
+    _jail_base="$(__get_jail_prop base $_fulluuid $_dataset)"
     _template="$(__get_jail_prop template $_fulluuid $_dataset)"
     _cpuset="$(__get_jail_prop cpuset $_fulluuid $_dataset)"
     _procfs="$(__get_jail_prop mount_procfs $_fulluuid $_dataset)"
+    _linprocfs="$(__get_jail_prop mount_linprocfs $_fulluuid $_dataset)"
     _state=$(__is_running $_fulluuid)
     _vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
     _exec_fib="$(__get_jail_prop exec_fib $_fulluuid $_dataset)"
@@ -81,6 +83,23 @@ __start_jail () {
         mount -t procfs proc ${_jail_path}/root/proc
     fi
 
+    if [ "${_linprocfs}" = "1" ] ; then
+        if [ "${_jail_type}" = basejail ] ; then
+            if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/compat/linux/proc" ] ; then
+                mkdir -p \
+                    "${iocroot}/base/${_jail_base}/root/usr/compat/linux/proc"
+                cd "${iocroot}/base/${_jail_base}/root" \
+                    && ln -s usr/compat compat
+            fi
+        elif [ "${_jail_type}" = thickjail ] ; then
+            if [ ! -e "${_jail_path}/root/usr/compat/linux/proc" ] ; then
+                mkdir -p "${_jail_path}/root/usr/compat/linux/proc"
+                cd "${_jail_path}/root" \
+                    && ln -s usr/compat compat
+            fi
+        fi
+    fi
+
     _jzfs="$(__get_jail_prop jail_zfs $_fulluuid $_dataset)"
     _jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $_fulluuid $_dataset)"
     _jzfs_dataset_olen="${#_jzfs_dataset}"
@@ -124,6 +143,10 @@ __start_jail () {
         __mount_basejail $_fulluuid
     fi
 
+    if [ "${_linprocfs}" = "1" ] ; then
+        # Needs to be down here so basejails can see the new directory
+        mount -t linprocfs linproc ${_jail_path}/root/usr/compat/linux/proc
+    fi
 
     if [ $_vnet == "on" ] || [ $_vnet == "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
@@ -519,6 +542,7 @@ __stop_jail () {
     umount "${_jail_path}/root/dev/fd" > /dev/null 2>&1
     umount "${_jail_path}/root/dev"    > /dev/null 2>&1
     umount "${_jail_path}/root/proc"   > /dev/null 2>&1
+    umount "${_jail_path}/root/usr/compat/linux/proc"   > /dev/null 2>&1
 
     if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
         if [ "${_hack88}" = "1" ] ; then
