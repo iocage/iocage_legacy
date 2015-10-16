@@ -1,11 +1,13 @@
 #!/bin/sh
 
 __fetch_plugin () {
-    local _gitlocation _jail_path _prop _pname _repocheck
+    local _gitlocation _jail_path _prop _pname _repocheck _host_version \
+          _branch_version _branch_list
 
     _gitlocation="$(__get_default_prop gitlocation)"
     _plugin="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $2 }')"
     _repocheck="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $1 }')"
+    _host_version="$(uname -r | cut -d '-' -f 1 | sed 's/\.//')"
 
     # Check if the user doesn't have a gitlocation set,
     # we use github as the default location to clone from
@@ -38,6 +40,7 @@ __fetch_plugin () {
         ;;
     esac
 
+    # Create a basejail with the supplied properties to set up our structure
     __create_jail $@ 1> /dev/null
     _jail_path="$(__get_jail_prop mountpoint ${uuid} \
                 ${pool}/iocage/jails/${uuid})"
@@ -45,11 +48,40 @@ __fetch_plugin () {
     # Begin git clone process
     cd ${_jail_path}/_
     git init --quiet .
+
+    # The folder isn't empty, so we can't do a normal git clone
     git remote add origin "${_gitlocation}/$1" 1> /dev/null
     if [ -z "${iocset_branch}" ] ; then
         __spinner "  INFO: fetching plugin ${_plugin}:  " \
-            "git fetch --quiet --depth 1 origin"
-        git checkout --quiet master
+            "git fetch --quiet"
+        _branch_list="$(git branch -r)"
+
+        # Loop through all the branches checking foa a match to the host RELEASE
+        for _branch in ${_branch_list} ; do
+            _branch_version="$(echo "${_branch}" | cut -d '-' -f 1 | \
+                            sed -e 's/\.//' \
+                                -e 's/[[:blank:]]*origin\///' \
+                                -e 's/[^0-9]*//' \
+                                -e '/^$/d')"
+            # If we don't check for zero, we get an invalid comparison
+            if [ ! -z "${_branch_version}" ] ; then
+                if [ "${_host_version}" -ge "${_branch_version}" ] ; then
+                    branch="${_branch}"
+                    break
+                fi
+            else
+                __info "no branch matches your host, using the latest branch"
+                # Sort by the latest RELEASE that the repo has
+                _branch_version="$(echo "${_branch_list}" | \
+                                 grep -v "master" | \
+                                 sort -n | \
+                                 sed 's/[[:blank:]]*origin\///' | \
+                                 tail -n 1)"
+                branch="${_branch_version}"
+            fi
+        done
+
+        git checkout --quiet "${branch}"
     else
         __spinner "  INFO: fetching plugin ${_plugin}:  " \
             "git fetch --quiet --depth 1 origin "${iocset_branch}""
@@ -60,7 +92,7 @@ __fetch_plugin () {
     if [ "${_repocheck}" = "iocage" -o "${_repocheck}" = "pbi-cages" ] ; then
         echo "  WARNING: Pushing will be disabled, please set a custom repo."
         echo "  You can do this by issuing: iocage set gitlocation=URL default"
-        git branch --unset-upstream 1> /dev/null
+        git branch --unset-upstream > /dev/null 2>&1
     fi
 }
 
