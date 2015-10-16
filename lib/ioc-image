@@ -90,7 +90,7 @@ __import () {
 
         trap "kill $!" 2 3
         zfs recv -d "${pool}" < "${_image}"
-        printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
+        printf "\b%1s\n" "sone!" ; kill $! && trap " " 2 3
     fi
 }
 
@@ -147,7 +147,7 @@ __export () {
     zfs send -p "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}" > \
                 "${_export_name}"
     zfs destroy "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}"
-    printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
+    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
 }
 
 __export_thick () {

@@ -465,6 +465,6 @@ __spinner () {
 
     trap "kill $!" 2 3
     $2
-    printf "\b%1s\n" "Done!" ; kill $! && trap " " 2 3
+    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
     return $?
 }
