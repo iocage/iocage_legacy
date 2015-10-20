@@ -1,7 +1,7 @@
 #!/bin/sh
 
 __import_thick () {
-    local _name _image _icount _icksum _new_cksum _old_cksum _uuid
+    local _name _image _icount _icksum _new_cksum _old_cksum _uuid _ibase
 
     _name="${1}"
     _image="$(find ${iocroot}/images/ -name ${_name}\*.tar.xz)"
@@ -9,6 +9,12 @@ __import_thick () {
     _ibase="$(echo ${_image} | cut -d "_" -f 2 | \
         awk 'BEGIN { FS = "." } ; { print $1"."$2 }')"
     _icksum="$(find ${iocroot}/images/ -name ${_name}\*.sha256)"
+
+    # If they don't have a release specified, we assume it's the same as host
+    if [ "$(echo ${_ibase} | grep "/")" ] ; then
+        # Remove STABLE or CURRENT from the name as we only can fetch RELEASEs
+        _ibase="$(echo ${base} | sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
+    fi
 
     if [ "${_icount}" -gt 0 ] ; then
         echo "* Found image ${_image}"
@@ -47,21 +53,48 @@ __import_thick () {
 }
 
 __import () {
-    local _name _fulluuid _tag _image _icount _ibase _idate _jail_base _spinner
+    local _name _fulluuid _tag _image _icount _ibase _idate _jail_base \
+          _spinner _date
 
     _name="${1}"
-    _image="$(find ${iocroot}/images/ ! -name '*.sha256' -name ${_name}*)"
-    _ibase="$(echo ${_image} | cut -d "_" -f 2 | \
-        awk 'BEGIN { FS = "." } ; { print $1"."$2 }')"
-    _idate="$(echo ${_image} | cut -d "-" -f 6-)"
-    _icount="$(echo ${_image} | wc -w)"
 
     if [ -z "${_name}" ] ; then
         __die "missing image UUID!"
     fi
 
+    _image="$(find ${iocroot}/images/ ! -name '*.sha256' -name ${_name}\*)"
+    _ibase="$(echo ${_image} | cut -d "_" -f 2 | \
+        awk 'BEGIN { FS = "." } ; { print $1"."$2 }')"
+    _date=$(date "+%F")
+    _idate="$(echo ${_image} | cut -d "-" -f 6-)"
+    _icount="$(echo ${_image} | wc -w)"
+
+    if [ -z "${_image}" ] ; then
+        __die "${_name} not found!"
+    fi
+
+    # If they don't have a release specified, we assume it's the same as host
+    if [ "$(echo ${_ibase} | grep "/")" ] ; then
+        # Remove STABLE or CURRENT from the name as we only can fetch RELEASEs
+        _ibase="$(echo ${base} | sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
+    fi
+
     if [ "${_icount}" -gt 1 ] ; then
         __die "multiple matching images, please narrow down UUID."
+    fi
+
+    if [ -z "$(echo ${_image} | grep -E 'thickjail.*.tar.xz|basejail.*.tar.xz')" ] ; then
+        # Strip the extension off the image name for later
+        _image="$(echo ${_image} | cut -d "." -f 1)"
+
+        # Rename old exports to our new naming
+        mv "${_image}.tar.xz" \
+            "${_image}-thickjail-${_date}.tar.xz"
+        mv "${_image}.sha256" \
+            "${_image}-thickjail-${_date}.sha256"
+
+        # Make sure _image reflects that new name
+        _image="${_image}-thickjail-${_date}.tar.xz"
     fi
 
     if [ "$(echo ${_image} | grep -E 'thickjail.*.tar.xz')" ] ; then
@@ -90,7 +123,7 @@ __import () {
 
         trap "kill $!" 2 3
         zfs recv -d "${pool}" < "${_image}"
-        printf "\b%1s\n" "sone!" ; kill $! && trap " " 2 3
+        printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
     fi
 }
 

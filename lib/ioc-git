@@ -56,7 +56,7 @@ __fetch_plugin () {
             "git fetch --quiet"
         _branch_list="$(git branch -r)"
 
-        # Loop through all the branches checking foa a match to the host RELEASE
+        # Loop through all the branches checking for a match to the host RELEASE
         for _branch in ${_branch_list} ; do
             _branch_version="$(echo "${_branch}" | cut -d '-' -f 1 | \
                             sed -e 's/\.//' \
