@@ -43,6 +43,10 @@ __start_jail () {
         exit 1
     fi
 
+    if [ ! -d ${iocroot}/log ] ; then
+        mkdir ${iocroot}/log
+    fi
+
     if [ $_jail_type == "jail" ] ; then
         # Check for thick or clone jails and migrate their type
         if [ "${_clone_check}" = "-" ] ; then

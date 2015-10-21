@@ -178,11 +178,6 @@ __fetch_plugin_thick () {
         ${_jail_path}/root/etc/resolv.conf
     fi
 
-    # Make sure the log dir exists
-    if [ ! -d ${iocroot}/log ] ; then
-       mkdir ${iocroot}/log
-    fi
-
     for _prop in "$@" ; do
         _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
         # Do they want bpf exposed?

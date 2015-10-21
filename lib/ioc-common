@@ -368,10 +368,6 @@ __fetch_release () {
     echo "* Updating base jail template."
     sleep 2
 
-    if [ ! -d ${iocroot}/log ] ; then
-        mkdir ${iocroot}/log
-    fi
-
     if [ -e ${iocroot}/base/${_release}/root/etc/freebsd-update.conf ] ; then
         mount -t devfs devfs ${iocroot}/base/${_release}/root/dev
         cat /etc/resolv.conf > \
