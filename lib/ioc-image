@@ -21,7 +21,7 @@ __import_thick () {
         echo "* Importing image ${_image}"
 
         if [ ! -f "${_icksum}" ] ; then
-            echo "  ERROR: Missing checksum file!"
+            echo "  ERROR: Missing checksum file!" >&2
             exit 1
         fi
 
@@ -29,7 +29,7 @@ __import_thick () {
         _old_cksum="$(cat ${_icksum})"
 
         if [ "${_new_cksum}" != "${_old_cksum}" ] ; then
-            echo "  ERROR: Checksum mismatch. Exiting."
+            echo "  ERROR: Checksum mismatch. Exiting." >&2
             exit 1
         else
             # Because any jail being imported this way are thickjails
@@ -198,23 +198,23 @@ __export_thick () {
     _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
 
     if [ -z "${_name}" ] ; then
-        echo "  ERROR: Missing UUID!"
+        echo "  ERROR: Missing UUID!" >&2
         exit 1
     fi
 
     if [ -z "${_dataset}" ] ; then
-        echo "  ERROR: ${_name} not found."
+        echo "  ERROR: ${_name} not found." >&2
         exit 1
     fi
 
     if [ "${_dataset}" = "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
+        echo "  ERROR: Multiple matching UUIDs!" >&2
         exit 1
     fi
 
     if [ "${_state}" -gt "0" ] ; then
-        echo "  ERROR: ${_fulluuid} is running!"
-        echo "  Stop jail before exporting!"
+        echo "  ERROR: ${_fulluuid} is running!" >&2
+        echo "  Stop jail before exporting!" >&2
         exit 1
     fi
 

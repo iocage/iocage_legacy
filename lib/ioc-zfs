@@ -311,20 +311,21 @@ __create_jail () {
                   ; echo $?)"
     _configured="0"
 
-    if [ -z "${_supported_release}" -a "${2}" != "-e" ] ; then
-        echo "  You are not running a production RELEASE."
-        echo "  ERROR: Please specify release=RELEASE."
+    if [ -z "${_supported_release}" -a "${2}" != "-e" -a "${1}" = "create" ] ; then
+        echo "  You are not running a production RELEASE." >&2
+        echo "  ERROR: Please specify base=RELEASE." >&2
         exit 1
     fi
 
     if [ -z "${_installed}" -a -z "${_releases}" -a "${2}" != "-e" ] ; then
         __die "no RELEASEs found locally, run iocage fetch first."
     elif [ -z "${_installed}" -a "${2}" != "-e" ] ; then
-        echo "  RELEASE ${base} not found locally."
-        echo "  Please fetch ${base} or rerun iocage with release=RELEASE"
-        echo ""
-        echo "  These are the releases you have already fetched:"
-        printf "${_releases}\n"
+        echo "  RELEASE ${base} not found locally." >&2
+        echo "  Please fetch ${base}" >&2
+        echo "" >&2
+
+        echo "  These are the RELEASEs you have already fetched:" >&2
+        printf "${_releases}\n" >&2
         exit 1
     fi
 
@@ -718,7 +719,7 @@ __check_filesystems () {
         export iocroot="${_altroot}/iocage"
     elif [ ${_altroot} != "-" -a "$(whoami)" != "root" -a ${iocroot} != "${_altroot}/iocage" ] ; then
         __error "You changed the altroot of ${pool}"
-        echo "  Please run as root to fix."
+        echo "  Please run as root to fix." >&2
         exit 1
     elif [ ${_altroot} == "-" -a "$(whoami)" == "root" ] ; then
         sed -i '' s#.*iocroot.*#iocroot="/iocage"# \
@@ -726,7 +727,7 @@ __check_filesystems () {
         export iocroot="/iocage"
     elif [ ${_altroot} == "-" -a "$(whoami)" != "root" -a ${iocroot} != "/iocage" ] ; then
         __error "You changed the altroot of ${pool}"
-        echo "  Please run as root to fix."
+        echo "  Please run as root to fix." >&2
         exit 1
     fi
 }

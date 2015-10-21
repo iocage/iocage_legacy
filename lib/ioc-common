@@ -314,7 +314,7 @@ __fetch_release () {
             done
 
             if [ -z ${match} ] ; then
-                echo "Invalid release ${_release} specified, exiting.."
+                echo "Invalid release ${_release} specified, exiting.." >&2
                 exit 1
             fi
         fi
@@ -346,7 +346,7 @@ __fetch_release () {
         if [ ! -e "${_file}" ] ; then
             fetch http://${ftphost}${ftpdir}/${_file}
             if [ $? -ne 0 ] ; then
-                echo "Failed fetching ${_file}.."
+                echo "Failed fetching ${_file}.." >&2
                 exit 1
             fi
         fi

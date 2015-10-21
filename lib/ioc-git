@@ -28,10 +28,10 @@ __fetch_plugin () {
         ;;
         *)
             if [ "${_gitlocation}" = "none" -a -z "${iocset_gitlocation}" ] ; then
-                echo ""
-                echo "  ERROR: You must either specify gitlocation= or set a default"
-                echo "  iocage set gitlocation=LOCATION default"
-                echo ""
+                echo "" >&2
+                echo "  ERROR: You must either specify gitlocation= or set a default" >&2
+                echo "  iocage set gitlocation=LOCATION default" >&2
+                echo "" >&2
                 exit 1
             elif [ -n "${iocset_gitlocation}" ] ; then
                 unset _gitlocation
@@ -125,10 +125,10 @@ __fetch_plugin_thick () {
         ;;
         *)
             if [ "${_gitlocation}" = "none" -a -z "${iocset_gitlocation}" ] ; then
-                echo ""
-                echo "  ERROR: You must either specify gitlocation= or set a default"
-                echo "  iocage set gitlocation=LOCATION default"
-                echo ""
+                echo "" >&2
+                echo "  ERROR: You must either specify gitlocation= or set a default" >&2
+                echo "  iocage set gitlocation=LOCATION default" >&2
+                echo "" >&2
                 exit 1
             elif [ -n "${iocset_gitlocation}" ] ; then
                 unset _gitlocation

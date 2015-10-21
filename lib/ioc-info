@@ -261,15 +261,15 @@ __find_mypool () {
     found="0"
 
     if [ "$_dupcheck" -gt 1 ] ; then
-        echo ""
-        echo "  WARNING: You have more then one pool set for iocage use!"
-        echo ""
-        echo "**** POOLS ****"
-        echo "$_comment"
-        echo "***************"
-        echo ""
-        echo "  Please run 'iocage deactivate' on one of them"
-        echo ""
+        echo "" >&2
+        echo "  WARNING: You have more then one pool set for iocage use!" >&2
+        echo "" >&2
+        echo "**** POOLS ****" >&2
+        echo "$_comment" >&2
+        echo "***************" >&2
+        echo "" >&2
+        echo "  Please run 'iocage deactivate' on one of them" >&2
+        echo "" >&2
         exit 1
     fi
 
@@ -443,7 +443,7 @@ __check_name () {
     local _dataset
 
     if [ -z $name ] ; then
-        echo "ERROR"
+        echo "ERROR" >&2
         exit 1
     fi
 

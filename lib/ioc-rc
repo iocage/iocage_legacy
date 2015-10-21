@@ -39,7 +39,7 @@ __start_jail () {
                   ; echo $?)"
 
     if [ "$_state" ] ; then
-        echo "* ${_fulluuid}: is already up"
+        echo "* ${_fulluuid}: is already up" >&2
         exit 1
     fi
 
@@ -59,9 +59,9 @@ __start_jail () {
         _bridge="$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')"
 
         if [ -z $_nic ] || [ -z $_bridge ] ; then
-            echo "  ERROR  : incorrect interfaces property format"
-            echo "  HINT   : check with \"iocage get interfaces $_fulluuid\""
-            echo "  Example: vnet0:bridge0"
+            echo "  ERROR  : incorrect interfaces property format" >&2
+            echo "  HINT   : check with \"iocage get interfaces $_fulluuid\"" >&2
+            echo "  Example: vnet0:bridge0" >&2
             exit 1
         fi
     done
@@ -73,9 +73,9 @@ __start_jail () {
     fi
 
     if [ "$_jail_hostid" != "$hostid" ] ; then
-        echo "ERROR: hostid mismatch, start failed!"
-        echo "    jail hostid: $_jail_hostid"
-        echo "  host's hostid: $hostid"
+        echo "ERROR: hostid mismatch, start failed!" >&2
+        echo "    jail hostid: $_jail_hostid" >&2
+        echo "  host's hostid: $hostid" >&2
         exit 1
     fi
 
@@ -154,7 +154,7 @@ __start_jail () {
             __vnet_start $_fulluuid $_dataset
 
             if [ $? -eq 1 ] ; then
-                echo "  ! Start                FAILED"
+                echo "  ! Start                FAILED" >&2
 
                 if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                     __umount_basejail ${_fulluuid}
@@ -169,7 +169,7 @@ __start_jail () {
             __networking start $_fulluuid $_dataset
 
             if [ $? -eq 1 ] ; then
-                echo "         FAILED"
+                echo "         FAILED" >&2
 
                 if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                     __umount_basejail ${_fulluuid}
@@ -180,9 +180,9 @@ __start_jail () {
                 echo "         OK"
             fi
         else
-            echo "  ERROR: start failed for $_fulluuid"
-            echo "  vnet=on but kernel is not VNET capable!"
-            echo "  Turn vnet off for this jail or recompile kernel with VNET."
+            echo "  ERROR: start failed for $_fulluuid" >&2
+            echo "  vnet=on but kernel is not VNET capable!" >&2
+            echo "  Turn vnet off for this jail or recompile kernel with VNET." >&2
 
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                 __umount_basejail ${_fulluuid}
@@ -194,7 +194,7 @@ __start_jail () {
         echo "* Starting $_fulluuid ($_tag)"
         __legacy_start $_fulluuid $_dataset
         if [ $? -eq 1 ] ; then
-            echo "  ! Start                FAILED"
+            echo "  ! Start                FAILED" >&2
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                 __umount_basejail ${_fulluuid}
             fi
@@ -213,7 +213,7 @@ __start_jail () {
         local jid="$(jls -j ioc-${_fulluuid} jid)"
         cpuset -l $_cpuset -j $jid
         if [ $? -eq 1 ] ; then
-            echo "    FAILED"
+            echo "    FAILED" >&2
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
                 __umount_basejail ${_fulluuid}
             fi
@@ -234,7 +234,7 @@ __start_jail () {
      >> $iocroot/log/${_fulluuid}-console.log 2>&1
 
     if [ $? -eq 1 ] ; then
-        echo "        FAILED"
+        echo "        FAILED" >&2
         if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
             __umount_basejail ${_fulluuid}
         fi
@@ -480,7 +480,7 @@ __stop_jail () {
     _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
 
     if [ -z "${_state}" ] ; then
-        echo "* ${_fulluuid}: is already down"
+        echo "* ${_fulluuid}: is already down" >&2
         exit 1
     fi
 

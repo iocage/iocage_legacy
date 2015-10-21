@@ -141,7 +141,7 @@ __upgrade () {
 
     if [ ! -d ${iocroot}/base/${base} ] ; then
         __error "${base} not found!"
-        echo "  Please run iocage fetch first."
+        echo "  Please run iocage fetch first." >&2
         exit 1
     fi
 
@@ -165,8 +165,8 @@ __upgrade () {
             __umount_basejail "${_fulluuid}"
             exit 0
         else
-            echo ""
-            echo "* Upgrade failed! Backing out."
+            echo "" >&2
+            echo "* Upgrade failed! Backing out." >&2
             zfs set org.freebsd.iocage:release="${_oldrelease}" ${_dataset}
             zfs rollback -rRf ${_dataset}/root@ioc-upgrade_$(date +%F)
             zfs destroy ${_dataset}/root@ioc-upgrade_$(date +%F)
@@ -212,7 +212,7 @@ __upgrade () {
                 # Set jail's zfs property to new release
                 zfs set org.freebsd.iocage:release="${base}" ${_dataset}
             else
-                echo "* Upgrade failed, aborting install."
+                echo "* Upgrade failed, aborting install." >&2
                 zfs rollback -rRf ${_dataset}/root@ioc-upgrade_$(date +%F)
                 zfs destroy ${_dataset}/root@ioc-upgrade_$(date +%F)
                 exit 1

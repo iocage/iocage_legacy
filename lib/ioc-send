@@ -15,14 +15,14 @@ __init_host () {
               releases"
 
     if [ -z $_host ] || [ -z $_pool ] ; then
-        echo "ERROR: missing host or pool name"
+        echo "ERROR: missing host or pool name" >&2
         exit 1
     fi
 
     _remote_pool="$(ssh root@$_host zpool get -H -o value name $_pool)"
 
     if [ -z "$_remote_pool" ] ; then
-        echo "ERROR: no remote pool $_pool found"
+        echo "ERROR: no remote pool $_pool found" >&2
         exit 1
     fi
 
