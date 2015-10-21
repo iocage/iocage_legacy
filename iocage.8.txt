@@ -56,7 +56,7 @@ DESCRIPTION
   potential naming clashes on large scale deployments and helps reduce
   operator error.
 
-  You can use either the full UUID or a jailos TAG with every operation.
+  You can use either the full UUID or a jail's TAG with every operation.
 
   To ease jail identification a TAG field is included in list mode which can
   be set to any string (hostname, label, note, etc.). By default if unset the
