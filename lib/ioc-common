@@ -372,13 +372,25 @@ __fetch_release () {
         mount -t devfs devfs ${iocroot}/base/${_release}/root/dev
         cat /etc/resolv.conf > \
             ${iocroot}/base/${_release}/root/etc/resolv.conf
-        chroot ${iocroot}/base/${_release}/root \
-            env UNAME_r="${_release}" env PAGER="/bin/cat" \
-            freebsd-update --not-running-from-cron fetch
+
+        case "${_release}" in
+            9.3-RELEASE | 10.1-RELEASE)
+                chroot ${iocroot}/base/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    freebsd-update fetch
+                ;;
+            *)
+                chroot ${iocroot}/base/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    freebsd-update --not-running-from-cron fetch
+                ;;
+            esac
+
         chroot ${iocroot}/base/${_release}/root \
             env UNAME_r="${_release}" env PAGER="/bin/cat" \
             freebsd-update install
         umount ${iocroot}/base/${_release}/root/dev
+
         if [ $? -eq 0 ] ; then
             rm -f ${iocroot}/base/${_release}/root/etc/resolv.conf
         fi

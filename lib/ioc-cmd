@@ -162,7 +162,9 @@ __parse_cmd () {
             update)     __update "$2"
                         exit
                 ;;
-            upgrade)     __upgrade "$2"
+            upgrade)    __export_props "$@"
+                        shift
+                        __upgrade "$@"
                         exit
                 ;;
                 *)      __usage
