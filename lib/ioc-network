@@ -190,7 +190,7 @@ __get_autoip4 () {
     _autoend=$(__get_jail_prop ip4_autoend default)
     _autosubnet=$(__get_jail_prop ip4_autosubnet default)
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
 
     # Do some basic sanity checking
     if [ -z "$_autostart" ] ; then

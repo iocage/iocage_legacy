@@ -22,9 +22,9 @@ __update () {
                 gitjail)
                     git -C $_mountpoint/_ remote update
                     git -C $_mountpoint/_ status -uno
-                ;;
+                    ;;
             esac
-        ;;
+            ;;
         *)
             shift 3
             _name=$1
@@ -53,7 +53,7 @@ __update () {
                             env UNAME_r="${base}" env PAGER="/bin/cat" \
                             freebsd-update install
                         umount ${iocroot}/base/${base}/root/dev
-                        if [ "${_resolv}" == "1" ] ; then
+                        if [ "${_resolv}" = "1" ] ; then
                             if [ $? -eq 0 ] ; then
                                 rm -f \
                                     ${iocroot}/base/${base}/root/etc/resolv.conf
@@ -67,7 +67,7 @@ __update () {
                 gitjail)
                     # Update the local git repo to the latest remote
                     git -C $_mountpoint/root pull
-                ;;
+                    ;;
                 *)
                     echo "* Creating back-out update snapshot."
                     __snapshot ${_fulluuid}@ioc-update_${_date}
@@ -102,10 +102,11 @@ __update () {
                         fi
                     fi
 
-                    echo ""
-                    echo "* Update successful"
-                    printf "%1s Once finished don't forget to remove the snapshot! \n"
-                ;;
+                    echo "* ${_name} updated successfully. Please reboot jail and inspect."
+                    echo "* Remove:"
+                    echo "    snapshot: ${_dataset}/root@ioc-update_${_date}"
+                    echo "* if everything is OK."
+                    ;;
             esac
 
             if [ -z $_name ] ; then
@@ -115,7 +116,7 @@ __update () {
             if [ -z $_dataset ] ; then
                 __die "$_name not found!"
             fi
-        ;;
+            ;;
       esac
 }
 
@@ -218,9 +219,11 @@ __upgrade () {
                 exit 1
             fi
         fi
-        echo ""
-        echo "* Upgrade successful"
-        printf "%1s Once finished don't forget to remove the snapshot! \n"
+
+        echo "* ${_name} upgraded successfully. Please reboot jail and inspect."
+        echo "* Remove:"
+        echo "    snapshot: ${_dataset}/root@ioc-upgrade_${_date}"
+        echo "* if everything is OK."
     else
         __die "upgrade is not supported for this type of jail"
     fi

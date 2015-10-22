@@ -104,7 +104,7 @@ __clean () {
 __clean_basejail () {
     local _jails _juuid _jail_type
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
 
     for _jail in ${_jails} ; do
         _juuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
@@ -146,7 +146,7 @@ __migrate_basejail () {
                            /dev/null 2>&1 ; echo $?)"
 
     # Check to see if the user has the old style of RELEASE datasets
-    if [ "${_release_dataset_check}" == "0" ] ; then
+    if [ "${_release_dataset_check}" = "0" ] ; then
         zfs rename -f "${pool}/iocage/base" \
                       "${pool}/iocage/base_old"
         zfs inherit -r mountpoint "${_release_dataset}"
@@ -259,12 +259,14 @@ __reclone_basejail () {
     zfs destroy -f ${pool}/iocage/jails/${_fulluuid}/root > /dev/null 2>&1
 
     if [ $? -eq 1 ] ; then
+        _jail_datasets="$(__find_jail ALL | \
+                        grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/releases")"
         for _fs in ${_jail_datasets} ; do
             _origin="$(zfs get -H -o value origin ${_fs} | cut -f1 -d@)"
             _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_fs})"
             _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_fs})"
 
-            if [ ${_origin} == "${_dataset}" ] ; then
+            if [ "${_origin}" = "${_dataset}" ] ; then
                 __info "jail has dependent clone, uuid: ${_uuid} (${_tag})"
             fi
         done
@@ -615,6 +617,7 @@ __destroy_jail () {
             if [ ! -z ${_state} ] ; then
                 __die "cannot destroy ${_name} - jail is running!"
             fi
+
             __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
         else
             echo "  Command not confirmed.  No action taken."
@@ -707,7 +710,7 @@ __check_filesystems () {
         zfs mount -a
     fi
 
-    export jail_datasets="$(zfs list -d2 -rH -o name ${pool}/iocage \
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
                           | grep -Ev "jails$|base$|download|${pool}/iocage$")"
 
     # Checks to see if the user changed the altroot and modify ioc-globals
@@ -739,7 +742,7 @@ __check_children () {
     _fulluuid="$1"
     _dataset="$2"
     _jail_datasets="$(__find_jail ALL | \
-                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")"
+                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")"
 
     for _fs in $_jail_datasets ; do
         _origin="$(zfs get -H -o value origin $_fs | cut -f1 -d@)"
