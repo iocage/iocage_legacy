@@ -195,25 +195,21 @@ __migrate_basejail () {
     for _fs in ${_bfs_list} ; do
         zfs destroy -rf ${pool}/iocage/jails/${_fulluuid}/root/${_fs}
     done
-
-    zfs destroy ${pool}/iocage/jails/${_fulluuid}/root
 }
 
 __reclone_basejail () {
-    local _fulluuid _fs_list _dataset _jail_release _jailed_dataset \
+    local _fulluuid _fs_list _dataset _jail_base _jailed_dataset \
           _jailed_dataset_check _jail_datasets _base_inuse _origin _tag _uuid \
           _jail_mount _hack88 _shortuuid
 
     _fulluuid="$1"
     _dataset="$2"
-    _jail_release="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
+    _jail_base="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
     _fs_list="$(zfs list -t snap -rH -o name ${pool}/iocage/base | \
              grep root@${_fulluuid})"
     _old_base_check="$(zfs list -Hr ${pool}/iocage/jails/${_fulluuid} | \
                      grep -v data | wc -l)"
     _jailed_dataset="${pool}/iocage/jails/${_fulluuid}/root/data"
-    _jail_datasets="$(__find_jail ALL | \
-                    grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].\>")"
     _jail_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _jail_mount="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
     _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
@@ -230,23 +226,16 @@ __reclone_basejail () {
     fi
 
     # Migrate from release to base property
-    if [ "${_jail_release}" = "none" ] ; then
+    if [ "${_jail_base}" = "none" ] ; then
         _old_jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
         __set_jail_prop base="${_old_jail_release}" "${_fulluuid}"
-        unset _jail_release
-        _jail_release="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
+        unset _jail_base
+        _jail_base="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
     fi
 
     # If the length is over this, it's an old-style basejail
     if [ "${_old_base_check}" -gt "15" ] ; then
-        __migrate_basejail "${_fulluuid}" "${_jail_release}"
-        _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
-                     grep ${pool}/iocage/base_old > /dev/null 2>&1 ; echo $?)"
-    fi
-
-    # Check to see if the old ${pool}/iocage/base datasets are needed any longer
-    if [ "${_base_inuse}" = "1" ] ; then
-        zfs destroy -r ${pool}/iocage/base_old > /dev/null 2>&1
+        __migrate_basejail "${_fulluuid}" "${_jail_base}"
     fi
 
     # Look for hack88, if it exists, pass the short uuid
@@ -270,25 +259,25 @@ __reclone_basejail () {
                 __info "jail has dependent clone, uuid: ${_uuid} (${_tag})"
             fi
         done
-        __info "${_jail_tag} will not be up to date with base: ${_jail_release}"
+        __info "${_jail_tag} will not be up to date with base: ${_jail_base}"
     else
         # Destroy the old datasets
         for _fs in ${_fs_list} ; do
             zfs destroy -rf ${_fs}
         done
         # Set up the new RELEASE root dataset to be cloned from
-        zfs snapshot ${pool}/iocage/base/${_jail_release}/root@${_fulluuid}
+        zfs snapshot ${pool}/iocage/base/${_jail_base}/root@${_fulluuid}
 
         # Recloning the root dataset and remounting the children
         zfs clone -o readonly=on \
-            ${pool}/iocage/base/${_jail_release}/root@${_fulluuid} \
+            ${pool}/iocage/base/${_jail_base}/root@${_fulluuid} \
             ${pool}/iocage/jails/${_fulluuid}/root
     fi
 
     # Make sure the usr/home directory exists in the RELEASE
-    if [ ! -e "${iocroot}/base/${_jail_release}/root/usr/home" ] ; then
-        mkdir ${iocroot}/base/${_jail_release}/root/usr/home
-        cd ${iocroot}/base/${_jail_release}/root && ln -s usr/home home 2>&1
+    if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/home" ] ; then
+        mkdir ${iocroot}/base/${_jail_base}/root/usr/home
+        cd ${iocroot}/base/${_jail_base}/root && ln -s usr/home home 2>&1
     fi
 
     # Look for hack88, if it exists, pass the short uuid
@@ -311,6 +300,11 @@ __create_jail () {
     _devfs_string="$(grep -Fxq \
                   "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
                   ; echo $?)"
+    _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
+                 grep ${pool}/iocage/base_old > /dev/null 2>&1 ; echo $?)"
+    _release_dataset="${pool}/iocage/releases"
+    _release_dataset_check="$(zfs get -H creation ${_release_dataset} > \
+                           /dev/null 2>&1 ; echo $?)"
     _configured="0"
 
     if [ -z "${_supported_release}" -a "${2}" != "-e" -a "${1}" = "create" ] ; then
@@ -329,6 +323,20 @@ __create_jail () {
         echo "  These are the RELEASEs you have already fetched:" >&2
         printf "${_releases}\n" >&2
         exit 1
+    fi
+
+    # Check to see if the user has the old style of RELEASE datasets
+    if [ "${_release_dataset_check}" = "0" ] ; then
+        zfs rename -f "${pool}/iocage/base" \
+                      "${pool}/iocage/base_old"
+        zfs inherit -r mountpoint "${_release_dataset}"
+        zfs rename -f "${_release_dataset}" \
+                      "${pool}/iocage/base"
+    fi
+
+    # Check to see if the old ${pool}/iocage/base datasets are needed any longer
+    if [ "${_base_inuse}" = "1" ] ; then
+        zfs destroy -r ${pool}/iocage/base_old > /dev/null 2>&1
     fi
 
     # Look for null output, if it is, then no property is following create
@@ -570,7 +578,7 @@ __clone_jail () {
 # Destroy jails --------------------------------------------------------------
 __destroy_jail () {
     local _name _answer _uuid_list _force _dataset _origin \
-          _fulluuid _jail_path _state _jail_release
+          _fulluuid _jail_path _state
 
     if [ -z "$1" ] ; then
         __die "missing UUID!"
@@ -601,7 +609,6 @@ __destroy_jail () {
     _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
     _state="$(__is_running ${_fulluuid})"
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
-    _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
 
     __check_children ${_fulluuid} ${_dataset}
 
