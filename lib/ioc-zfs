@@ -348,7 +348,7 @@ __create_jail () {
                 if [ "$(echo $_p | grep -e ".*=.*")" ] ; then
                     _pname="$(echo ${_p} | \
                             awk 'BEGIN { FS = "=" } ; { print $1 }')"
-                    if [ "${_pname}" == "release" ] ; then
+                    if [ "${_pname}" = "release" ] ; then
                         __die "please replace release= with base="
                     fi
                 fi
