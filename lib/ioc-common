@@ -369,6 +369,8 @@ __fetch_release () {
     sleep 2
 
     if [ -e ${iocroot}/base/${_release}/root/etc/freebsd-update.conf ] ; then
+        sed -i '' 's/Components src world kernel/Components world kernel/' \
+            ${iocroot}/base/${_release}/root/etc/freebsd-update.conf
         mount -t devfs devfs ${iocroot}/base/${_release}/root/dev
         cat /etc/resolv.conf > \
             ${iocroot}/base/${_release}/root/etc/resolv.conf
