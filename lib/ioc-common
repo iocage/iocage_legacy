@@ -347,7 +347,7 @@ __fetch_release () {
             fetch http://${ftphost}${ftpdir}/${_file}
             if [ $? -ne 0 ] ; then
                 echo "Failed fetching ${_file}.." >&2
-                exit 1
+                return 1
             fi
         fi
     done

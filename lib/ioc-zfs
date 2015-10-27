@@ -296,7 +296,6 @@ __create_jail () {
     _installed=$(zfs list -rH ${pool}/iocage/base | grep ${base})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
     _supported_release=$(echo "${base}" | grep "RELEASE")
-    _isprop="$(echo ${2} | awk 'BEGIN { FS = "=" } ; { print $2 }')"
     _devfs_string="$(grep -Fxq \
                   "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
                   ; echo $?)"
@@ -315,7 +314,7 @@ __create_jail () {
 
     if [ -z "${_installed}" -a -z "${_releases}" -a "${2}" != "-e" ] ; then
         __die "no RELEASEs found locally, run iocage fetch first."
-    elif [ -z "${_installed}" -a "${2}" != "-e" ] ; then
+    elif [ -z "${_installed}" -a "${2}" != "-e" -a "${1}" != "-g" ] ; then
         echo "  RELEASE ${base} not found locally." >&2
         echo "  Please fetch ${base}" >&2
         echo "" >&2
@@ -338,6 +337,13 @@ __create_jail () {
     if [ "${_base_inuse}" = "1" ] ; then
         zfs destroy -r ${pool}/iocage/base_old > /dev/null 2>&1
     fi
+
+    # Remove this as we only needed it to skip the checks for plugins
+    if [ "${1}" = "-g" ] ; then
+        shift 2
+    fi
+
+    _isprop="$(echo ${2} | awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
     # Look for null output, if it is, then no property is following create
     if [ "${2}" != "-e" -a ! -z "${2}" ] ; then
@@ -698,7 +704,7 @@ __check_filesystems () {
                 zfs create -p ${pool}/${_fs}
                 zfs set mountpoint=/${_fs} ${pool}/${_fs}
                 if [ ${_fs} == "iocage/.defaults" ] ; then
-                    __reset_jail_props default  > /dev/null 2>&1
+                    __configure_jail ${pool}/iocage/.defaults > /dev/null 2>&1
                     if [ $_altroot != "-" ] ; then
                         sed -i '' s#.*iocroot.*#iocroot="${_altroot}/iocage"# \
                             "${LIB}/ioc-globals"

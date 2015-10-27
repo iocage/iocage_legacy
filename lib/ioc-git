@@ -2,12 +2,12 @@
 
 __fetch_plugin () {
     local _gitlocation _jail_path _prop _pname _repocheck _host_version \
-          _branch_version _branch_list
+          _branch_version _branch_list _branch_rel _base _dataset
 
     _gitlocation="$(__get_default_prop gitlocation)"
     _plugin="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $2 }')"
     _repocheck="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $1 }')"
-    _host_version="$(uname -r | cut -d '-' -f 1 | sed 's/\.//')"
+    _base="$(uname -r|cut -f 1,2 -d'-'|sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
 
     # Check if the user doesn't have a gitlocation set,
     # we use github as the default location to clone from
@@ -40,8 +40,51 @@ __fetch_plugin () {
         ;;
     esac
 
+    if [ ! -z "${iocset_base}" ] ; then
+        _base="${iocset_base}"
+    fi
+
+    _host_version="$(echo ${_base} | cut -d '-' -f 1 | sed 's/\.//')"
+
+    # If it failed fetching before, we need to check for that and remove it
+    # doing the check in the if below will cause problems since the directory
+    # does not exist yet.
+    if [ -d "${iocroot}/base/${_base}" ] ; then
+        if [ -z "$(ls -A ${iocroot}/base/${_base}/root)" ] ; then
+            zfs destroy "${iocroot}/base/${_base}"
+        fi
+    fi
+
+    # Check if the user has fetched a release for their version.
+    # will help us reduce the odds that they need to fetch later.
+    if [ ! -d "${iocroot}/base/${_base}" ] ; then
+        export iocset_release="${_base}"
+        # __spinner needs to be recreated here as we redirect with __fetch
+        _spinner='/-\|'
+
+        printf "  INFO: fetching base ${_base}:  "
+
+        while true; do
+            printf '\b%.1s' "${_spinner}"
+            _spinner=${_spinner#?}${_spinner%???}
+            sleep .1
+        done &
+
+        trap "kill $!" 2 3
+        __fetch_release > /dev/null 2>&1
+
+        if [ "$?" != "0" ] ; then
+            printf "\b%1s\n" "failed!" ; kill $! && trap " " 2 3
+            __die "${_base} could not be found, please try manually fetching it."
+        else
+            printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+        fi
+    fi
+
     # Create a basejail with the supplied properties to set up our structure
-    __create_jail $@ 1> /dev/null
+    # supplying -g so we can skip RELEASE checks.
+    export base="${_base}"
+    __create_jail "-g" $@ 1> /dev/null
     _jail_path="$(__get_jail_prop mountpoint ${uuid} \
                 ${pool}/iocage/jails/${uuid})"
 
@@ -65,7 +108,7 @@ __fetch_plugin () {
                                 -e '/^$/d')"
             # If we don't check for zero, we get an invalid comparison
             if [ ! -z "${_branch_version}" ] ; then
-                if [ "${_host_version}" -ge "${_branch_version}" ] ; then
+                if [ "${_host_version}" = "${_branch_version}" ] ; then
                     branch="${_branch}"
                     break
                 fi
@@ -82,6 +125,43 @@ __fetch_plugin () {
         done
 
         git checkout --quiet "${branch}"
+        # Allows for easy matching with RELEASEs
+        _branch_rel="$(echo ${branch}|sed 's/amd64/RELEASE/'|cut -d "/" -f 2)"
+        _dataset="${pool}/iocage/jails/${uuid}"
+
+        if [ "${_branch_rel}" != "${_base}" ] ; then
+            if [ -d "${iocroot}/base/${_branch_rel}" ] ; then
+                if [ -z "$(ls -A ${iocroot}/base/${_branch_rel}/root)" ] ; then
+                    zfs destroy "${iocroot}/base/${_branch_rel}"
+                fi
+            fi
+
+            if [ ! -d "${iocroot}/base/${_branch_rel}" ] ; then
+                export iocset_release="${_branch_rel}"
+                # __spinner needs to be recreated here as we redirect
+                # with __fetch
+                _spinner='/-\|'
+                printf "  INFO: different base used than host\n"
+                printf "  INFO: fetching base ${_branch_rel}:  "
+
+                while true; do
+                    printf '\b%.1s' "${_spinner}"
+                    _spinner=${_spinner#?}${_spinner%???}
+                    sleep .1
+                    done &
+
+                    trap "kill $!" 2 3
+                    __fetch_release > /dev/null 2>&1
+                    zfs set org.freebsd.iocage:base="${_branch_rel}" \
+                        ${pool}/iocage/jails/${uuid}
+                    __reclone_basejail ${uuid} ${_dataset} > /dev/null 2>&1
+                    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+            else
+                zfs set org.freebsd.iocage:base="${_branch_rel}" \
+                    ${pool}/iocage/jails/${uuid}
+                __reclone_basejail ${uuid} ${_dataset} > /dev/null 2>&1
+            fi
+        fi
     else
         __spinner "  INFO: fetching plugin ${_plugin}:  " \
             "git fetch --quiet --depth 1 origin "${iocset_branch}""
