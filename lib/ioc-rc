@@ -526,7 +526,7 @@ __stop_jail () {
     fi
 
     echo -n "  + Removing jail process"
-    jail -r "ioc-${_fulluuid}"
+    jail -r "ioc-${_fulluuid}" 1> /dev/null
 
     if [ $? -ne 1 ] ; then
         echo "    OK"
