@@ -80,7 +80,7 @@ if [ -z "$1" ] ; then
     exit 0
 fi
 
-if [ "$1" == "help" ] ; then
+if [ "$1" == "help" -o "$1" == "--help" -o "$1" == "-h" ] ; then
     __help
     exit 0
 fi
