@@ -72,11 +72,8 @@ DESCRIPTION
 
   iocage relies on ZFS and at least one ZFS pool must be present on the host
   system. To enable all the features iocage supports, consider the following
-  optional kernel options and system reqiurements:
-    o   FreeBSD 10.0-RELEASE amd64 or higher
-    o   bridge interfaces (bridge0,bridge1) add:
-
-        cloned_interfaces="bridge0 bridge1" to /etc/rc.conf
+  optional kernel options and system requirements:
+    o   FreeBSD 9.3-RELEASE amd64 or higher
     o  Kernel compiled with:
 
         options         VIMAGE

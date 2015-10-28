@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage DEVELOP (2015-10-26)"
+    echo "iocage DEVELOP (2015-10-27)"
     exit 0
 fi
 

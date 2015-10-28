@@ -57,7 +57,8 @@ __validate_mac () {
 # Expects $1 for action and $2 for UUID
 __networking () {
     local _action _uuid _jid _mac_epair_a mac_epair_b \
-          _mac_offset _dataset _dhcp _dhcp_string
+          _mac_offset _dataset _dhcp _dhcp_string _bridge_ifaces \
+          _bridge_exists _bridge_inuse
 
     _action="$1"
     _uuid="$2"
@@ -78,12 +79,39 @@ __networking () {
                 awk '{ print $6 }')"
     local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
     local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
-
+    _bridge_ifaces="$(netstat -iWn | grep -E 'bridge0|bridge1' | \
+                    awk '{ print $1 }')"
     # Change the DEFAULT tag to correct iface
     nics=$(echo $nics | sed "s/DEFAULT/$default_iface/g")
-
-    if [ ${_action} == "start" ] ; then
+    if [ ${_action} = "start" ] ; then
         _mac_offset=0
+
+        # Check to see if any bridges exist, otherwise create them
+        # we add the default interface as a member so the jails can reach the
+        # world.
+        if [ ! -z "${_bridge_ifaces}" ] ; then
+            for _b in ${_bridge_ifaces} ; do
+                if [ "${_b}" != "bridge0" ] ; then
+                    _bridge_exists="$(echo ${_bridge_ifaces} | grep bridge0)"
+                    if [ -z "${_bridge_exists}" ] ; then
+                        ifconfig bridge0 create addm "${default_iface}"
+                    else
+                        continue
+                    fi
+                elif [ "${_b}" != "bridge1" ] ; then
+                    _bridge_exists="$(echo ${_bridge_ifaces} | grep bridge1)"
+                    if [ -z "${_bridge_exists}" ] ; then
+                        ifconfig bridge1 create
+                    else
+                        continue
+                    fi
+                fi
+            done
+        else
+            ifconfig bridge0 create addm "${default_iface}"
+            ifconfig bridge1 create
+        fi
+
         for i in $nics ; do
             local nic=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')
             local bridge=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')
@@ -170,11 +198,20 @@ __networking () {
         fi
     fi
 
-    if [ ${_action} == "stop" ] ; then
+    if [ ${_action} = "stop" ] ; then
         for if in $nics ; do
             local nic="$(echo $if | cut -f 1 -d:)"
             ifconfig ${nic}:${_jid} destroy
         done
+
+        _bridge_inuse="$(netstat -iWn | grep '^vnet' | \
+                       awk '{ print $1 }')"
+        # If no vnet interfaces are using the bridges, let's clean up after
+        # ourselves
+        if [ -z "${_bridge_inuse}" ] ; then
+            ifconfig bridge0 destroy > /dev/null 2>&1
+            ifconfig bridge1 destroy > /dev/null 2>&1
+        fi
     fi
 }
 
