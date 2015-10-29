@@ -97,7 +97,7 @@ shmsize="off"
 wallclock="off"
 
 # Custom properties
-iocroot="/iocage"
+iocroot="/iocage" # WARNING: NO PENDING '/' OR IT BREAKS!
 tag=$(date "+%F@%T")
 template="no"
 bpf="off"

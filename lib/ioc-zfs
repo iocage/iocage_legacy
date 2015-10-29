@@ -306,11 +306,12 @@ __create_jail () {
                            /dev/null 2>&1 ; echo $?)"
     _configured="0"
 
-    if [ -z "${_supported_release}" -a "${2}" != "-e" -a "${1}" = "create" ] ; then
-        echo "  You are not running a production RELEASE." >&2
-        echo "  ERROR: Please specify base=RELEASE." >&2
-        exit 1
-    fi
+    # ERR, This block prevents me from running "custom" releases (there maybe a better way to warn user about this?)
+#    if [ -z "${_supported_release}" -a "${2}" != "-e" -a "${1}" = "create" ] ; then
+#        echo "  You are not running a production RELEASE." >&2
+#        echo "  ERROR: Please specify base=RELEASE." >&2
+#        exit 1
+#    fi
 
     if [ -z "${_installed}" -a -z "${_releases}" -a "${2}" != "-e" ] ; then
         __die "no RELEASEs found locally, run iocage fetch first."
@@ -702,7 +703,7 @@ __check_filesystems () {
             else
                 __info "creating ${pool}${_fs}"
                 zfs create -p ${pool}${_fs}
-                zfs set mountpoint=/${_fs} ${pool}${_fs}
+                zfs set mountpoint=${_fs} ${pool}${_fs}
                 if [ ${_fs} == "${iocroot}/.defaults" ] ; then
                     __configure_jail ${pool}${iocroot}/.defaults > /dev/null 2>&1
 #                    if [ $_altroot != "-" ] ; then
