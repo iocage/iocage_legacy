@@ -261,8 +261,7 @@ __vnet_start () {
     _fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $_fulluuid $_dataset)"
     _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $_fulluuid $_dataset)"
 
-    if [ "$(uname -U)" == "903000" ];
-    then
+    if [ "$(uname -U)" = "903000" ] ; then
       _fdescfs=""
       _tmpfs=""
     fi

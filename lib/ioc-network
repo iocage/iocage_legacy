@@ -41,13 +41,13 @@ __validate_mac () {
     _mac_epair_a="$(__get_next_mac ${_mac_base} ${_mac_offset})"
     _mac_epair_b="$(__get_next_mac ${_mac_base} ${_mac_offset}+1)"
 
-    if [ ${_mac} == "none" ] ; then
+    if [ ${_mac} = "none" ] ; then
         __set_jail_prop ${_nic}_mac="${_mac_epair_a},${_mac_epair_b}" ${_uuid} $_dataset
     fi
 
-    if [ ${_epair_leg} == "a" ] ; then
+    if [ ${_epair_leg} = "a" ] ; then
         _return="$(__get_jail_prop ${_nic}_mac ${_uuid} $_dataset|cut -f1 -d,)"
-    elif [ ${_epair_leg} == "b" ] ; then
+    elif [ ${_epair_leg} = "b" ] ; then
         _return="$(__get_jail_prop ${_nic}_mac ${_uuid} $_dataset|cut -f2 -d,)"
     fi
 
@@ -81,6 +81,11 @@ __networking () {
     local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
     _bridge_ifaces="$(netstat -iWn | grep -E 'bridge0|bridge1' | \
                     awk '{ print $1 }')"
+    # Otherwise the list is stale, as it does not include a freshly created
+    # jail
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+                          | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
+
     # Change the DEFAULT tag to correct iface
     nics=$(echo $nics | sed "s/DEFAULT/$default_iface/g")
     if [ ${_action} = "start" ] ; then
@@ -115,10 +120,10 @@ __networking () {
         for i in $nics ; do
             local nic=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')
             local bridge=$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')
-            local memberif=$(ifconfig $bridge | grep member | head -n1 | \
+            local memberif=$(\ifconfig $bridge | grep member | head -n1 | \
                            cut -d' ' -f2)
-            local brmtu=$(ifconfig $memberif | head -n1 |cut -d' ' -f6)
-            epair_a=$(ifconfig epair create)
+            local brmtu=$(\ifconfig $memberif | head -n1 |cut -d' ' -f6)
+            epair_a=$(\ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
             ifconfig ${epair_a} name ${nic}:${_jid} mtu $brmtu
             _mac_epair_a="$(__validate_mac ${nic} ${_mac_offset} a ${_uuid} $_dataset)"
