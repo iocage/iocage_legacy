@@ -200,7 +200,7 @@ __migrate_basejail () {
 __reclone_basejail () {
     local _fulluuid _fs_list _dataset _jail_base _jailed_dataset \
           _jailed_dataset_check _jail_datasets _base_inuse _origin _tag _uuid \
-          _jail_mount _hack88 _shortuuid
+          _jail_mount _hack88 _shortuuid _inherit_props
 
     _fulluuid="$1"
     _dataset="$2"
@@ -216,6 +216,8 @@ __reclone_basejail () {
     _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
     _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                            /dev/null 2>&1 ; echo $?)"
+    _inherit_props="$(__unset_inherited ${_fulluuid})"
+
 
     # Check to see if the user has the old style of jailed datasets
     if [ "${_jailed_dataset_check}" = "0" ] ; then
@@ -263,15 +265,15 @@ __reclone_basejail () {
     else
         # Destroy the old datasets
         for _fs in ${_fs_list} ; do
-            zfs destroy -rf ${_fs}
+            zfs destroy -f ${_fs}
         done
         # Set up the new RELEASE root dataset to be cloned from
         zfs snapshot ${pool}/iocage/base/${_jail_base}/root@${_fulluuid}
 
         # Recloning the root dataset and remounting the children
-        zfs clone -o readonly=on \
-            ${pool}/iocage/base/${_jail_base}/root@${_fulluuid} \
-            ${pool}/iocage/jails/${_fulluuid}/root
+        eval "zfs clone -o readonly=on ${_inherit_props} \
+            \"${pool}/iocage/base/${_jail_base}/root@${_fulluuid}\" \
+            \"${pool}/iocage/jails/${_fulluuid}/root\""
     fi
 
     # Make sure the usr/home directory exists in the RELEASE
@@ -291,7 +293,7 @@ __reclone_basejail () {
 # This creates jails----------------------------------------------------
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
-          _pname _prop _isprop
+          _pname _prop _isprop _inherit_props
 
     _installed=$(zfs list -rH ${pool}/iocage/base | grep ${base})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
@@ -382,10 +384,11 @@ __create_jail () {
         for _fs in ${_fs_list} ; do
             _cfs=$(echo ${_fs} | sed s#/base/${base}#/jails/${uuid}#g)
             if [ "${_cfs}" = "${pool}/iocage/jails/${uuid}/root" ] ; then
-                eval "zfs clone -o readonly=on\
-                      ${_zfsconfig} \"${_fs}@${uuid}\" \"${_cfs}\""
+                eval "zfs clone -o readonly=on ${_inherit_props} \
+                    \"${_fs}@${uuid}\" \"${_cfs}\""
             else
                 eval "zfs create ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
+                _inherit_props="$(__unset_inherited ${uuid})"
             fi
         done
 
@@ -480,7 +483,7 @@ __create_jail () {
 # Cloning jails ----------------------------------------------------------
 __clone_jail () {
     local  _name _snapshot _dataset _fs _fs_list _zfsconfig  _cfs _pname _prop \
-           _isprop
+           _isprop _inherit_props
 
     _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
@@ -522,9 +525,11 @@ __clone_jail () {
                  sed s#${_dataset}#${pool}/iocage/jails/${uuid}#g)"
 
             if [ "${_cfs}" = "${pool}/iocage/jails/${uuid}/root" ] ; then
-                eval "zfs clone ${_zfsconfig} \"${_fs}@${uuid}\" \"${_cfs}\""
+                eval "zfs clone ${_inherit_props} \
+                    \"${_fs}@${uuid}\" \"${_cfs}\""
             elif [ "${_cfs}" = "${pool}/iocage/jails/${uuid}" ] ; then
                 eval "zfs create ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
+                _inherit_props="$(__unset_inherited ${uuid})"
             fi
 
             # See if they had a jailed dataset before
@@ -590,7 +595,7 @@ __destroy_jail () {
         __die "missing UUID!"
     fi
 
-    if [ "$1" == '-f' ] ; then
+    if [ "$1" = '-f' ] ; then
         _force="1"
         _name="$2"
     else
@@ -611,7 +616,6 @@ __destroy_jail () {
     __check_children ${_dataset}
 
     _origin="$(zfs get -H -o value origin ${_dataset})"
-    _fulluuid="$(__check_name ${_name})"
     _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
     _state="$(__is_running ${_fulluuid})"
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
@@ -626,7 +630,7 @@ __destroy_jail () {
             echo -n "  Are you sure ? y[N]: "
             read _answer
 
-        if [ "${_answer}" == "Y" ] || [ "${_answer}" == "y" ] ; then
+        if [ "${_answer}" = "Y" -o "${_answer}" = "y" ] ; then
             if [ ! -z ${_state} ] ; then
                 __die "cannot destroy ${_name} - jail is running!"
             fi
@@ -665,8 +669,8 @@ __destroy_func () {
         zfs destroy -r ${_origin}
     fi
 
-    if [ ${_jail_type} == "basejail" ] ; then
-        if [ "${_base_inuse}" == "0" ] ; then
+    if [ ${_jail_type} = "basejail" ] ; then
+        if [ "${_base_inuse}" = "0" ] ; then
             zfs destroy -fr ${pool}/iocage/base@${_fulluuid} > /dev/null 2>&1
         fi
     fi
@@ -724,7 +728,7 @@ __check_filesystems () {
     fi
 
     export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
-                          | grep -Ev "jails$|base$|download|${pool}/iocage$")"
+                          | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
 
     # Checks to see if the user changed the altroot and modify ioc-globals
     # If the user decided to unset their altroot, they need to run again as
@@ -815,4 +819,17 @@ __umount_basejail () {
     umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/var       > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/tmp       > /dev/null 2>&1
+}
+
+# Accepts one argument. It uses that argument as the name/UUID.
+__unset_inherited () {
+    local _name _inherit
+
+    _name="${1}"
+    _inherit="$(zfs get -Hs "local" all ${pool}/iocage/jails/${_name} | \
+              grep "org.freebsd.iocage" | \
+              awk '{ print $2}')"
+    for _p in ${_inherit} ; do
+        echo -n "-o ${_p}=\"-\" "
+    done
 }
