@@ -23,7 +23,7 @@ __export_props () {
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
     local _name _property _dataset _pname _pval _found _CONF \
-          _type
+          _type _state _tag _base _inherit_props _jail_type
 
     _name="$2"
     _property="$1"
@@ -46,6 +46,7 @@ __set_jail_prop () {
 
     _pname="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $1 }')"
     _pval="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
 
     if [ -z "${_pname}" -o -z "${_pval}" ] ; then
         __die "set failed, incorrect property syntax!"
@@ -81,19 +82,87 @@ __set_jail_prop () {
     elif [ "${_pname}" = "notes" ] ; then
         zfs set org.freebsd.iocage:${_pname}="${notes}" ${_dataset}
     elif [ "${_pname}" = "template" ] ; then
+        if [ "${_jail_type}" != "basejail" -a "${_jail_type}" != "template" ] ; then
+            __die "templates aren't supported for this jail type (${_jail_type})"
+        fi
+
         if [ "${_pval}" = "yes" ] ; then
+            _state="$(__is_running ${_fulluuid})"
+
+            if [ ! -z ${_state} ] ; then
+                zfs set org.freebsd.iocage:template="no" "${_dataset}"
+                __die "cannot make ${_name} a template - jail is running!"
+            fi
+
             __unlink_tag "${_dataset}"
             _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+            _base="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
+
             zfs set org.freebsd.iocage:type="template" "${_dataset}"
-            zfs rename -f "${pool}/iocage/jails/${_fulluuid}" \
-                          "${pool}/iocage/base/${_tag}"
+            if [ -d "${iocroot}/jails/${_fulluuid}" ] ; then
+                # Destroy the root as we don't want an origin on the template
+                zfs destroy "${pool}/iocage/jails/${_fulluuid}/root"
+                # Need -r so we can keep the jail's properties
+                zfs snapshot -r "${pool}/iocage/jails/${_fulluuid}@template"
+                # Grabbing the real /root from the release the jail was using
+                zfs snapshot "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"
+                # Create the jail in the new spot
+                zfs send -R     "${pool}/iocage/jails/${_fulluuid}@template" | \
+                    zfs recv "${pool}/iocage/base/${_tag}"
+                # No longer need that snapshot
+                zfs destroy "${pool}/iocage/jails/${_fulluuid}@template"
+                # Creating jail's /root in it's new home
+                zfs send -R     "${pool}/iocage/base/${_base}/root@${_fulluuid}-template" | \
+                    zfs recv "${pool}/iocage/base/${_tag}/root"
+                # Since we want whatever changes to be persistent, we must copy
+                # them to the jail's /root, keeping the jails original overlays
+                # so it can be transformed back to a jail
+                cd "${iocroot}/base/${_tag}/_" \
+                    && tar cf - .|$(cd "${iocroot}/base/${_tag}/root";\
+                    tar xf -)
+                # Destroy all the snapshot we don't need and the original
+                # location for the jail.
+                zfs destroy  "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"
+                zfs destroy  "${pool}/iocage/base/${_base}/root@${_fulluuid}"
+                zfs destroy "${pool}/iocage/base/${_tag}@template"
+                zfs destroy  "${pool}/iocage/base/${_tag}/root@${_fulluuid}-template"
+                zfs destroy  "${pool}/iocage/jails/${_fulluuid}"
+                # remove any residual clone snapshots carried over from
+                # the RELEASE datasets
+                __snapremove ${_fulluuid}@ALL ${pool}/iocage/base/${_tag}/root
+            else
+                __die "${_name} is already a template"
+            fi
         elif [ "${_pval}" = "no" ] ; then
             _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+            _base="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
+
             zfs set org.freebsd.iocage:type="basejail" "${_dataset}"
-            zfs rename -f "${pool}/iocage/base/${_tag}" \
-                          "${pool}/iocage/jails/${_fulluuid}"
-            _dataset="${pool}/iocage/jails/${_fulluuid}"
-            __link_tag "${_dataset}"
+            if [ -d "${iocroot}/base/${_tag}" ] ; then
+                # Move jail back to the jails dataset
+                zfs rename -f "${pool}/iocage/base/${_tag}" \
+                              "${pool}/iocage/jails/${_fulluuid}"
+                _inherit_props="$(__unset_inherited ${_fulluuid})"
+                # Have to manually specify this for later, as it will still be
+                # the old /iocage/base location
+                _dataset="${pool}/iocage/jails/${_fulluuid}"
+                # Remove standalone root, we don't want it anymore
+                zfs destroy -r "${pool}/iocage/jails/${_fulluuid}/root"
+                # Set up the new RELEASE root dataset to be cloned from
+                zfs snapshot ${pool}/iocage/base/${_base}/root@${_fulluuid}
+                # Recloning the root dataset
+                eval "zfs clone -o readonly=on ${_inherit_props} \
+                    \"${pool}/iocage/base/${_base}/root@${_fulluuid}\" \
+                    \"${pool}/iocage/jails/${_fulluuid}/root\""
+                # Updating the jail tag
+                __link_tag "${_dataset}"
+                # Throw jail through the recloning process and unmount
+                # what remains.
+                __reclone_basejail "${_fulluuid}" "${_dataset}"
+                __umount_basejail "${_fulluuid}" "${_dataset}"
+            else
+                __die "${_name} is not a template"
+            fi
         fi
     fi
 }
