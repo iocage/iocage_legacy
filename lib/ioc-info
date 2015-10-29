@@ -67,7 +67,7 @@ __find_jail () {
         echo "${pool}${iocroot}/.defaults"
     else
         for _jail in ${jail_datasets} ; do
-            _found="$(echo ${_jail} | grep -iE "${_name}")"
+            _found="$(echo ${_jail} | grep -iE "/jails/${_name}")"
             _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
 
             if [ "${#_found}" -gt 0 ] ; then
