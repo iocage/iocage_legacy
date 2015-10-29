@@ -244,7 +244,7 @@ __list_jails_warden () {
 }
 
 __print_disk () {
-    local _format="%-13s  %-6s  %-5s  %-5s  %-5s  %-5s %s\n"
+    local _format="%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %s\n"
 
     printf "${_format}" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
     zfs list -t filesystem -rd1 -H -o org.freebsd.iocage:host_hostuuid,compressratio,reservation,quota,used,available,org.freebsd.iocage:tag \
