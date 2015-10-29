@@ -377,9 +377,15 @@ __fetch_release () {
 
         case "${_release}" in
             9.3-RELEASE | 10.1-RELEASE)
+                # Remove the interactive check in freebsd-update
+                sed 's/\[ ! -t 0 \]/false/' \
+                    ${iocroot}/base/${_release}/root/usr/sbin/freebsd-update \
+                    > ${iocroot}/base/${_release}/root/tmp/freebsd-update
+                chmod +x ${iocroot}/base/${_release}/root/tmp/freebsd-update
                 chroot ${iocroot}/base/${_release}/root \
                     env UNAME_r="${_release}" env PAGER="/bin/cat" \
-                    freebsd-update fetch
+                    /tmp/freebsd-update fetch
+                rm ${iocroot}/base/${_release}/root/tmp/freebsd-update
                 ;;
             *)
                 chroot ${iocroot}/base/${_release}/root \

@@ -51,10 +51,16 @@ __update () {
 
                         case "${_jail_base}" in
                             9.3-RELEASE | 10.1-RELEASE)
+                                # Remove the interactive check in freebsd-update
+                                sed 's/\[ ! -t 0 \]/false/' \
+                                    ${iocroot}/base/${_jail_base}/root/usr/sbin/freebsd-update \
+                                    > ${iocroot}/base/${_jail_base}/root/tmp/freebsd-update
+                                chmod +x ${iocroot}/base/${_jail_base}/root/tmp/freebsd-update
                                 chroot ${iocroot}/base/${_jail_base}/root \
                                     env UNAME_r="${_jail_base}" \
                                     env PAGER="/bin/cat" \
-                                    freebsd-update fetch
+                                    /tmp/freebsd-update fetch
+                                rm ${iocroot}/base/${_jail_base}/root/tmp/freebsd-update
                                 ;;
                             *)
                                 chroot ${iocroot}/base/${_jail_base}/root \
@@ -110,10 +116,16 @@ __update () {
 
                         case "${_jail_base}" in
                             9.3-RELEASE | 10.1-RELEASE)
+                                # Remove the interactive check in freebsd-update
+                                sed 's/\[ ! -t 0 \]/false/' \
+                                    ${_mountpoint}/root/usr/sbin/freebsd-update \
+                                    > ${_mountpoint}/root/tmp/freebsd-update
+                                chmod +x ${_mountpoint}/root/tmp/freebsd-update
                                 chroot ${_mountpoint}/root \
                                     env UNAME_r="${_jail_base}" \
                                     env PAGER="/bin/cat" \
-                                    freebsd-update fetch
+                                    /tmp/freebsd-update fetch
+                                rm ${_mountpoint}/root/tmp/freebsd-update
                                 ;;
                             *)
                                 chroot ${_mountpoint}/root \
