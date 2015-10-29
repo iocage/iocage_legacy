@@ -195,7 +195,7 @@ __upgrade () {
     # back up /etc just in case the merge fails
     if [ ${_jail_type} = "basejail" ] ; then
         _jail_datasets="$(__find_jail ALL | \
-                        grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")"
+                        grep -vE "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>")"
         # Check to see if the jail has a stale upgrade snapshot.
         for _fs in ${_jail_datasets} ; do
             _snapcheck="$(zfs list -Ht snap | \

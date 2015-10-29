@@ -90,7 +90,7 @@ __snaplist () {
     _fulluuid="$(__check_name $_name)"
     _snapshots="$(zfs list -Hrt snapshot -d1 $_dataset | awk '{print $1}')"
 
-    printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
+    printf "%-13s  %-21s  %s   %s\n" "NAME" "CREATED"\
             "RSIZE" "USED"
 
     for _snap in $_snapshots ; do
@@ -99,7 +99,7 @@ __snaplist () {
         _used="$(zfs get -H -o value used $_snap)"
         _referenced="$(zfs get -H -o value referenced $_snap)"
 
-        printf "%-36s  %-21s  %s    %s\n" "$_snapname" "$_creation"\
+        printf "%-13s  %-21s  %s    %s\n" "$_snapname" "$_creation"\
                    "$_referenced" "$_used"
     done
 

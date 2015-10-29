@@ -85,14 +85,14 @@ __set_jail_prop () {
             __unlink_tag "${_dataset}"
             _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
             zfs set org.freebsd.iocage:type="template" "${_dataset}"
-            zfs rename -f "${pool}/iocage/jails/${_fulluuid}" \
-                          "${pool}/iocage/base/${_tag}"
+            zfs rename -f "${pool}${iocroot}/jails/${_fulluuid}" \
+                          "${pool}${iocroot}/base/${_tag}"
         elif [ "${_pval}" = "no" ] ; then
             _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
             zfs set org.freebsd.iocage:type="basejail" "${_dataset}"
-            zfs rename -f "${pool}/iocage/base/${_tag}" \
-                          "${pool}/iocage/jails/${_fulluuid}"
-            _dataset="${pool}/iocage/jails/${_fulluuid}"
+            zfs rename -f "${pool}${iocroot}/base/${_tag}" \
+                          "${pool}${iocroot}/jails/${_fulluuid}"
+            _dataset="${pool}${iocroot}/jails/${_fulluuid}"
             __link_tag "${_dataset}"
         fi
     fi
@@ -323,11 +323,11 @@ __fetch_release () {
     fi
 
 
-    _rel_exist=$(zfs list -H | grep -w ^${pool}/iocage/base/${_release})
+    _rel_exist=$(zfs list -H | grep -w ^${pool}${iocroot}/base/${_release})
 
     if [ -z "${_rel_exist}" ] ; then
-        zfs create -o compression=lz4 -p ${pool}/iocage/base/${_release}/root
-        zfs create -o compression=lz4 -p ${pool}/iocage/download/${_release}
+        zfs create -o compression=lz4 -p ${pool}${iocroot}/base/${_release}/root
+        zfs create -o compression=lz4 -p ${pool}${iocroot}/download/${_release}
     fi
 
     if [ -z "${ftpdir}" ] ; then

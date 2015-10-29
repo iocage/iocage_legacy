@@ -111,7 +111,7 @@ __rctl_inuse_all () {
           _line _res _jail _header
 
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           grep -vE "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>")
     _print_head=1
 
     for _jail in $(echo $_jails) ; do

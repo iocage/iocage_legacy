@@ -64,7 +64,7 @@ __find_jail () {
             echo ${_jail}
         done
     elif [ "${_name}" = "default" ] ; then
-        echo "${pool}/iocage/.defaults"
+        echo "${pool}${iocroot}/.defaults"
     else
         for _jail in ${jail_datasets} ; do
             _found="$(echo ${_jail} | grep -iE "${_name}$")"
@@ -92,7 +92,7 @@ __find_jail () {
 __list_jails () {
     local _jails _switch _all_jids _ioc_jids _non_ioc_jids _releases \
           _temp_loop_var _state
-    _jails=$(__find_jail ALL | grep -Ev "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/base_old|*./root|*./data")
+    _jails=$(__find_jail ALL | grep -Ev "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>|${pool}${iocroot}/base_old|*./root|*./data")
     _switch=$1
     _all_jids=$(jls -N -h jid | grep -v -x jid )
 
@@ -103,7 +103,7 @@ __list_jails () {
 
     if [ ! -z "${_switch}" -a "${_switch}" = "-r" ] ; then
         echo "Downloaded releases:"
-        _releases="$(zfs list -o name -Hr ${pool}/iocage/base \
+        _releases="$(zfs list -o name -Hr ${pool}${iocroot}/base \
                    | grep RELEASE$ | cut -d \/ -f 4)"
         for _rel in $(echo ${_releases}) ; do
             printf "%15s\n" "${_rel}"
@@ -202,7 +202,7 @@ __list_jails_warden () {
           _vnet1_mac _vnet2_mac _vnet3_mac _type
 
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           grep -vE "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>")
     _switch=$1
 
     for _jail in ${_jails} ; do
@@ -244,11 +244,11 @@ __list_jails_warden () {
 }
 
 __print_disk () {
-    local _format="%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %s\n"
+    local _format="%-13s  %-6s  %-5s  %-5s  %-5s  %-5s %s\n"
 
     printf "${_format}" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
     zfs list -t filesystem -rd1 -H -o org.freebsd.iocage:host_hostuuid,compressratio,reservation,quota,used,available,org.freebsd.iocage:tag \
-        ${pool}/iocage/jails | sed "1 d" | \
+        ${pool}${iocroot}/jails | sed "1 d" | \
         awk -F "\t" '{printf "'"${_format}"'", $1, $2, $3, $4, $5, $6, $7}'
 }
 

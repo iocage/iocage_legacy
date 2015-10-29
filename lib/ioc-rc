@@ -51,10 +51,10 @@ __start_jail () {
         # Check for thick or clone jails and migrate their type
         if [ "${_clone_check}" = "-" ] ; then
             __set_jail_prop type=thickjail ${_fulluuid} \
-                ${pool}/iocage/jails/${_fulluuid}
+                ${pool}${iocroot}/jails/${_fulluuid}
         else
             __set_jail_prop type=clonejail ${_fulluuid} \
-                ${pool}/iocage/jails/${_fulluuid}
+                ${pool}${iocroot}/jails/${_fulluuid}
         fi
     fi
 
@@ -111,7 +111,7 @@ __start_jail () {
     _jzfs_dataset_nlen="${#_jzfs_dataset}"
 
     if [ $_jzfs_dataset_olen -ne $_jzfs_dataset_nlen ] ; then
-        _jzfs_dataset="${pool}/iocage/jails${_jzfs_dataset}"
+        _jzfs_dataset="${pool}${iocroot}/jails${_jzfs_dataset}"
     fi
 
     if [ $_jzfs == "on" ] ; then
@@ -571,7 +571,7 @@ __stop_jail () {
 __stop_jail_all () {
     local _jails _state
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           grep -vE "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>")
 
     for _jail in ${_jails} ; do
         _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
@@ -620,7 +620,7 @@ __restart_jail () {
 __rc_jails () {
     local action=$1
     local _jails=$(__find_jail ALL | \
-                 grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+                 grep -vE "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>")
     local boot_list="/tmp/iocage.$$"
 
     for jail in $_jails ; do
@@ -652,7 +652,7 @@ __rc_jails () {
         for i in $boot_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
             local _priority="$(echo $i | cut -f1 -d,)"
-            local _dataset="${pool}/iocage/jails/${jail}"
+            local _dataset="${pool}${iocroot}/jails/${jail}"
             local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
             local state="$(jls | grep ${jail_path} | wc -l)"
 
@@ -670,7 +670,7 @@ __rc_jails () {
 
         for i in $shutdown_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
-            local _dataset="${pool}/iocage/jails/${jail}"
+            local _dataset="${pool}${iocroot}/jails/${jail}"
             local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
             local state="$(jls | grep ${jail_path} | wc -l)"
 
