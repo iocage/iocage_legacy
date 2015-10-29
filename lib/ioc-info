@@ -65,9 +65,11 @@ __find_jail () {
         done
     elif [ "${_name}" = "default" ] ; then
         echo "${pool}/iocage/.defaults"
+    elif [ "$(echo ${_name} | grep "^-")" ] ; then
+        __die "${_name} is not a valid command"
     else
         for _jail in ${jail_datasets} ; do
-            _found="$(echo ${_jail} | grep -iE \"${_name}$\")"
+            _found="$(echo ${_jail} | grep -iE ${_name}$)"
             _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
 
             if [ "${#_found}" -gt 0 ] ; then
