@@ -74,10 +74,10 @@ __parse_cmd () {
                             if [ $1 = "-t" ] ; then
                                 shift
                                 __fetch_plugin_thick "$@"
-                                exit
+                                exit 0
                             else
                                 __fetch_plugin "$@"
-                                exit
+                                exit 0
                             fi
                         fi
 
