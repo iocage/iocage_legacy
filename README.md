@@ -17,6 +17,27 @@ The `develop` branch may not be functional at any given point. This is where a l
 - **Mailing list**: https://groups.google.com/forum/#!forum/iocage
 - **Contributing**: If you would like to submit a pull request, we kindly ask you to open it against the `develop` branch.
 
+####Raising an issue:
+
+We _like_ issues! If you are having trouble with `iocage` please open a GitHub [issue](https://github.com/iocage/iocage/issues) and we will ~~run around with our hair on fire~~ look into it. Before doing so, please give us some information about the situation:
+- Tell us what version of FreeBSD you are using with something like `uname -ro`
+- It would also be helpful if you gave us the output of `iocage version`
+- Most importantly, try to be detailed. Simply stating "I tried consoling into a jail and it broke" will not help us very much. However, saying something like this helps much, much more:
+
+
+"I tried to console into a _template_ jail, but it failed with _this error_ in which _I pasted below:_"
+````
+gasgiant ~ # iocage list -t
+JID  UUID                                  BOOT  STATE  TAG     TYPE
+-    XXXXXXXX-XXXX-XXXX-a5be-3417ebb13845  off   down   pepperd  template
+gasgiant ~ # iocage console salted
+cannot open 'zroot/iocage/jails/XXXXXXXX-XXXX-XXXX-a5be-3417ebb13845': dataset does not exist
+cannot open 'zroot/iocage/jails/XXXXXXXX-XXXX-XXXX-a5be-3417ebb13845': dataset does not exist
+[: -ne: unexpected operator
+  ERROR: jail: pepperd is not running!
+````
+- Use the [Markdown Basics](https://help.github.com/articles/markdown-basics/#code-formatting) GitHub page for more information on how to paste lines of code and terminal output. 
+
 **FEATURES:**
 - Templates, clones, basejails, fully independent jails
 - Ease of use
