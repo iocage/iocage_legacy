@@ -101,7 +101,7 @@ __set_jail_prop () {
             zfs set org.freebsd.iocage:type="template" "${_dataset}"
             if [ -d "${iocroot}/jails/${_fulluuid}" ] ; then
                 # Destroy the root as we don't want an origin on the template
-                zfs destroy "${pool}/iocage/jails/${_fulluuid}/root"
+                zfs destroy -r "${pool}/iocage/jails/${_fulluuid}/root"
                 # Need -r so we can keep the jail's properties
                 zfs snapshot -r "${pool}/iocage/jails/${_fulluuid}@template"
                 # Grabbing the real /root from the release the jail was using

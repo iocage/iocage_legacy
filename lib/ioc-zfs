@@ -424,22 +424,30 @@ __create_jail () {
     fi
 
     # at create time set the default rc.conf
-    echo "hostname=\"${host_hostname}\"" > \
-        ${iocroot}/jails/${uuid}/root/etc/rc.conf
-    __jail_rc_conf >> \
-        ${iocroot}/jails/${uuid}/root/etc/rc.conf
-    __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
-        ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+    if [ -e "${iocroot}/jails/${uuid}/root/etc/rc.conf" ] ; then
+        sed -i '' "1s/hostname=.*/hostname=\"${host_hostname}\"/" \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    else
+        echo "hostname=\"${host_hostname}\"" > \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+        __jail_rc_conf >> \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    fi
+
+    if [ ! -e "${iocroot}/jails/${uuid}/root/etc/resolv.conf" ] ; then
+        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+    fi
 
     for _prop in "$@" ; do
         _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
         # Look to see if the user wants a jailed dataset,
         # if they do then create it
-        if [ "${_pname}" == "jail_zfs" ] ; then
+        if [ "${_pname}" = "jail_zfs" ] ; then
             zfs create -u -o compression=lz4 -o mountpoint=none -o jailed=on \
                 ${pool}/${jail_zfs_dataset}
         # Do they want bpf exposed?
-        elif [ "${_pname}" == "bpf" ] ; then
+        elif [ "${_pname}" = "bpf" ] ; then
             if [ "${_devfs_string}" != "0" ] ; then
                 __bpf_devfs >> /etc/devfs.rules
                 service devfs restart > /dev/null 2>&1
