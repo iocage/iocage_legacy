@@ -225,13 +225,10 @@ __console () {
 
     _fulluuid="$(__check_name $_name)"
     _state=$(__is_running $_fulluuid)
-    _login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
-                  $pool/iocage/jails/$_fulluuid)
-
-    _exec_fib=$(zfs get -H -o value org.freebsd.iocage:exec_fib \
-                  $pool/iocage/jails/$_fulluuid)
-
+    _login_flags=$(__get_jail_prop login_flags ${_name})
+    _exec_fib=$(__get_jail_prop exec_fib ${_name})
     _jexec="jexec"
+
     if [ $_exec_fib -ne "0" ] ; then
         _jexec="setfib $_exec_fib jexec"
     fi
