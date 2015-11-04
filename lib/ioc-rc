@@ -89,17 +89,13 @@ __start_jail () {
 
     if [ "${_linprocfs}" = "1" ] ; then
         if [ "${_jail_type}" = basejail ] ; then
-            if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/compat/linux/proc" ] ; then
+            if [ ! -e "${iocroot}/base/${_jail_base}/root/compat/linux/proc" ] ; then
                 mkdir -p \
-                    "${iocroot}/base/${_jail_base}/root/usr/compat/linux/proc"
-                cd "${iocroot}/base/${_jail_base}/root" \
-                    && ln -s usr/compat compat
+                    "${iocroot}/base/${_jail_base}/root/compat/linux/proc"
             fi
         elif [ "${_jail_type}" = thickjail ] ; then
-            if [ ! -e "${_jail_path}/root/usr/compat/linux/proc" ] ; then
-                mkdir -p "${_jail_path}/root/usr/compat/linux/proc"
-                cd "${_jail_path}/root" \
-                    && ln -s usr/compat compat
+            if [ ! -e "${_jail_path}/root/compat/linux/proc" ] ; then
+                mkdir -p "${_jail_path}/root/compat/linux/proc"
             fi
         fi
     fi
@@ -149,7 +145,7 @@ __start_jail () {
 
     if [ "${_linprocfs}" = "1" ] ; then
         # Needs to be down here so basejails can see the new directory
-        mount -t linprocfs linproc ${_jail_path}/root/usr/compat/linux/proc
+        mount -t linprocfs linproc ${_jail_path}/root/compat/linux/proc
     fi
 
     if [ $_vnet == "on" ] || [ $_vnet == "-" ] ; then
@@ -541,11 +537,11 @@ __stop_jail () {
         echo "    FAILED"
     fi
 
-    umount -afvF "${_jail_path}/fstab" > /dev/null 2>&1
-    umount "${_jail_path}/root/dev/fd" > /dev/null 2>&1
-    umount "${_jail_path}/root/dev"    > /dev/null 2>&1
-    umount "${_jail_path}/root/proc"   > /dev/null 2>&1
-    umount "${_jail_path}/root/usr/compat/linux/proc"   > /dev/null 2>&1
+    umount -afvF "${_jail_path}/fstab"              > /dev/null 2>&1
+    umount "${_jail_path}/root/dev/fd"              > /dev/null 2>&1
+    umount "${_jail_path}/root/dev"                 > /dev/null 2>&1
+    umount "${_jail_path}/root/proc"                > /dev/null 2>&1
+    umount "${_jail_path}/root/compat/linux/proc"   > /dev/null 2>&1
 
     if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
         if [ "${_hack88}" = "1" ] ; then

@@ -652,7 +652,7 @@ PROPERTIES
 
   mount_linprocfs=0 | 1
 
-    Mount a linprocfs(5) filesystem in the jail's /usr/compat/linux/proc directory.
+    Mount a linprocfs(5) filesystem in the jail's /compat/linux/proc directory.
 
     Default: 0
     Source: local

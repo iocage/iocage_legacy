@@ -162,6 +162,7 @@ __migrate_basejail () {
     # Silencing in case they exist, nobody cares.
     mkdir ${iocroot}/base/${_base}/root/usr/home  > /dev/null 2>&1
     cd ${iocroot}/base/${_base}/root && ln -s usr/home home 2>&1
+    mkdir ${iocroot}/base/${_base}/root/compat  > /dev/null 2>&1
     mkdir ${iocroot}/base/${_base}/root/usr/ports > /dev/null 2>&1
 
     # If the user has a /usr/local, move it for migration
@@ -178,6 +179,14 @@ __migrate_basejail () {
               ${iocroot}/jails/${_fulluuid}/_/usr/ports
     else
         mkdir ${iocroot}/jails/${_fulluuid}/_/usr/ports
+    fi
+
+    # If the user had a compat directory, move it for migration
+    if [ -e "${iocroot}/jails/${_fulluuid}/root/compat" ] ; then
+        mv    ${iocroot}/jails/${_fulluuid}/root/compat \
+              ${iocroot}/jails/${_fulluuid}/_/compat
+    else
+        mkdir ${iocroot}/jails/${_fulluuid}/_/compat
     fi
 
     # Move all the r/w required mountpoints for migration
@@ -280,6 +289,11 @@ __reclone_basejail () {
     if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/home" ] ; then
         mkdir ${iocroot}/base/${_jail_base}/root/usr/home
         cd ${iocroot}/base/${_jail_base}/root && ln -s usr/home home 2>&1
+    fi
+
+    # Make sure the /compat directory exists in the RELEASE
+    if [ ! -e "${iocroot}/base/${_jail_base}/root/compat" ] ; then
+        mkdir ${iocroot}/base/${_jail_base}/root/compat
     fi
 
     # Look for hack88, if it exists, pass the short uuid
@@ -393,12 +407,13 @@ __create_jail () {
         done
 
         # Create all the unionfs r/w directories needed
-        mkdir  -p ${iocroot}/jails/${uuid}/_/usr/local
-        mkdir     ${iocroot}/jails/${uuid}/_/var
+        mkdir  -p ${iocroot}/jails/${uuid}/_/compat
         mkdir     ${iocroot}/jails/${uuid}/_/etc
+        mkdir     ${iocroot}/jails/${uuid}/_/root
+        mkdir     ${iocroot}/jails/${uuid}/_/var
+        mkdir  -p ${iocroot}/jails/${uuid}/_/usr/local
         mkdir     ${iocroot}/jails/${uuid}/_/usr/ports
         mkdir     ${iocroot}/jails/${uuid}/_/usr/home
-        mkdir     ${iocroot}/jails/${uuid}/_/root
         mount  -t unionfs -o noatime,copymode=transparent \
                   ${iocroot}/jails/${uuid}/_/etc/ \
                   ${iocroot}/jails/${uuid}/root/etc
@@ -475,6 +490,9 @@ __create_jail () {
         mount -t unionfs -o noatime,copymode=transparent \
                  ${iocroot}/jails/${uuid}/_/var/ \
                  ${iocroot}/jails/${uuid}/root/var
+        mount -t unionfs -o noatime,copymode=transparent \
+                 ${iocroot}/jails/${uuid}/_/compat/ \
+                 ${iocroot}/jails/${uuid}/root/compat
 
         __pkg_install "${iocroot}/jails/${uuid}/root"
         __umount_basejail "${uuid}"
@@ -795,6 +813,9 @@ __mount_basejail () {
         ${iocroot}/jails/${_fulluuid}/_/usr/home \
         ${iocroot}/jails/${_fulluuid}/root/usr/home
     mount -t unionfs -o noatime,copymode=transparent \
+        ${iocroot}/jails/${_fulluuid}/_/compat \
+        ${iocroot}/jails/${_fulluuid}/root/compat
+    mount -t unionfs -o noatime,copymode=transparent \
         ${iocroot}/jails/${_fulluuid}/_/usr/local \
         ${iocroot}/jails/${_fulluuid}/root/usr/local
     mount -t unionfs -o noatime,copymode=transparent \
@@ -820,13 +841,14 @@ __umount_basejail () {
     local _fulluuid="$1"
 
   # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
-    umount ${iocroot}/jails/${_fulluuid}/root/root      > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/compat    > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/etc       > /dev/null 2>&1
-    umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
-    umount ${iocroot}/jails/${_fulluuid}/root/usr/home  > /dev/null 2>&1
-    umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
-    umount ${iocroot}/jails/${_fulluuid}/root/var       > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/root      > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/tmp       > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/var       > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/usr/home  > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
 }
 
 # Accepts one argument. It uses that argument as the name/UUID.

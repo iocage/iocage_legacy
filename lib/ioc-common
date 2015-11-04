@@ -325,6 +325,9 @@ __chroot () {
                 ${iocroot}/jails/${_fulluuid}/_/usr/home \
                 ${iocroot}/jails/${_fulluuid}/root/usr/home
             mount -t unionfs -o noatime,copymode=transparent \
+                ${iocroot}/jails/${_fulluuid}/_/compat \
+                ${iocroot}/jails/${_fulluuid}/root/compat
+            mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/usr/local \
                 ${iocroot}/jails/${_fulluuid}/root/usr/local
             mount -t unionfs -o noatime,copymode=transparent \
@@ -429,6 +432,7 @@ __fetch_release () {
     # Create these dirs for basejails
     mkdir ${iocroot}/base/${_release}/root/usr/home > /dev/null 2>&1
     cd ${iocroot}/base/${_release}/root && ln -s usr/home home 2>&1
+    mkdir ${iocroot}/base/${_release}/root/compat > /dev/null 2>&1
     mkdir ${iocroot}/base/${_release}/root/usr/ports > /dev/null 2>&1
 
     echo "* Updating base jail template."
