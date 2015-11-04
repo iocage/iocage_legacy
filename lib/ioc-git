@@ -75,6 +75,8 @@ __fetch_plugin () {
 
         if [ "$?" != "0" ] ; then
             printf "\b%1s\n" "failed!" ; kill $! && trap " " 2 3
+            zfs destroy -fr "${pool}/iocage/base/${_base}"
+            zfs destroy -f "${pool}/iocage/download/${_base}"
             __die "${_base} could not be found, please try manually fetching it."
         else
             printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
