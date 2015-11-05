@@ -45,14 +45,20 @@ __parse_cmd () {
             destroy)    if [ "$2" = "-f" ] ; then
                             export _force=1
                             shift 2
-                            for _j in $@ ; do
-                                __destroy_jail "${_j}"
+                            for _jdel in $@ ; do
+                                __destroy_jail "${_jdel}"
+				unset jail_datasets uuid jail_zfs_dataset _fulluuid_dataset _fs _jail_type
+				export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+				 | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
                             done
                         else
                             export _force=0
                             shift
-                            for _j in $@ ; do
-                                __destroy_jail "${_j}"
+                            for _jdel in $@ ; do
+                                __destroy_jail "${_jdel}"
+				unset jail_datasets uuid jail_zfs_dataset _fulluuid_dataset _fs _jail_type
+				export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+				 | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
                             done
                         fi
 
