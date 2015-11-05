@@ -456,7 +456,7 @@ __stop_jail () {
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
           _ip4 _jail_type _hack88 _shortuuid
 
-    if [ "$1" == "ALL" ] ; then
+    if [ "$1" = "ALL" ] ; then
         __stop_jail_all
         exit $?
     fi

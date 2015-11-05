@@ -122,13 +122,19 @@ __parse_cmd () {
             rcshutdown) __rc_jails shutdown
                         exit
                 ;;
-            reboot)     __reboot_jail "$2"
+            reboot)    shift
+                        for _j in $@ ; do
+                            __reboot_jail "${_j}"
+                        done
                         exit
                 ;;
             reset)      __reset_jail_props "$2"
                         exit
                 ;;
-            restart)    __restart_jail "$2"
+            restart)    shift
+                        for _j in $@ ; do
+                            __restart_jail "${_j}"
+                        done
                         exit
                 ;;
             rollback)   __rollback "$2"
@@ -150,10 +156,16 @@ __parse_cmd () {
             snapshot)   __snapshot "$2" "$3"
                         exit
                 ;;
-            start)      __start_jail "$2"
+            start)      shift
+                        for _j in $@ ; do
+                            __start_jail "${_j}"
+                        done
                         exit
                 ;;
-            stop)       __stop_jail "$2"
+            stop)       shift
+                        for _j in $@ ; do
+                            __stop_jail "${_j}"
+                        done
                         exit
                 ;;
             uncap)      __rctl_uncap "$2"
