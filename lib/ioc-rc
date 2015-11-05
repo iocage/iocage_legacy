@@ -77,13 +77,15 @@ __start_jail () {
     fi
 
     if [ "$_jail_hostid" != "$hostid" ] ; then
-        echo "ERROR: hostid mismatch, start failed!" >&2
-        echo "    jail hostid: $_jail_hostid" >&2
-        echo "  host's hostid: $hostid" >&2
-        exit 1
+        if [ -z "$(uname -v | grep -i "freenas")" ] ; then
+            echo "ERROR: hostid mismatch, start failed!" >&2
+            echo "    jail hostid: $_jail_hostid" >&2
+            echo "  host's hostid: $hostid" >&2
+            exit 1
+        fi
     fi
 
-    if [ "$_procfs" == "1" ] ; then
+    if [ "$_procfs" = "1" ] ; then
         mount -t procfs proc ${_jail_path}/root/proc
     fi
 
