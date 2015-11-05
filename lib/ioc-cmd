@@ -42,7 +42,20 @@ __parse_cmd () {
             defaults)   __print_defaults
                         exit
                 ;;
-            destroy)    __destroy_jail "$2" "$3"
+            destroy)    if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift 2
+                            for _j in $@ ; do
+                                __destroy_jail "${_j}"
+                            done
+                        else
+                            export _force=0
+                            shift
+                            for _j in $@ ; do
+                                __destroy_jail "${_j}"
+                            done
+                        fi
+
                         exit
                 ;;
             df)         __print_disk

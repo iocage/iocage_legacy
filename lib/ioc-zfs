@@ -621,12 +621,10 @@ __destroy_jail () {
         __die "missing UUID!"
     fi
 
-    if [ "$1" = '-f' ] ; then
-        _force="1"
-        _name="$2"
-    else
-        _force="0"
-        _name="$1"
+    _name="$1"
+
+    if [ "${_name}" = "ALL" ] ; then
+        __die "please use iocage clean -j instead."
     fi
 
     _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
