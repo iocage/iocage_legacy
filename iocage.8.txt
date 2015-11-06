@@ -182,7 +182,7 @@ SUBCOMMANDS
     SHA256 checksum. Jail must be in stopped state before exporting.
 
   fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-         ftpfiles="base.txz doc.txz lib32.txz src.txz]
+         ftpfiles="base.txz doc.txz lib32.txz src.txz"]
 
     Used for downloading and updating/patching releases.
 
