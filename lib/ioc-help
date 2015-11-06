@@ -19,7 +19,7 @@ SYNOPSIS
   iocage exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
   iocage export UUID|TAG
   iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-                ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+                ftpfiles="base.txz doc.txz lib32.txz"]
   iocage get [-r] property|all UUID|TAG
   iocage help
   iocage import UUID [property=value]
@@ -169,7 +169,7 @@ SUBCOMMANDS
     SHA256 checksum. Jail must be in stopped state before exporting.
 
   fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-         ftpfiles="base.txz doc.txz lib32.txz src.txz]
+         ftpfiles="base.txz doc.txz lib32.txz"]
 
     Used for downloading and updating/patching releases.
 
