@@ -6,6 +6,11 @@ __start_jail () {
           _procfs _state _vnet _nics _jzfs_dataset _jzfs _clone_check \
           _exec_fib _exec_start _bpf _dhcp _devfs_string _linprocfs
 
+    if [ "$1" = "ALL" ] ; then
+        __start_jail_all
+        exit $?
+    fi
+
     # Get fulluuid and dataset in one step (dataset is optional)
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
 
@@ -448,6 +453,12 @@ __legacy_start () {
 
 # Stop completely and start the jail anew
 __reboot_jail () {
+
+    if [ "$1" = "ALL" ] ; then
+        __reboot_jail_all
+        exit $?
+    fi
+
     __stop_jail "$1" && __start_jail "$1"
 }
 
@@ -582,12 +593,68 @@ __stop_jail_all () {
     return $?
 }
 
+__start_jail_all () {
+    local _jails _state
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+
+    for _jail in ${_jails} ; do
+        _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+               ${_jail})
+        _state="$(__is_running ${_juuid} ; echo $?)"
+        while [ "${_state}" != "1" ] ; do
+            __start_jail ${_juuid}
+            break
+        done
+    done
+    return $?
+}
+
+__reboot_jail_all () {
+    local _jails _state
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+
+    for _jail in ${_jails} ; do
+        _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+               ${_jail})
+        _state="$(__is_running ${_juuid} ; echo $?)"
+        while [ "${_state}" != "1" ] ; do
+            __reboot_jail ${_juuid}
+            break
+        done
+    done
+    return $?
+}
+
+__restart_jail_all () {
+    local _jails _state
+    _jails=$(__find_jail ALL | \
+           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+
+    for _jail in ${_jails} ; do
+        _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+               ${_jail})
+        _state="$(__is_running ${_juuid} ; echo $?)"
+        while [ "${_state}" != "1" ] ; do
+            __restart_jail ${_juuid}
+            break
+        done
+    done
+    return $?
+}
+
 # Soft restart
 __restart_jail () {
     local name="$1"
 
     if [ -z $name ] ; then
         __die "missing UUID!"
+    fi
+
+    if [ "$1" = "ALL" ] ; then
+        __restart_jail_all
+        exit $?
     fi
 
     local dataset="$(__find_jail $name)" || exit $?
