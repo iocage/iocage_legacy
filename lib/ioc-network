@@ -223,7 +223,6 @@ __networking () {
 __get_autoip4 () {
     local _autobase _autostart _autoend _autoip _freeip _dataset _jails
 
-
     _dataset="$2"
     unset _auto_ip4
     _autobase=$(netstat -f inet -nrW | grep '^default' |\

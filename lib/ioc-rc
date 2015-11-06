@@ -14,45 +14,45 @@ __start_jail () {
     # Get fulluuid and dataset in one step (dataset is optional)
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)" || exit $?
 
-    set $_fulluuid_dataset
+    set ${_fulluuid_dataset}
 
     _fulluuid="$1"
     _dataset="$2"
 
     __hack88_mount ${_fulluuid} ${_dataset}
 
-    _exec_start="$(__get_jail_prop exec_start $_fulluuid $_dataset)"
-    _jail_type="$(__get_jail_prop type $_fulluuid $_dataset)"
-    _bpf="$(__get_jail_prop bpf $_fulluuid $_dataset)"
-    _dhcp="$(__get_jail_prop dhcp $_fulluuid $_dataset)"
-    _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
-    _jail_hostid="$(__get_jail_prop hostid $_fulluuid $_dataset)"
-    _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
-    _jail_base="$(__get_jail_prop base $_fulluuid $_dataset)"
-    _template="$(__get_jail_prop template $_fulluuid $_dataset)"
-    _cpuset="$(__get_jail_prop cpuset $_fulluuid $_dataset)"
-    _procfs="$(__get_jail_prop mount_procfs $_fulluuid $_dataset)"
-    _linprocfs="$(__get_jail_prop mount_linprocfs $_fulluuid $_dataset)"
-    _state=$(__is_running $_fulluuid)
-    _vnet="$(__get_jail_prop vnet $_fulluuid $_dataset)"
-    _exec_fib="$(__get_jail_prop exec_fib $_fulluuid $_dataset)"
-    _nics="$(__get_jail_prop interfaces $_fulluuid $_dataset\
-           |awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
+    _exec_start="$(__get_jail_prop exec_start ${_fulluuid} ${_dataset})"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+    _bpf="$(__get_jail_prop bpf ${_fulluuid} ${_dataset})"
+    _dhcp="$(__get_jail_prop dhcp ${_fulluuid} ${_dataset})"
+    _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+    _jail_hostid="$(__get_jail_prop hostid ${_fulluuid} ${_dataset})"
+    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _jail_base="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
+    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
+    _cpuset="$(__get_jail_prop cpuset ${_fulluuid} ${_dataset})"
+    _procfs="$(__get_jail_prop mount_procfs ${_fulluuid} ${_dataset})"
+    _linprocfs="$(__get_jail_prop mount_linprocfs ${_fulluuid} ${_dataset})"
+    _state=$(__is_running ${_fulluuid})
+    _vnet="$(__get_jail_prop vnet ${_fulluuid} ${_dataset})"
+    _exec_fib="$(__get_jail_prop exec_fib ${_fulluuid} ${_dataset})"
+    _nics="$(__get_jail_prop interfaces ${_fulluuid} ${_dataset} \
+           | awk 'BEGIN { FS = "," } ; { print $1,$2,$3,$4 }')"
     _clone_check="$(zfs get -H origin ${_dataset} | awk '{print $3}')"
     _devfs_string="$(grep -Fxq \
                   "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
                   ; echo $?)"
 
-    if [ "$_state" ] ; then
-        echo "* ${_fulluuid}: is already up" >&2
-        exit 1
+    if [ "${_state}" ] ; then
+        __info "${_fulluuid} (${_tag}) is already up" >&2
+        return 1
     fi
 
     if [ ! -d ${iocroot}/log ] ; then
         mkdir ${iocroot}/log
     fi
 
-    if [ $_jail_type == "jail" ] ; then
+    if [ "${_jail_type}" = "jail" ] ; then
         # Check for thick or clone jails and migrate their type
         if [ "${_clone_check}" = "-" ] ; then
             __set_jail_prop type=thickjail ${_fulluuid} \
@@ -63,34 +63,34 @@ __start_jail () {
         fi
     fi
 
-    for i in $_nics ; do
-        _nic="$(echo $i | awk 'BEGIN { FS = ":" } ; { print $1 }')"
-        _bridge="$(echo $i | awk 'BEGIN { FS = ":" } ; { print $2 }')"
+    for i in ${_nics} ; do
+        _nic="$(echo ${i} | awk 'BEGIN { FS = ":" } ; { print $1 }')"
+        _bridge="$(echo ${i} | awk 'BEGIN { FS = ":" } ; { print $2 }')"
 
-        if [ -z $_nic ] || [ -z $_bridge ] ; then
+        if [ -z "${_nic}" -o -z "${_bridge}" ] ; then
             echo "  ERROR  : incorrect interfaces property format" >&2
-            echo "  HINT   : check with \"iocage get interfaces $_fulluuid\"" >&2
+            echo "  HINT   : check with \"iocage get interfaces ${_fulluuid}\"" >&2
             echo "  Example: vnet0:bridge0" >&2
             exit 1
         fi
     done
 
-    if [ $_template == "yes" ] ; then
-        echo "  INFO: $_tag is a template jail, ignoring start request."
-        echo "        (disable template flag with: iocage set template=no $_tag)"
+    if [ "${_template}" = "yes" ] ; then
+        echo "  INFO: ${_tag} is a template jail, ignoring start request."
+        echo "        (disable template flag with: iocage set template=no ${_tag})"
         return
     fi
 
-    if [ "$_jail_hostid" != "$hostid" ] ; then
+    if [ "${_jail_hostid}" != "${hostid}" ] ; then
         if [ -z "$(uname -v | grep -i "freenas")" ] ; then
             echo "ERROR: hostid mismatch, start failed!" >&2
-            echo "    jail hostid: $_jail_hostid" >&2
-            echo "  host's hostid: $hostid" >&2
+            echo "    jail hostid: ${_jail_hostid}" >&2
+            echo "  host's hostid: ${hostid}" >&2
             exit 1
         fi
     fi
 
-    if [ "$_procfs" = "1" ] ; then
+    if [ "${_procfs}" = "1" ] ; then
         mount -t procfs proc ${_jail_path}/root/proc
     fi
 
@@ -107,33 +107,33 @@ __start_jail () {
         fi
     fi
 
-    _jzfs="$(__get_jail_prop jail_zfs $_fulluuid $_dataset)"
-    _jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $_fulluuid $_dataset)"
+    _jzfs="$(__get_jail_prop jail_zfs ${_fulluuid} ${_dataset})"
+    _jzfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
     _jzfs_dataset_olen="${#_jzfs_dataset}"
     _jzfs_dataset="${_jzfs_dataset#iocage/jails}"
     _jzfs_dataset_nlen="${#_jzfs_dataset}"
 
-    if [ $_jzfs_dataset_olen -ne $_jzfs_dataset_nlen ] ; then
+    if [ "${_jzfs_dataset_olen}" -ne "${_jzfs_dataset_nlen}" ] ; then
         _jzfs_dataset="${pool}/iocage/jails${_jzfs_dataset}"
     fi
 
-    if [ $_jzfs == "on" ] ; then
-        __set_jail_prop allow_mount=1 $_fulluuid $_dataset
-        __set_jail_prop enforce_statfs=1 $_fulluuid $_dataset
-        __set_jail_prop allow_mount_zfs=1 $_fulluuid $_dataset
-        zfs set jailed=on ${_jzfs_dataset}
+    if [ "${_jzfs}" = "on" ] ; then
+        __set_jail_prop allow_mount=1 "${_fulluuid}" "${_dataset}"
+        __set_jail_prop enforce_statfs=1 "${_fulluuid}" "${_dataset}"
+        __set_jail_prop allow_mount_zfs=1 "${_fulluuid}" "${_dataset}"
+        zfs set jailed=on "${_jzfs_dataset}"
     fi
 
-    if [ "${_dhcp}" == "on" ] ; then
+    if [ "${_dhcp}" = "on" ] ; then
         if [ "${_vnet}" != "on" ] ; then
             __die "vnet is needed to use dhcp, please set vnet=on for ${_fulluuid}"
-        elif [ "${_bpf}" == "off" ] ; then
+        elif [ "${_bpf}" = "off" ] ; then
             __die "bpf is needed to use dhcp, please set bpf=yes for ${_fulluuid}"
         fi
     fi
 
     # Make doubly sure that bpf entry exists since FreeNAS wipes /etc on boot.
-    if [ "${_bpf}" == "on" ] ; then
+    if [ "${_bpf}" = "on" ] ; then
         if [ "${_devfs_string}" != "0" ] ; then
             __bpf_devfs >> /etc/devfs.rules
             service devfs restart 1> /dev/null
@@ -142,12 +142,12 @@ __start_jail () {
 
     if [ "${_jail_type}" = "basejail" ] ; then
         # Re-clone required filesystems
-        __reclone_basejail $_fulluuid $_dataset
+        __reclone_basejail "${_fulluuid}" "${_dataset}"
     fi
 
     if [ "${_jail_type}" = "clonejail" ] ; then
         # Mount old filesystems
-        __mount_basejail $_fulluuid
+        __mount_basejail "${_fulluuid}"
     fi
 
     if [ "${_linprocfs}" = "1" ] ; then
@@ -155,16 +155,16 @@ __start_jail () {
         mount -t linprocfs linproc ${_jail_path}/root/compat/linux/proc
     fi
 
-    if [ $_vnet == "on" ] || [ $_vnet == "-" ] ; then
+    if [ "${_vnet}" = "on" -o "${_vnet}" = "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
-            echo "* Starting $_fulluuid ($_tag)"
-            __vnet_start $_fulluuid $_dataset
+            echo "* Starting ${_fulluuid} (${_tag})"
+            __vnet_start "${_fulluuid}" "${_dataset}"
 
             if [ $? -eq 1 ] ; then
                 echo "  ! Start                FAILED" >&2
 
                 if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                    __umount_basejail ${_fulluuid}
+                    __umount_basejail "${_fulluuid}"
                 fi
 
                 exit 1
@@ -173,13 +173,13 @@ __start_jail () {
             fi
 
             echo -n "  + Configuring VNET"
-            __networking start $_fulluuid $_dataset
+            __networking start "${_fulluuid}" "${_dataset}"
 
             if [ $? -eq 1 ] ; then
                 echo "         FAILED" >&2
 
                 if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                    __umount_basejail ${_fulluuid}
+                    __umount_basejail "${_fulluuid}"
                 fi
 
                 exit 1
@@ -187,7 +187,7 @@ __start_jail () {
                 echo "         OK"
             fi
         else
-            echo "  ERROR: start failed for $_fulluuid" >&2
+            echo "  ERROR: start failed for ${_fulluuid}" >&2
             echo "  vnet=on but kernel is not VNET capable!" >&2
             echo "  Turn vnet off for this jail or recompile kernel with VNET." >&2
 
@@ -198,8 +198,8 @@ __start_jail () {
             exit 1
         fi
     else
-        echo "* Starting $_fulluuid ($_tag)"
-        __legacy_start $_fulluuid $_dataset
+        echo "* Starting ${_fulluuid} (${_tag})"
+        __legacy_start "${_fulluuid}" "${_dataset}"
         if [ $? -eq 1 ] ; then
             echo "  ! Start                FAILED" >&2
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
@@ -211,18 +211,18 @@ __start_jail () {
         fi
     fi
 
-    cd ${_jail_path}/root/dev && ln -s ../var/run/log log &
+    cd "${_jail_path}/root/dev" && ln -s ../var/run/log log &
 
-    __rctl_limits $_fulluuid $_dataset
+    __rctl_limits "${_fulluuid}" "${_dataset}"
 
-    if [ $_cpuset != "off" ] ; then
+    if [ "${_cpuset}" != "off" ] ; then
         echo -n "  + Appliyng CPU affinity"
         local jid="$(jls -j ioc-${_fulluuid} jid)"
-        cpuset -l $_cpuset -j $jid
+        cpuset -l "${_cpuset}" -j "${jid}"
         if [ $? -eq 1 ] ; then
             echo "    FAILED" >&2
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                __umount_basejail ${_fulluuid}
+                __umount_basejail "${_fulluuid}"
             fi
             exit 1
         else
@@ -239,20 +239,20 @@ __start_jail () {
 
     __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf &
     echo -n "  + Starting services"
-    setfib $_exec_fib jexec ioc-${_fulluuid} $_exec_start \
-     >> $iocroot/log/${_fulluuid}-console.log 2>&1
+    setfib ${_exec_fib} jexec ioc-${_fulluuid} ${_exec_start} \
+     >> "${iocroot}/log/${_fulluuid}-console.log" 2>&1
 
     if [ $? -eq 1 ] ; then
         echo "        FAILED" >&2
         if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-            __umount_basejail ${_fulluuid}
+            __umount_basejail "${_fulluuid}"
         fi
         exit 1
     else
         echo "        OK"
     fi
 
-    zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $_dataset &
+    zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") "${_dataset}" &
 
 }
 
@@ -262,9 +262,9 @@ __vnet_start () {
 
     _fulluuid="$1"
     _dataset="$2"
-    _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
-    _fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $_fulluuid $_dataset)"
-    _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $_fulluuid $_dataset)"
+    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs ${_fulluuid} ${_dataset})"
+    _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs ${_fulluuid} ${_dataset})"
 
     if [ "$(uname -U)" = "903000" ] ; then
       _fdescfs=""
@@ -272,183 +272,186 @@ __vnet_start () {
     fi
 
     jail -c vnet \
-    name="ioc-$(__get_jail_prop host_hostuuid $_fulluuid $_dataset)" \
-    host.hostname="$(__get_jail_prop host_hostname $_fulluuid $_dataset)" \
+    name="ioc-$(__get_jail_prop host_hostuuid ${_fulluuid} ${_dataset})" \
+    host.hostname="$(__get_jail_prop host_hostname ${_fulluuid} ${_dataset})" \
     path="${_jail_path}/root" \
-    securelevel="$(__get_jail_prop securelevel $_fulluuid $_dataset)" \
-    host.hostuuid="$(__get_jail_prop host_hostuuid $_fulluuid $_dataset)" \
-    devfs_ruleset="$(__get_jail_prop devfs_ruleset $_fulluuid $_dataset)" \
-    enforce_statfs="$(__get_jail_prop enforce_statfs $_fulluuid $_dataset)" \
-    children.max="$(__get_jail_prop children_max $_fulluuid $_dataset)" \
-    allow.set_hostname="$(__get_jail_prop allow_set_hostname $_fulluuid $_dataset)" \
-    allow.sysvipc="$(__get_jail_prop allow_sysvipc $_fulluuid $_dataset)" \
-    allow.raw_sockets="$(__get_jail_prop allow_raw_sockets $_fulluuid $_dataset)" \
-    allow.chflags="$(__get_jail_prop allow_chflags $_fulluuid $_dataset)" \
-    allow.mount="$(__get_jail_prop allow_mount $_fulluuid $_dataset)" \
-    allow.mount.devfs="$(__get_jail_prop allow_mount_devfs $_fulluuid $_dataset)" \
-    allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs $_fulluuid $_dataset)" \
-    allow.mount.procfs="$(__get_jail_prop allow_mount_procfs $_fulluuid $_dataset)" \
-    ${_tmpfs} \
-    allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $_fulluuid $_dataset)" \
-    allow.quotas="$(__get_jail_prop allow_quotas $_fulluuid $_dataset)" \
-    allow.socket_af="$(__get_jail_prop allow_socket_af $_fulluuid $_dataset)" \
-    exec.prestart="$(__findscript $_fulluuid prestart $_dataset)" \
-    exec.poststart="$(__findscript $_fulluuid poststart $_dataset)" \
-    exec.prestop="$(__findscript $_fulluuid prestop $_dataset)" \
-    exec.stop="$(__get_jail_prop exec_stop $_fulluuid $_dataset)" \
-    exec.clean="$(__get_jail_prop exec_clean $_fulluuid $_dataset)" \
-    exec.timeout="$(__get_jail_prop exec_timeout $_fulluuid $_dataset)" \
-    stop.timeout="$(__get_jail_prop stop_timeout $_fulluuid $_dataset)" \
+    securelevel="$(__get_jail_prop securelevel ${_fulluuid} ${_dataset})" \
+    host.hostuuid="$(__get_jail_prop host_hostuuid ${_fulluuid} ${_dataset})" \
+    devfs_ruleset="$(__get_jail_prop devfs_ruleset ${_fulluuid} ${_dataset})" \
+    enforce_statfs="$(__get_jail_prop enforce_statfs ${_fulluuid} ${_dataset})" \
+    children.max="$(__get_jail_prop children_max ${_fulluuid} ${_dataset})" \
+    allow.set_hostname="$(__get_jail_prop allow_set_hostname ${_fulluuid} ${_dataset})" \
+    allow.sysvipc="$(__get_jail_prop allow_sysvipc ${_fulluuid} ${_dataset})" \
+    allow.raw_sockets="$(__get_jail_prop allow_raw_sockets ${_fulluuid} ${_dataset})" \
+    allow.chflags="$(__get_jail_prop allow_chflags ${_fulluuid} ${_dataset})" \
+    allow.mount="$(__get_jail_prop allow_mount ${_fulluuid} ${_dataset})" \
+    allow.mount.devfs="$(__get_jail_prop allow_mount_devfs ${_fulluuid} ${_dataset})" \
+    allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs ${_fulluuid} ${_dataset})" \
+    allow.mount.procfs="$(__get_jail_prop allow_mount_procfs ${_fulluuid} ${_dataset})" \
+    "${_tmpfs}" \
+    allow.mount.zfs="$(__get_jail_prop allow_mount_zfs ${_fulluuid} ${_dataset})" \
+    allow.quotas="$(__get_jail_prop allow_quotas ${_fulluuid} ${_dataset})" \
+    allow.socket_af="$(__get_jail_prop allow_socket_af ${_fulluuid} ${_dataset})" \
+    exec.prestart="$(__findscript ${_fulluuid} prestart ${_dataset})" \
+    exec.poststart="$(__findscript ${_fulluuid} poststart ${_dataset})" \
+    exec.prestop="$(__findscript ${_fulluuid} prestop ${_dataset})" \
+    exec.stop="$(__get_jail_prop exec_stop ${_fulluuid} ${_dataset})" \
+    exec.clean="$(__get_jail_prop exec_clean ${_fulluuid} ${_dataset})" \
+    exec.timeout="$(__get_jail_prop exec_timeout ${_fulluuid} ${_dataset})" \
+    stop.timeout="$(__get_jail_prop stop_timeout ${_fulluuid} ${_dataset})" \
     mount.fstab="${_jail_path}/fstab" \
-    mount.devfs="$(__get_jail_prop mount_devfs $_fulluuid $_dataset)" \
-    ${_fdescfs} \
+    mount.devfs="$(__get_jail_prop mount_devfs ${_fulluuid} ${_dataset})" \
+    "${_fdescfs}" \
     allow.dying \
-    exec.consolelog="$iocroot/log/${_fulluuid}-console.log" \
+    exec.consolelog="${iocroot}/log/${_fulluuid}-console.log" \
     persist
 }
 
 # Start a shared IP jail
 __legacy_start () {
-    local name="$1"
-    local _dataset="$2"
-    local jail_path="$(__get_jail_prop mountpoint $name $_dataset)"
-    local ip4_addr="$(__get_jail_prop ip4_addr $name $_dataset)"
-    local ip6_addr="$(__get_jail_prop ip6_addr $name $_dataset)"
-    local ip4="$(__get_jail_prop ip4 $name $_dataset)"
-    local _exec_fib="$(__get_jail_prop exec_fib $name $_dataset)"
+    local _name _dataset _jail_path _ip4_addr _ip6_addr _ip4 _exec_fib \
+          _fdescfs _tmpfs _default_iface _cur_ip4_iface _cur_ip6_iface \
+          _ip4_addr_propline _ip6_addr_propline _new_iface
 
-    local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $name $_dataset)"
-    local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $name $_dataset)"
+    _name="$1"
+    _dataset="$2"
+    _jail_path="$(__get_jail_prop mountpoint "${_name}" ${_dataset})"
+    _ip4_addr="$(__get_jail_prop ip4_addr "${_name}" ${_dataset})"
+    _ip6_addr="$(__get_jail_prop ip6_addr "${_name}" ${_dataset})"
+    _ip4="$(__get_jail_prop ip4 "${_name}" ${_dataset})"
+    _exec_fib="$(__get_jail_prop exec_fib "${_name}" ${_dataset})"
+    _fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${_name}" ${_dataset})"
+    _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${_name}" ${_dataset})"
 
     # Get the default and current interfaces specified
-    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
+    _default_iface="$(netstat -f inet -nrW | grep '^default' |\
                          awk '{ print $6 }')"
-    local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
-    local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
+    _cur_ip4_iface=$(echo "${_ip4_addr}" | cut -d '|' -f 1)
+    _cur_ip6_iface=$(echo "${_ip6_addr}" | cut -d '|' -f 1)
 
-    if [ "$(uname -U)" == "903000" ];
+    if [ "$(uname -U)" = "903000" ];
     then
-      fdescfs=""
-      tmpfs=""
+      _fdescfs=""
+      _tmpfs=""
     fi
 
-    if [ $ip4_addr == "none" ] ; then
-        ip4_addr=""
+    if [ "${_ip4_addr}" = "none" ] ; then
+        _ip4_addr=""
     fi
 
-    if [ $ip6_addr == "none" ] ; then
-        ip6_addr=""
+    if [ "${ip6_addr}" = "none" ] ; then
+        _ip6_addr=""
     fi
 
     # Change the DEFAULT tag to correct iface
-    ip4_addr=$(echo $ip4_addr | sed "s/DEFAULT|/$default_iface|/g")
-    ip6_addr=$(echo $ip6_addr | sed "s/DEFAULT|/$default_iface|/g")
+    _ip4_addr="$(echo ${_ip4_addr} | sed "s/DEFAULT|/${_default_iface}|/g")"
+    _ip6_addr="$(echo ${_ip6_addr} | sed "s/DEFAULT|/${_default_iface}|/g")"
 
     # this is mostly a temporary workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=196474
-    if [ $ip4 == 'inherit' ] ; then
-        ip4="inherit"
-        ip6="inherit"
-        ip4_addr_propline=""
-        ip6_addr_propline=""
+    if [ "${_ip4}" = 'inherit' ] ; then
+        _ip4="inherit"
+        _ip6="inherit"
+        _ip4_addr_propline=""
+        _ip6_addr_propline=""
     else
-        ip4_addr_propline="ip4.addr=$ip4_addr"
-        ip6_addr_propline="ip6.addr=$ip6_addr"
+        _ip4_addr_propline="ip4.addr=${_ip4_addr}"
+        _ip6_addr_propline="ip6.addr=${_ip6_addr}"
     fi
 
     # Check if the user specified they wanted to use an automatic IP4 address
-    echo "$ip4_addr" | grep -q "AUTOIP4"
-    if [ $? -eq 0 ] ; then
+    echo "${_ip4_addr}" | grep -q "AUTOIP4"
+    if [ "$?" -eq 0 ] ; then
         __get_autoip4
-        if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
-            new_iface="DEFAULT"
-            ip4_addr_propline="ip4.addr=$default_iface|${auto_ip4}"
+        if [ -z "${_cur_ip4_iface}" -o "${_cur_ip4_iface}" = "DEFAULT" ] ; then
+            _new_iface="DEFAULT"
+            _ip4_addr_propline="ip4.addr=${_default_iface}|${auto_ip4}"
         else
-            new_iface="$cur_ip4_iface"
-            ip4_addr_propline="ip4.addr=$cur_ip4_iface|${auto_ip4}"
+            _new_iface="${_cur_ip4_iface}"
+            _ip4_addr_propline="ip4.addr=${_cur_ip4_iface}|${auto_ip4}"
         fi
-        __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $name
+        __set_jail_prop "ip4_addr=${_new_iface}|${auto_ip4}" ${_name}
     fi
 
-    if [ $ipv6 == "on" ] ; then
+    if [ "${ipv6}" = "on" ] ; then
         jail -c \
-        ${ip4_addr_propline} \
-        ip4.saddrsel="$(__get_jail_prop ip4_saddrsel $name $_dataset)" \
-        ip4="${ip4}" \
-        ${ip6_addr_propline} \
-        ip6.saddrsel="$(__get_jail_prop ip6_saddrsel $name $_dataset)" \
+        "${_ip4_addr_propline}" \
+        ip4.saddrsel="$(__get_jail_prop ip4_saddrsel "${_name}" ${_dataset})" \
+        ip4="${_ip4}" \
+        "${_ip6_addr_propline}" \
+        ip6.saddrsel="$(__get_jail_prop ip6_saddrsel "${_name}" ${_dataset})" \
         ip6="${ip6}" \
-        name="ioc-$(__get_jail_prop host_hostuuid $name $_dataset)" \
-        host.hostname="$(__get_jail_prop host_hostname $name $_dataset)" \
-        path="${jail_path}/root" \
-        securelevel="$(__get_jail_prop securelevel $name $_dataset)" \
-        host.hostuuid="$(__get_jail_prop host_hostuuid $name $_dataset)" \
-        devfs_ruleset="$(__get_jail_prop devfs_ruleset $name $_dataset)" \
-        enforce_statfs="$(__get_jail_prop enforce_statfs $name $_dataset)" \
-        children.max="$(__get_jail_prop children_max $name $_dataset)" \
-        allow.set_hostname="$(__get_jail_prop allow_set_hostname $name $_dataset)" \
-        allow.sysvipc="$(__get_jail_prop allow_sysvipc $name $_dataset)" \
-        allow.raw_sockets="$(__get_jail_prop allow_raw_sockets $name $_dataset)" \
-        allow.chflags="$(__get_jail_prop allow_chflags $name $_dataset)" \
-        allow.mount="$(__get_jail_prop allow_mount $name $_dataset)" \
-        allow.mount.devfs="$(__get_jail_prop allow_mount_devfs $name $_dataset)" \
-        allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs $name $_dataset)" \
-        allow.mount.procfs="$(__get_jail_prop allow_mount_procfs $name $_dataset)" \
-        ${tmpfs} \
-        allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name $_dataset)" \
-        allow.quotas="$(__get_jail_prop allow_quotas $name $_dataset)" \
-        allow.socket_af="$(__get_jail_prop allow_socket_af $name $_dataset)" \
-        exec.prestart="$(__findscript $name prestart $_dataset)" \
-        exec.poststart="$(__findscript $name poststart $_dataset)" \
-        exec.prestop="$(__findscript $name prestop $_dataset)" \
-        exec.stop="$(__get_jail_prop exec_stop $name $_dataset)" \
-        exec.clean="$(__get_jail_prop exec_clean $name $_dataset)" \
-        exec.timeout="$(__get_jail_prop exec_timeout $name $_dataset)" \
-        exec.fib="$_exec_fib" \
-        stop.timeout="$(__get_jail_prop stop_timeout $name $_dataset)" \
-        mount.fstab="${jail_path}/fstab" \
-        mount.devfs="$(__get_jail_prop mount_devfs $name $_dataset)" \
-        ${fdescfs} \
+        name="ioc-$(__get_jail_prop host_hostuuid "${_name}" ${_dataset})" \
+        host.hostname="$(__get_jail_prop host_hostname "${_name}" ${_dataset})" \
+        path="${_jail_path}/root" \
+        securelevel="$(__get_jail_prop securelevel "${_name}" ${_dataset})" \
+        host.hostuuid="$(__get_jail_prop host_hostuuid "${_name}" ${_dataset})" \
+        devfs_ruleset="$(__get_jail_prop devfs_ruleset "${_name}" ${_dataset})" \
+        enforce_statfs="$(__get_jail_prop enforce_statfs "${_name}" ${_dataset})" \
+        children.max="$(__get_jail_prop children_max "${_name}" ${_dataset})" \
+        allow.set_hostname="$(__get_jail_prop allow_set_hostname "${_name}" ${_dataset})" \
+        allow.sysvipc="$(__get_jail_prop allow_sysvipc "${_name}" ${_dataset})" \
+        allow.raw_sockets="$(__get_jail_prop allow_raw_sockets "${_name}" ${_dataset})" \
+        allow.chflags="$(__get_jail_prop allow_chflags "${_name}" ${_dataset})" \
+        allow.mount="$(__get_jail_prop allow_mount "${_name}" ${_dataset})" \
+        allow.mount.devfs="$(__get_jail_prop allow_mount_devfs "${_name}" ${_dataset})" \
+        allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs "${_name}" ${_dataset})" \
+        allow.mount.procfs="$(__get_jail_prop allow_mount_procfs "${_name}" ${_dataset})" \
+        "${_tmpfs}" \
+        allow.mount.zfs="$(__get_jail_prop allow_mount_zfs "${_name}" ${_dataset})" \
+        allow.quotas="$(__get_jail_prop allow_quotas "${_name}" ${_dataset})" \
+        allow.socket_af="$(__get_jail_prop allow_socket_af "${_name}" ${_dataset})" \
+        exec.prestart="$(__findscript "${_name}" prestart ${_dataset})" \
+        exec.poststart="$(__findscript "${_name}" poststart ${_dataset})" \
+        exec.prestop="$(__findscript "${_name}" prestop ${_dataset})" \
+        exec.stop="$(__get_jail_prop exec_stop "${_name}" ${_dataset})" \
+        exec.clean="$(__get_jail_prop exec_clean "${_name}" ${_dataset})" \
+        exec.timeout="$(__get_jail_prop exec_timeout "${_name}" ${_dataset})" \
+        exec.fib="${_exec_fib}" \
+        stop.timeout="$(__get_jail_prop stop_timeout "${_name}" ${_dataset})" \
+        mount.fstab="${_jail_path}/fstab" \
+        mount.devfs="$(__get_jail_prop mount_devfs "${_name}" ${_dataset})" \
+        "${_fdescfs}" \
         allow.dying \
-        exec.consolelog="$iocroot/log/${name}-console.log" \
+        exec.consolelog="${iocroot}/log/${name}-console.log" \
         persist
     else
         jail -c \
-        ${ip4_addr_propline} \
-        ip4.saddrsel="$(__get_jail_prop ip4_saddrsel $name $_dataset)" \
-        ip4="${ip4}" \
-        name="ioc-$(__get_jail_prop host_hostuuid $name $_dataset)" \
-        host.hostname="$(__get_jail_prop host_hostname $name $_dataset)" \
-        path="${jail_path}/root" \
-        securelevel="$(__get_jail_prop securelevel $name $_dataset)" \
-        host.hostuuid="$(__get_jail_prop host_hostuuid $name $_dataset)" \
-        devfs_ruleset="$(__get_jail_prop devfs_ruleset $name $_dataset)" \
-        enforce_statfs="$(__get_jail_prop enforce_statfs $name $_dataset)" \
-        children.max="$(__get_jail_prop children_max $name $_dataset)" \
-        allow.set_hostname="$(__get_jail_prop allow_set_hostname $name $_dataset)" \
-        allow.sysvipc="$(__get_jail_prop allow_sysvipc $name $_dataset)" \
-        allow.raw_sockets="$(__get_jail_prop allow_raw_sockets $name $_dataset)" \
-        allow.chflags="$(__get_jail_prop allow_chflags $name $_dataset)" \
-        allow.mount="$(__get_jail_prop allow_mount $name $_dataset)" \
-        allow.mount.devfs="$(__get_jail_prop allow_mount_devfs $name $_dataset)" \
-        allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs $name $_dataset)" \
-        allow.mount.procfs="$(__get_jail_prop allow_mount_procfs $name $_dataset)" \
-        ${tmpfs} \
-        allow.mount.zfs="$(__get_jail_prop allow_mount_zfs $name $_dataset)" \
-        allow.quotas="$(__get_jail_prop allow_quotas $name $_dataset)" \
-        allow.socket_af="$(__get_jail_prop allow_socket_af $name $_dataset)" \
-        exec.prestart="$(__findscript $name prestart $_dataset)" \
-        exec.poststart="$(__findscript $name poststart $_dataset)" \
-        exec.prestop="$(__findscript $name prestop $_dataset)" \
-        exec.stop="$(__get_jail_prop exec_stop $name $_dataset)" \
-        exec.clean="$(__get_jail_prop exec_clean $name $_dataset)" \
-        exec.timeout="$(__get_jail_prop exec_timeout $name $_dataset)" \
-        exec.fib="$_exec_fib" \
-        stop.timeout="$(__get_jail_prop stop_timeout $name $_dataset)" \
-        mount.fstab="${jail_path}/fstab" \
-        mount.devfs="$(__get_jail_prop mount_devfs $name $_dataset)" \
-        ${fdescfs} \
+        "${_ip4_addr_propline}" \
+        ip4.saddrsel="$(__get_jail_prop ip4_saddrsel "${_name}" ${_dataset})" \
+        ip4="${_ip4}" \
+        name="ioc-$(__get_jail_prop host_hostuuid "${_name}" ${_dataset})" \
+        host.hostname="$(__get_jail_prop host_hostname "${_name}" ${_dataset})" \
+        path="${_jail_path}/root" \
+        securelevel="$(__get_jail_prop securelevel "${_name}" ${_dataset})" \
+        host.hostuuid="$(__get_jail_prop host_hostuuid "${_name}" ${_dataset})" \
+        devfs_ruleset="$(__get_jail_prop devfs_ruleset "${_name}" ${_dataset})" \
+        enforce_statfs="$(__get_jail_prop enforce_statfs "${_name}" ${_dataset})" \
+        children.max="$(__get_jail_prop children_max "${_name}" ${_dataset})" \
+        allow.set_hostname="$(__get_jail_prop allow_set_hostname "${_name}" ${_dataset})" \
+        allow.sysvipc="$(__get_jail_prop allow_sysvipc "${_name}" ${_dataset})" \
+        allow.raw_sockets="$(__get_jail_prop allow_raw_sockets "${_name}" ${_dataset})" \
+        allow.chflags="$(__get_jail_prop allow_chflags "${_name}" ${_dataset})" \
+        allow.mount="$(__get_jail_prop allow_mount "${_name}" ${_dataset})" \
+        allow.mount.devfs="$(__get_jail_prop allow_mount_devfs "${_name}" ${_dataset})" \
+        allow.mount.nullfs="$(__get_jail_prop allow_mount_nullfs "${_name}" ${_dataset})" \
+        allow.mount.procfs="$(__get_jail_prop allow_mount_procfs "${_name}" ${_dataset})" \
+        "${_tmpfs}" \
+        allow.mount.zfs="$(__get_jail_prop allow_mount_zfs "${_name}" ${_dataset})" \
+        allow.quotas="$(__get_jail_prop allow_quotas "${_name}" ${_dataset})" \
+        allow.socket_af="$(__get_jail_prop allow_socket_af "${_name}" ${_dataset})" \
+        exec.prestart="$(__findscript "${_name}" prestart ${_dataset})" \
+        exec.poststart="$(__findscript "${_name}" poststart ${_dataset})" \
+        exec.prestop="$(__findscript "${_name}" prestop ${_dataset})" \
+        exec.stop="$(__get_jail_prop exec_stop "${_name}" ${_dataset})" \
+        exec.clean="$(__get_jail_prop exec_clean "${_name}" ${_dataset})" \
+        exec.timeout="$(__get_jail_prop exec_timeout "${_name}" ${_dataset})" \
+        exec.fib="${_exec_fib}" \
+        stop.timeout="$(__get_jail_prop stop_timeout "${_name}" ${_dataset})" \
+        mount.fstab="${_jail_path}/fstab" \
+        mount.devfs="$(__get_jail_prop mount_devfs "${_name}" ${_dataset})" \
+        "${_fdescfs}" \
         allow.dying \
-        exec.consolelog="$iocroot/log/${name}-console.log" \
+        exec.consolelog="${iocroot}/log/${name}-console.log" \
         persist
     fi
 }
@@ -500,8 +503,8 @@ __stop_jail () {
     _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
 
     if [ -z "${_state}" ] ; then
-        echo "* ${_fulluuid}: is already down" >&2
-        exit 1
+        __info "${_fulluuid} (${_tag}) is already down" >&2
+        return 1
     fi
 
     echo "* Stopping ${_fulluuid} (${_tag})"
@@ -517,7 +520,7 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
-    jexec "ioc-${_fulluuid}" ${_exec_stop} >> \
+    jexec ioc-${_fulluuid} ${_exec_stop} >> \
         "${iocroot}/log/${_fulluuid}-console.log" 2>&1
 
     if [ $? -ne 1 ] ; then

@@ -117,7 +117,7 @@ __set_jail_prop () {
         if [ "${_pval}" = "yes" ] ; then
             _state="$(__is_running ${_fulluuid})"
 
-            if [ ! -z ${_state} ] ; then
+            if [ ! -z "${_state}" ] ; then
                 zfs set org.freebsd.iocage:template="no" "${_dataset}"
                 __die "cannot make ${_name} a template - jail is running!"
             fi

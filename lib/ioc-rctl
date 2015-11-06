@@ -7,7 +7,7 @@ __rctl_limits () {
     _failed=0
     _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
 
-    set $_fulluuid_dataset
+    set ${_fulluuid_dataset}
 
     _fulluuid="$1"
     _dataset="$2"
