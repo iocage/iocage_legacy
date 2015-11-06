@@ -615,7 +615,7 @@ __clone_jail () {
 # Destroy jails --------------------------------------------------------------
 __destroy_jail () {
     local _name _answer _uuid_list _force _dataset _origin \
-	_fulluuid _jail_path _state
+          _fulluuid _jail_path _state
 
     if [ -z "$1" ] ; then
         __die "missing UUID!"
