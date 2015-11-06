@@ -113,6 +113,7 @@ base=$(uname -r|cut -f 1,2 -d'-')
 hostid=$(cat /etc/hostid)
 jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/data"
+jail_zfs_mountpoint="none"
 mount_procfs="0"
 mount_linprocfs="0"
 hack88="0"
@@ -237,6 +238,7 @@ CONF_CUSTOM="tag
              cpuset
              jail_zfs
              jail_zfs_dataset
+             jail_zfs_mountpoint
              release
              base
              hack88

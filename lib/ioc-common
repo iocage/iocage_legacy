@@ -23,7 +23,9 @@ __export_props () {
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
     local _name _property _dataset _pname _pval _found _CONF \
-          _type _state _tag _base _inherit_props _jail_type
+          _type _state _tag _base _inherit_props _jail_type \
+          _jail_zfs_mountpoint _jail_zfs_dataset _jail_zfs_dataset_olen \
+          _jail_zfs_dataset_nlen
 
     _name="$2"
     _property="$1"
@@ -70,7 +72,9 @@ __set_jail_prop () {
         _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                               /dev/null 2>&1 ; echo $?)"
         if [ "${_jailed_dataset_check}" != "0" ] ; then
-            zfs create -o compression=lz4 -o mountpoint=none -o jailed=on \
+            zfs create -o compression=lz4 \
+                -o mountpoint="${jail_zfs_mountpoint}" \
+                -o jailed=on \
                 ${_dataset}/data
         fi
     # Do they want bpf exposed?
@@ -80,7 +84,31 @@ __set_jail_prop () {
             service devfs restart 1> /dev/null
         fi
     elif [ "${_pname}" = "notes" ] ; then
-        zfs set org.freebsd.iocage:${_pname}="${notes}" ${_dataset}
+        zfs set org.freebsd.iocage:${_pname}="${notes}" "${_dataset}"
+    elif [ "${_pname}" = "jail_zfs_mountpoint" ] ; then
+        _state="$(__is_running ${_fulluuid})"
+        _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
+                              ${_fulluuid} ${_dataset})"
+        _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
+        _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
+        _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
+        _jail_zfs_dataset_nlen="${#_jzfs_dataset}"
+
+        if [ -z "${_state}" ] ; then
+            zfs set org.freebsd.iocage:${_pname}="${jail_zfs_mountpoint}" \
+                "${_dataset}"
+            _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
+                                  ${_fulluuid} ${_dataset})"
+            if [ "${_jail_zfs_dataset_olen}" -ne "${_jail_zfs_dataset_nlen}" ] ; then
+                _jail_zfs_dataset="${pool}/iocage/jails${_jail_zfs_dataset}"
+            fi
+
+            zfs set jailed=off "${_jail_zfs_dataset}"
+            zfs set mountpoint="${_jail_zfs_mountpoint}" "${_jail_zfs_dataset}"
+            zfs set jailed=on "${_jail_zfs_dataset}"
+        else
+            __die " jail is running! please stop it before changing the mountpoint."
+        fi
     elif [ "${_pname}" = "template" ] ; then
         if [ "${_jail_type}" != "basejail" -a "${_jail_type}" != "template" ] ; then
             __die "templates aren't supported for this jail type (${_jail_type})"

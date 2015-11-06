@@ -230,9 +230,11 @@ __start_jail () {
         fi
     fi
 
-    if [ $_jzfs == "on" ] ; then
-        zfs jail ioc-${_fulluuid} ${_jzfs_dataset}
+    if [ "${_jzfs}" = "on" ] ; then
+        zfs jail "ioc-${_fulluuid}" "${_jzfs_dataset}"
+        zfs set readonly=off "${_dataset}/root"
         jexec ioc-${_fulluuid} zfs mount -a
+        zfs set readonly=on "${_dataset}/root"
     fi
 
     __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf &
@@ -465,7 +467,8 @@ __reboot_jail () {
 __stop_jail () {
     local _fulluuid _dataset _fulluuid_dataset _jail_path _tag \
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
-          _ip4 _jail_type _hack88 _shortuuid
+          _ip4 _jail_type _hack88 _shortuuid _jail_zfs _jail_zfs_dataset \
+          _jail_zfs_dataset_olen _jail_zfs_dataset_nlen _jail_zfs_mountpoint
 
     if [ "$1" = "ALL" ] ; then
         __stop_jail_all
@@ -481,6 +484,11 @@ __stop_jail () {
 
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
     _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _jail_zfs="$(__get_jail_prop jail_zfs ${_fulluuid} ${_dataset})"
+    _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
+    _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
+    _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
+    _jail_zfs_dataset_nlen="${#_jzfs_dataset}"
     _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _exec_prestop="$(__findscript ${_fulluuid} prestop ${_dataset})"
     _exec_stop="$(__get_jail_prop exec_stop ${_fulluuid} ${_dataset})"
@@ -533,6 +541,18 @@ __stop_jail () {
         fi
     fi
 
+    if [ "${_jail_zfs}" = "on" ] ; then
+        if [ "${_jail_zfs_dataset_olen}" -ne "${_jail_zfs_dataset_nlen}" ] ; then
+            _jail_zfs_dataset="${pool}/iocage/jails${_jail_zfs_dataset}"
+        fi
+
+        _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
+                              ${_fulluuid} ${_dataset})"
+
+        jexec ioc-${_fulluuid} zfs umount "${_jail_zfs_dataset}"
+        zfs unjail "ioc-${_fulluuid}" "${_jail_zfs_dataset}"
+    fi
+
     echo -n "  + Removing jail process"
     jail -r "ioc-${_fulluuid}" 1> /dev/null
 
@@ -579,7 +599,7 @@ __stop_jail () {
 __stop_jail_all () {
     local _jails _state
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           grep -Ev "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/base_old|*./root|*./data")
 
     for _jail in ${_jails} ; do
         _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
@@ -594,155 +614,168 @@ __stop_jail_all () {
 }
 
 __start_jail_all () {
-    local _jails _state
+    local _jails _juuid _jtag _state
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           grep -Ev "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/base_old|*./root|*./data")
 
     for _jail in ${_jails} ; do
         _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                ${_jail})
         _state="$(__is_running ${_juuid} ; echo $?)"
-        while [ "${_state}" != "1" ] ; do
+        if [ "${_state}" != "1" ] ; then
             __start_jail ${_juuid}
-            break
-        done
+        fi
     done
     return $?
 }
 
 __reboot_jail_all () {
-    local _jails _state
+    local _jails _juuid _jtag _state
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           grep -Ev "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/base_old|*./root|*./data")
 
     for _jail in ${_jails} ; do
         _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                ${_jail})
+        _jtag=$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})
         _state="$(__is_running ${_juuid} ; echo $?)"
-        while [ "${_state}" != "1" ] ; do
+        if [ "${_state}" != "0" ] ; then
             __reboot_jail ${_juuid}
-            break
-        done
+        else
+            __info "${_jtag} is not running." >&2
+        fi
     done
     return $?
 }
 
 __restart_jail_all () {
-    local _jails _state
+    local _jails _juuid _jtag _state
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           grep -Ev "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/base_old|*./root|*./data")
 
     for _jail in ${_jails} ; do
         _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                ${_jail})
+        _jtag=$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})
         _state="$(__is_running ${_juuid} ; echo $?)"
-        while [ "${_state}" != "1" ] ; do
-            __restart_jail ${_juuid}
-            break
-        done
+        if [ "${_state}" != "0" ] ; then
+                __restart_jail ${_juuid}
+        else
+            __info "${_jtag} is not running." >&2
+        fi
     done
     return $?
 }
 
 # Soft restart
 __restart_jail () {
-    local name="$1"
+    local _name _dataset _fulluuid _exec_stop _exec_start _jid _tag
 
-    if [ -z $name ] ; then
+    _name="$1"
+
+    if [ -z "${_name}" ] ; then
         __die "missing UUID!"
     fi
+
+    _dataset="$(__find_jail ${_name})" || exit $?
 
     if [ "$1" = "ALL" ] ; then
         __restart_jail_all
         exit $?
     fi
 
-    local dataset="$(__find_jail $name)" || exit $?
-
-    if [ -z $dataset ] ; then
-        __die "$name not found!"
+    if [ -z "${_dataset}" ] ; then
+        __die "${_name} not found!"
     fi
 
-    local fulluuid="$(__check_name $name)"
-    local exec_stop="$(__get_jail_prop exec_stop $fulluuid)"
-    local exec_start="$(__get_jail_prop exec_start $fulluuid)"
-    local jid="$(jls -j ioc-${fulluuid} jid)"
-    local tag="$(__get_jail_prop tag $fulluuid)"
+    _fulluuid="$(__check_name ${_name})"
+    _exec_stop="$(__get_jail_prop exec_stop ${_fulluuid})"
+    _exec_start="$(__get_jail_prop exec_start ${_fulluuid})"
+    _jid="$(jls -j ioc-${_fulluuid} jid)"
+    _tag="$(__get_jail_prop tag ${_fulluuid})"
 
-    echo "* Soft restarting $fulluuid ($tag)"
-    jexec ioc-${fulluuid} $exec_stop >> $iocroot/log/${fulluuid}-console.log 2>&1
+    __info "soft restarting ${_fulluuid} (${_tag})"
+    jexec ioc-${_fulluuid} ${_exec_stop} >> \
+        "${iocroot}/log/${fulluuid}-console.log" 2>&1
 
     if [ $? -ne "1" ] ; then
-        pkill -j $jid
-        jexec ioc-${fulluuid} $exec_start >> $iocroot/log/${fulluuid}-console.log 2>&1
-        zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
+        pkill -j "${_jid}"
+        jexec ioc-${_fulluuid} ${_exec_start} >> \
+            "${iocroot}/log/${fulluuid}-console.log" 2>&1
+        zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") "${_dataset}"
     else
-        __die "soft restart failed!"
+        echo "  soft restart failed!"
+        return 1
     fi
 }
 
 __rc_jails () {
-    local action=$1
-    local _jails=$(__find_jail ALL | \
-                 grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
-    local boot_list="/tmp/iocage.$$"
+    local _action _jails _boot_list _name _boot _jail_hostid _priority \
+          _boot_order _shutdown_order _jail _jail_path _state
 
-    for jail in $_jails ; do
-        local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
-                    $jail)"
-        local boot="$(zfs get -H -o value org.freebsd.iocage:boot $jail)"
-        local _jail_hostid="$(zfs get -H -o value org.freebsd.iocage:hostid \
-                    $jail)"
-        local priority="$(zfs get -H -o value org.freebsd.iocage:priority \
-                    $jail)"
+    _action=$1
+    _jails=$(__find_jail ALL | \
+           grep -Ev "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/base_old|*./root|*./data")
+    _boot_list="/tmp/iocage.$$"
 
-        if [ "$boot" == "on" -a "$_jail_hostid" == "$hostid" ] ; then
-            echo "${priority},${name}" >> $boot_list
+    for _jail in ${_jails} ; do
+        _name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+                    ${_jail})"
+        _boot="$(zfs get -H -o value org.freebsd.iocage:boot ${_jail})"
+        _jail_hostid="$(zfs get -H -o value org.freebsd.iocage:hostid \
+                    ${_jail})"
+        _priority="$(zfs get -H -o value org.freebsd.iocage:priority \
+                    ${_jail})"
+
+        if [ "${_boot}" = "on" -a "${_jail_hostid}" = "${hostid}" ] ; then
+            echo "${_priority},${_name}" >> "${_boot_list}"
         fi
     done
 
-    if [ -e $boot_list ] ; then
-        local boot_order=$(sort -n $boot_list)
-        local shutdown_order=$(sort -rn $boot_list)
+    if [ -e "${_boot_list}" ] ; then
+        _boot_order=$(sort -n ${_boot_list})
+        _shutdown_order=$(sort -rn ${_boot_list})
     else
         __info "no jails found with property boot=on”
-        echo “  or hostid: $hostid, exiting.."
+        echo “  or hostid: ${hostid}, exiting.."
         exit 0
     fi
 
-    if [ "$action" == "boot" ] ; then
+    if [ "${_action}" = "boot" ] ; then
         echo "* [I|O|C] booting jails... "
 
-        for i in $boot_order ; do
-            local jail="$(echo $i | cut -f2 -d,)"
-            local _priority="$(echo $i | cut -f1 -d,)"
-            local _dataset="${pool}/iocage/jails/${jail}"
-            local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
-            local state="$(jls | grep ${jail_path} | wc -l)"
+        for _i in ${_boot_order} ; do
+            _jail="$(echo ${_i} | cut -f2 -d,)"
+            _priority="$(echo ${_i} | cut -f1 -d,)"
+            _dataset="${pool}/iocage/jails/${_jail}"
+            _jail_path="$(__get_jail_prop mountpoint ${_jail} ${_dataset})"
+            _state="$(jls | grep ${_jail_path} | wc -l)"
 
-            if [ "$state" -lt "1" ] && [ "$_priority" -eq 99 ] ; then
-                echo "* Executing background start for $jail"
-                __start_jail $jail $_dataset > /var/tmp/${jail} 2>&1 && cat /var/tmp/${jail} &
+            if [ "${_state}" -lt "1" -a "${_priority}" -eq 99 ] ; then
+                __info "executing background start for ${_jail}"
+                __start_jail "${_jail}" "${_dataset}" > \
+                    "/var/tmp/${_jail}" 2>&1 \
+                    && cat "/var/tmp/${_jail}" &
                 sleep 1
             else
-                __start_jail $jail $_dataset
+                __start_jail "${_jail}" "${_dataset}"
             fi
 
         done
-    elif [ "$action" == "shutdown" ] ; then
+    elif [ "${_action}" = "shutdown" ] ; then
         echo "* [I|O|C] shutting down jails... "
 
-        for i in $shutdown_order ; do
-            local jail="$(echo $i | cut -f2 -d,)"
-            local _dataset="${pool}/iocage/jails/${jail}"
-            local jail_path="$(__get_jail_prop mountpoint $jail $_dataset)"
-            local state="$(jls | grep ${jail_path} | wc -l)"
+        for _i in ${_shutdown_order} ; do
+            _jail="$(echo ${_i} | cut -f2 -d,)"
+            _dataset="${pool}/iocage/jails/${_jail}"
+            _jail_path="$(__get_jail_prop mountpoint ${_jail} ${_dataset})"
+            _state="$(jls | grep ${_jail_path} | wc -l)"
 
-            if [ "$state" -eq "1" ] ; then
-                __stop_jail $jail $_dataset
+            if [ "${_state}" -eq "1" ] ; then
+                __stop_jail "${_jail}" "${_dataset}"
             fi
         done
 
     fi
-    rm $boot_list
+    rm "${_boot_list}"
 }
