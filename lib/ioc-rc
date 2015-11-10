@@ -609,10 +609,9 @@ __stop_jail_all () {
         _juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                ${_jail})
         _state="$(__is_running ${_juuid} ; echo $?)"
-        while [ "${_state}" != "0" ] ; do
+        if [ "${_state}" != "0" ] ; then
             __stop_jail ${_juuid}
-            break
-        done
+        fi
     done
     return $?
 }
