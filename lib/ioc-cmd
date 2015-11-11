@@ -32,8 +32,31 @@ __parse_cmd () {
             console)    __console "$2"
                         exit
                 ;;
-            create)     __export_props "$@"
-                        __create_jail "$@"
+            create)     local _tag _hostname
+                        __export_props "$@"
+                        _hostname="${host_hostname}"
+                        _tag="${tag}"
+                        for _i in $(seq ${count}) ; do
+                            unset uuid host_hostuuid host_hostname
+                            uuid="$(uuidgen)"
+                            host_hostuuid="${uuid}"
+                            if [ "${count}" -eq 1 ] ; then
+                                tag="${_tag}"
+                                if [ -n "${iocset_host_hostname}" ] ; then
+                                    host_hostname="${_hostname}"
+                                else
+                                    host_hostname="${uuid}"
+                                fi
+                            elif [ "${count}" -gt 1 ] ; then
+                                tag="${_tag}_${_i}"
+                                if [ -n "${iocset_host_hostname}" ] ; then
+                                    host_hostname="${_hostname}_${_i}"
+                                else
+                                    host_hostname="${uuid}"
+                                fi
+                            fi
+                            __create_jail "$@"
+                        done
                         exit
                 ;;
             deactivate) __deactivate "$2"

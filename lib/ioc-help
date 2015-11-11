@@ -11,7 +11,7 @@ SYNOPSIS
   iocage clean [-a|-b|-j]
   iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage console UUID|TAG
-  iocage create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value]
+  iocage create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value] [count=value]
   iocage deactivate ZPOOL
   iocage defaults
   iocage destroy [-f] UUID|TAG
@@ -118,7 +118,7 @@ SUBCOMMANDS
 
     Execute login to have a shell inside the jail
 
-  create [-e] [base=[RELEASE|NAME]] [property=value] [property=value]
+  create [-e] [base=[RELEASE|NAME]] [property=value] [property=value] [count=value]
 
     By default create will deploy a new jail based on the host operating
     system's release. This can be changed by specifying the base option.
@@ -131,6 +131,13 @@ SUBCOMMANDS
              iocage create tag=mybasejail base=10.2-RELEASE
              iocage create tag=mycustombasejail base=nginx_postgres
 
+    By default only one jail will be created, but if you specify count=NUMBER,
+    then that many jails will be created.
+
+    Example: iocage create tag="mybasejail" host_hostname="mybasejail" count=10
+
+    This will create 10 jails with the tag mybasejail_{1-10}. The tag and
+    hostname will be incremented up with the number of jails you wish to create.
 
   deactivate ZPOOL
 

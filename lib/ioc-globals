@@ -117,6 +117,7 @@ jail_zfs_mountpoint="none"
 mount_procfs="0"
 mount_linprocfs="0"
 hack88="0"
+count="1"
 
 # Native ZFS properties
 compression="lz4"
@@ -242,7 +243,8 @@ CONF_CUSTOM="tag
              release
              base
              hack88
-             start"
+             start
+             count"
 
 # Native ZFS properties
 CONF_ZFS="compression
