@@ -170,6 +170,22 @@ __fetch_plugin () {
         git checkout --quiet "${iocset_branch}"
     fi
 
+    # Check for the mtree file to reapply permissions
+    if [ -e ".mtree" ] ; then
+        mtree -U -f ./.mtree 1> /dev/null
+    fi
+
+    # Check for the postrun script
+    if [ -e "./root/post-install.sh" ] ; then
+        __mount_basejail "${uuid}"
+        mount -t devfs devfs ${_jail_path}/root/dev
+        chroot ${_jail_path}/root \
+            /bin/sh /root/post-install.sh
+        umount ${_jail_path}/root/dev
+        __umount_basejail "${uuid}"
+        rm ${_jail_path}/_/root/post-install.sh
+    fi
+
     # Check if user has a custom git location set
     if [ "${_repocheck}" = "iocage" -o "${_repocheck}" = "pbi-cages" ] ; then
         echo "  WARNING: Pushing will be disabled, please set a custom repo."
