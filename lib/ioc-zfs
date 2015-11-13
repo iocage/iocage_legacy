@@ -461,6 +461,8 @@ __create_jail () {
         if [ "${_pname}" = "jail_zfs" ] ; then
             if [ ! -z "${iocset_jail_zfs_mountpoint}" ] ; then
                 _jail_zfs_mountpoint="${iocset_jail_zfs_mountpoint}"
+            else
+                _jail_zfs_mountpoint="${jail_zfs_mountpoint}"
             fi
 
             eval "zfs create -u -o compression=lz4 \
