@@ -190,7 +190,20 @@ __parse_cmd () {
                         exit
                 ;;
             set)        __export_props "$@"
-                        __set_jail_prop "$2" "$3"
+                        local _jail _fulluuid _pname _pval
+                        shift
+                        _jail="$(echo $@ | awk 'BEGIN { FS != "=" } ; { print $NF }')"
+                        _fulluuid="$(__check_name ${_jail})"
+                        for _prop in "$@" ; do
+                            _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } \
+                                ; { print $1 }')"
+                            _pval="$(echo ${_prop} | awk 'BEGIN { FS = "=" } \
+                                ; { print $2 }')"
+                            if [ "${_pname} = ${_jail}" -a -z "${_pval}" ] ; then
+                                continue
+                            fi
+                            __set_jail_prop "${_pname}=${_pval}" "${_fulluuid}"
+                        done
                         exit
                 ;;
             snaplist)   __snaplist "$2"
