@@ -190,18 +190,37 @@ __parse_cmd () {
                         exit
                 ;;
             set)        __export_props "$@"
-                        local _jail _fulluuid _pname _pval
+                        local _jail _jail_check _fulluuid _pname _pval
+                        # Hack to be able to see the last argument
+                        for _last ; do
+                            true
+                        done
+
                         shift
-                        _jail="$(echo $@ | awk 'BEGIN { FS != "=" } ; { print $NF }')"
+                        # Split the input on anything that isn't a = and print
+                        # the last thing awk sees
+                        _jail="$(echo $@ | awk 'BEGIN { FS != "=" } \
+                            ; { print $NF }')"
+                        _jail_check="$(echo ${_jail} | grep "=")"
+
+                        # If the last variable doesn't equal or the jail_check
+                        # is not empty, the user did not specify a jail
+                        if [ "${_last}" != "${_jail}" -o ! -z "${_jail_check}" ] ; then
+                            __die "please specify a jail"
+                        fi
+
+                        # Loop through the props and call the function for each
                         _fulluuid="$(__check_name ${_jail})"
                         for _prop in "$@" ; do
                             _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } \
                                 ; { print $1 }')"
                             _pval="$(echo ${_prop} | awk 'BEGIN { FS = "=" } \
                                 ; { print $2 }')"
+
                             if [ "${_pname} = ${_jail}" -a -z "${_pval}" ] ; then
                                 continue
                             fi
+
                             __set_jail_prop "${_pname}=${_pval}" "${_fulluuid}"
                         done
                         exit
