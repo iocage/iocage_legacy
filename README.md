@@ -36,7 +36,8 @@ cannot open 'zroot/iocage/jails/XXXXXXXX-XXXX-XXXX-a5be-3417ebb13845': dataset d
 [: -ne: unexpected operator
   ERROR: jail: pepperd is not running!
 ````
-- Use the [Markdown Basics](https://help.github.com/articles/markdown-basics/#code-formatting) GitHub page for more information on how to paste lines of code and terminal output. 
+
+- Use the [Markdown Basics](https://help.github.com/articles/markdown-basics/#code-formatting) GitHub page for more information on how to paste lines of code and terminal output.
 
 **FEATURES:**
 - Templates, basejails and empty jails
@@ -101,7 +102,7 @@ Start the jail:
   iocage restart UUID|TAG
   iocage rollback UUID|TAG@snapshotname
   iocage runtime UUID|TAG
-  iocage set property=value UUID|TAG
+  iocage set property=value [property=value] UUID|TAG
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
   iocage snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]

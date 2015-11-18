@@ -35,7 +35,7 @@ SYNOPSIS
   iocage restart UUID|TAG
   iocage rollback UUID|TAG@snapshotname
   iocage runtime UUID|TAG
-  iocage set property=value UUID|TAG
+  iocage set property=value [property=value] UUID|TAG
   iocage snaplist UUID|TAG
   iocage snapremove UUID|TAG@snapshotname|ALL
   iocage snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
@@ -291,9 +291,9 @@ SUBCOMMANDS
 
     Show runtime configuration of a jail. Useful for debugging.
 
-  set property=value UUID|TAG
+  set property=value [property=value] UUID|TAG
 
-    Set a property to value.
+    Set one or more properties to the supplied value.
 
   snaplist UUID|TAG
 
