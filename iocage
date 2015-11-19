@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage DEVELOP (2015-11-17)"
+    echo "iocage DEVELOP (2015-11-19)"
     exit 0
 fi
 
@@ -80,7 +80,12 @@ if [ -z "$1" ] ; then
     exit 0
 fi
 
-if [ "$1" == "help" -o "$1" == "--help" -o "$1" == "-h" ] ; then
+if [ "$1" = "-v" ] ; then
+    set -x
+    shift
+fi
+
+if [ "$1" = "help" -o "$1" = "--help" -o "$1" = "-h" ] ; then
     __help
     exit 0
 fi

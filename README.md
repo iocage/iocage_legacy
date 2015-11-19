@@ -72,46 +72,46 @@ Start the jail:
 
 **USAGE:**
 ```
-  iocage activate ZPOOL
-  iocage cap UUID|TAG
-  iocage chroot UUID|TAG [command]
-  iocage clean [-a|-b|-j]
-  iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
-  iocage console UUID|TAG
-  iocage create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value]
-  iocage deactivate ZPOOL
-  iocage defaults
-  iocage destroy [-f] UUID|TAG
-  iocage df
-  iocage exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
-  iocage export UUID|TAG
-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-                ftpfiles="base.txz doc.txz lib32.txz src.txz"]
-  iocage get [-r] property|all UUID|TAG
-  iocage help
-  iocage import UUID [property=value]
-  iocage init-host IP ZPOOL
-  iocage inuse UUID|TAG
-  iocage limits [UUID|TAG]
-  iocage list [-b|-t|-r]
-  iocage promote UUID|TAG
-  iocage rcboot
-  iocage reboot UUID|TAG
-  iocage rcshutdown
-  iocage reset UUID|TAG|ALL
-  iocage restart UUID|TAG
-  iocage rollback UUID|TAG@snapshotname
-  iocage runtime UUID|TAG
-  iocage set property=value [property=value] UUID|TAG
-  iocage snaplist UUID|TAG
-  iocage snapremove UUID|TAG@snapshotname|ALL
-  iocage snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
-  iocage start UUID|TAG
-  iocage stop UUID|TAG|ALL
-  iocage uncap UUID|TAG
-  iocage update UUID|TAG
-  iocage upgrade UUID|TAG [release=RELEASE]
-  iocage version | --version
+  iocage activate [-v] ZPOOL
+  iocage cap [-v] UUID|TAG
+  iocage chroot [-v] UUID|TAG [command]
+  iocage clean [-v] [-a|-b|-j]
+  iocage clone [-v] UUID|TAG [UUID|TAG@snapshot] [property=value]
+  iocage console [-v] UUID|TAG
+  iocage create [-v] [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value]
+  iocage deactivate [-v] ZPOOL
+  iocage defaults [-v]
+  iocage destroy [-v] [-f] UUID|TAG
+  iocage df [-v]
+  iocage exec [-v] [-u username | -U username] UUID|TAG|ALL command [arg ...]
+  iocage export [-v] UUID|TAG
+  iocage fetch [-v] [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
+                     ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+  iocage get [-v] [-r] property|all UUID|TAG
+  iocage help [-v]
+  iocage import [-v] UUID [property=value]
+  iocage init-host [-v] IP ZPOOL
+  iocage inuse [-v] UUID|TAG
+  iocage limits [-v] [UUID|TAG]
+  iocage list [-v] [-b|-t|-r]
+  iocage promote [-v] UUID|TAG
+  iocage rcboot [-v]
+  iocage reboot [-v] UUID|TAG
+  iocage rcshutdown [-v]
+  iocage reset [-v] UUID|TAG|ALL
+  iocage restart [-v] UUID|TAG
+  iocage rollback [-v] UUID|TAG@snapshotname
+  iocage runtime [-v] UUID|TAG
+  iocage set [-v] property=value [property=value] UUID|TAG
+  iocage snaplist [-v] UUID|TAG
+  iocage snapremove [-v] UUID|TAG@snapshotname|ALL
+  iocage snapshot [-v] [-r] UUID|TAG [UUID|TAG@snapshotname]
+  iocage start [-v] UUID|TAG
+  iocage stop [-v] UUID|TAG|ALL
+  iocage uncap [-v] UUID|TAG
+  iocage update [-v] UUID|TAG
+  iocage upgrade [-v] UUID|TAG [release=RELEASE]
+  iocage version [-v] | --version
   ```
 
 **REQUIREMENTS**
