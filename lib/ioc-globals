@@ -137,7 +137,7 @@ sync_tgt_zpool="none"
 
 # FTP variables
 ftphost="ftp.freebsd.org"
-ftpfiles="base.txz doc.txz lib32.txz"
+ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
 # Git properties
 gitlocation="https://github.com"

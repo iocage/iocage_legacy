@@ -387,11 +387,19 @@ __chroot () {
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local _rel_exist _release _host_release _non_interactive _dist
+    local _rel_exist _release _host_release _non_interactive _dist _ports \
+          _ports_string
 
     _release=$(uname -r|cut -f 1,2 -d'-')
     # Needed to check for PC-BSD import
     _host_release=$(uname -r|cut -f 1,2 -d'-')
+
+    for _args in "$@" ; do
+        case "${_args}" in
+            -P|-p|--ports) _ports=1
+                ;;
+        esac
+    done
 
     if [ -z "${iocset_release}" ] ; then
         __print_release
@@ -458,8 +466,11 @@ __fetch_release () {
     done
 
     # Create these dirs for basejails
-    mkdir ${iocroot}/base/${_release}/root/usr/home > /dev/null 2>&1
-    cd ${iocroot}/base/${_release}/root && ln -s usr/home home 2>&1
+    if [ ! -e ${iocroot}/base/${_release}/root/usr/home ] ; then
+        mkdir ${iocroot}/base/${_release}/root/usr/home > /dev/null 2>&1
+        cd ${iocroot}/base/${_release}/root && ln -s usr/home home 2>&1
+    fi
+
     mkdir ${iocroot}/base/${_release}/root/compat > /dev/null 2>&1
     mkdir ${iocroot}/base/${_release}/root/usr/ports > /dev/null 2>&1
 
@@ -467,8 +478,6 @@ __fetch_release () {
     sleep 2
 
     if [ -e ${iocroot}/base/${_release}/root/etc/freebsd-update.conf ] ; then
-        sed -i '' 's/Components src world kernel/Components world kernel/' \
-            ${iocroot}/base/${_release}/root/etc/freebsd-update.conf
         mount -t devfs devfs ${iocroot}/base/${_release}/root/dev
         cat /etc/resolv.conf > \
             ${iocroot}/base/${_release}/root/etc/resolv.conf
@@ -495,16 +504,44 @@ __fetch_release () {
         chroot ${iocroot}/base/${_release}/root \
             env UNAME_r="${_release}" env PAGER="/bin/cat" \
             freebsd-update install
-        umount ${iocroot}/base/${_release}/root/dev
-
-        if [ $? -eq 0 ] ; then
-            rm -f ${iocroot}/base/${_release}/root/etc/resolv.conf
-        fi
     fi
 
     if [ "${_dist}" = "1" ] ; then
         rm -rf "/usr/local/tmp/iocage-dist"
     fi
+
+    if [ "${_ports}" = "1" ] ; then
+        echo "* Updating ports for base: ${_release}."
+        sleep 2
+
+        chroot ${iocroot}/base/${_release}/root \
+            env UNAME_r="${_release}" env PAGER="/bin/cat" \
+            portsnap --interactive fetch extract
+        mkdir ${iocroot}/base/${_release}/root/var/ports > /dev/null 2>&1
+        mkdir ${iocroot}/base/${_release}/root/var/ports/distfiles \
+            > /dev/null 2>&1
+        mkdir ${iocroot}/base/${_release}/root/var/ports/packages \
+            > /dev/null 2>&1
+        if [ -e "${iocroot}/base/${_release}/root/etc/make.conf" ] ; then
+            _ports_string="$(grep -Fxq \
+                          "## IOCAGE -- Allow a read-only /usr/ports" \
+                          ${iocroot}/base/${_release}/root/etc/make.conf \
+                          ; echo $?)"
+            if [ "${_ports_string}" != "0" ] ; then
+                __ports_make_conf >> \
+                    ${iocroot}/base/${_release}/root/etc/make.conf
+                sed -i '' s/UNAME_r=REPLACE/UNAME_r="${_release}"/ \
+                    "${iocroot}/base/${_release}/root/etc/make.conf"
+            fi
+        else
+            __ports_make_conf > ${iocroot}/base/${_release}/root/etc/make.conf
+            sed -i '' s/UNAME_r=REPLACE/UNAME_r="${_release}"/ \
+                "${iocroot}/base/${_release}/root/etc/make.conf"
+        fi
+    fi
+
+    rm -f ${iocroot}/base/${_release}/root/etc/resolv.conf
+    umount ${iocroot}/base/${_release}/root/dev
 }
 
 # reads tag property from given jail dataset
@@ -581,4 +618,22 @@ __spinner () {
     $2
     printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
     return $?
+}
+
+# The make.conf entries needed for read-only ports in a jail
+__ports_make_conf () {
+cat << 'EOT'
+
+## IOCAGE -- Allow a read-only /usr/ports
+UNAME_ENV+=     UNAME_s=FreeBSD
+UNAME_ENV+=     UNAME_r=REPLACE
+UNAME_ENV+=     UNAME_v="${UNAME_s} ${UNAME_r}"
+.MAKEFLAGS:     ${UNAME_ENV}
+MAKE_ENV+=      ${UNAME_ENV}
+CONFIGURE_ENV+= ${UNAME_ENV}
+SCRIPTS_ENV+=   ${UNAME_ENV}
+WRKDIRPREFIX=   /var/ports
+DISTDIR=        /var/ports/distfiles
+PACKAGES=       /var/ports/packages
+EOT
 }

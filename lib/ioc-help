@@ -18,8 +18,8 @@ SYNOPSIS
   iocage df [-v]
   iocage exec [-v] [-u username | -U username] UUID|TAG|ALL command [arg ...]
   iocage export [-v] UUID|TAG
-  iocage fetch [-v] [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-                     ftpfiles="base.txz doc.txz lib32.txz"]
+  iocage fetch [-v] [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
+                    ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
   iocage get [-v] [-r] property|all UUID|TAG
   iocage help [-v]
   iocage import [-v] UUID [property=value]
@@ -44,7 +44,7 @@ SYNOPSIS
   iocage uncap [-v] UUID|TAG
   iocage update [-v] UUID|TAG
   iocage upgrade [-v] UUID|TAG [release=RELEASE]
-  iocage version [-v]  | --version
+  iocage version [-v] | --version
 
 DESCRIPTION
   iocage is a system administration tool for jails designed to simplify
@@ -178,8 +178,8 @@ SUBCOMMANDS
     Export a complete jail. An archive file is created in /iocage/images with
     SHA256 checksum. Jail must be in stopped state before exporting.
 
-  fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-         ftpfiles="base.txz doc.txz lib32.txz"]
+  fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
+        ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
 
     Used for downloading and updating/patching releases.
 
@@ -191,7 +191,7 @@ SUBCOMMANDS
 
     Example: iocage fetch release=10.1-RELEASE
 
-    fetch is also used to update already downloaded releases. To update a local
+    fetch can also used to update already downloaded releases. To update a local
     release already present in iocage (iocage list -r) run:
 
              iocage fetch release=10.1-RELEASE
@@ -199,6 +199,9 @@ SUBCOMMANDS
     This example will apply latest patches to 10.1-RELEASE base.
     Newly created jails or basejails will automatically have the latest
     latest updates applied.
+
+    Specifying -P,-p or --ports to fetch will have it also fetch a ports tree
+    that all basejails will share with that base.
 
   get [-r] property|all UUID|TAG
 

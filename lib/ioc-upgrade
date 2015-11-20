@@ -25,6 +25,20 @@ __update () {
                     ;;
             esac
             ;;
+        -P|-p|--ports)
+            if [ ! -e "${iocroot}/base/${_name}/root" ] ; then
+                __die "${_name} does not exist!"
+            fi
+
+            mount -t devfs devfs ${iocroot}/base/${_name}/root/dev
+            cat /etc/resolv.conf > \
+                ${iocroot}/base/${_name}/root/etc/resolv.conf
+            chroot ${iocroot}/base/${_name}/root \
+                env UNAME_r="${_name}" env PAGER="/bin/cat" \
+                portsnap --interactive fetch update
+            umount ${iocroot}/base/${_name}/root/dev
+            rm ${iocroot}/base/${_name}/root/etc/resolv.conf
+            ;;
         *)
             shift 3
             _name=$1

@@ -127,7 +127,7 @@ __parse_cmd () {
                             fi
                         fi
 
-                        __fetch_release
+                        __fetch_release "$@"
                         exit
                 ;;
             get)        __get_jail_prop "$2" "$3"
@@ -249,7 +249,7 @@ __parse_cmd () {
             uncap)      __rctl_uncap "$2"
                         exit
                 ;;
-            update)     __update "$2"
+            update)     __update "$2" "$3"
                         exit
                 ;;
             upgrade)    __export_props "$@"

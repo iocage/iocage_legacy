@@ -18,8 +18,8 @@
 \fBiocage\fP \fIdf\fP [\fB-v\fP]
 \fBiocage\fP \fIexec\fP [\fB-v\fP] [\fB-u\fP \fIusername\fP | \fB-U\fP \fIusername\fP] UUID|TAG|ALL \fIcommand\fP [\fIarg\fP \.\.\.]
 \fBiocage\fP \fIexport\fP [\fB-v\fP] UUID|TAG
-\fBiocage\fP \fIfetch\fP [\fB-v\fP] [\fIrelease=RELEASE\fP | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-                   ftpfiles="base.txz doc.txz lib32.txz"]
+\fBiocage\fP \fIfetch\fP [\fB-v\fP] [\fB-P\fP|\fB-p\fP|\fB--ports\fP] [\fIrelease=RELEASE\fP | ftphost=ftp.hostname.org |
+                  ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
 \fBiocage\fP \fIget\fP [\fB-v\fP] [\fB-r\fP] property|all UUID|TAG
 \fBiocage\fP \fIhelp\fP [\fB-v\fP]
 \fBiocage\fP \fIimport\fP [\fB-v\fP] \fIUUID\fP [\fIproperty=value\fP]
@@ -44,7 +44,7 @@
 \fBiocage\fP \fIuncap\fP [\fB-v\fP] \fIUUID\fP|TAG
 \fBiocage\fP \fIupdate\fP [\fB-v\fP] \fIUUID\fP|TAG
 \fBiocage\fP \fIupgrade\fP [\fB-v\fP] \fIUUID\fP|TAG [\fIrelease=RELEASE\fP]
-\fBiocage\fP \fIversion\fP [\fB-v\fP]  | --\fIversion\fP
+\fBiocage\fP \fIversion\fP [\fB-v\fP] | --\fIversion\fP
 
 .fam T
 .fi
@@ -241,8 +241,8 @@ is running each of the commands. It's very verbose.
 
 .fam T
 .fi
-\fIfetch\fP [\fIrelease=RELEASE\fP | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-ftpfiles="base.txz doc.txz lib32.txz"]
+\fIfetch\fP [\fB-P\fP|\fB-p\fP|\fB--ports\fP] [\fIrelease=RELEASE\fP | ftphost=ftp.hostname.org |
+ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
 .RS
 .PP
 Used for downloading and updating/patching releases.
@@ -255,7 +255,7 @@ the menu \fIlist\fP.
 .PP
 Example: \fBiocage\fP \fIfetch\fP release=10.1-RELEASE
 .PP
-\fIfetch\fP is also used to \fIupdate\fP already downloaded releases. To \fIupdate\fP a local
+\fIfetch\fP can also used to \fIupdate\fP already downloaded releases. To \fIupdate\fP a local
 release already present in \fBiocage\fP (\fBiocage\fP \fIlist\fP \fB-r\fP) run:
 .PP
 .nf
@@ -267,6 +267,9 @@ release already present in \fBiocage\fP (\fBiocage\fP \fIlist\fP \fB-r\fP) run:
 This example will apply latest patches to 10.1-RELEASE base.
 Newly created jails or basejails will automatically have the latest
 latest updates applied.
+.PP
+Specifying \fB-P\fP,\fB-p\fP or \fB--ports\fP to \fIfetch\fP will have it also \fIfetch\fP a ports tree
+that all basejails will share with that base.
 .RE
 .PP
 \fIget\fP [\fB-r\fP] property|all \fIUUID\fP|TAG

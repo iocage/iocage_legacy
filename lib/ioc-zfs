@@ -167,26 +167,42 @@ __migrate_basejail () {
 
     # If the user has a /usr/local, move it for migration
     if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/local" ] ; then
-        mv    ${iocroot}/jails/${_fulluuid}/root/usr/local \
-              ${iocroot}/jails/${_fulluuid}/_/usr/local
-    else
-        mkdir ${iocroot}/jails/${_fulluuid}/_/usr/local
+        if [ ! -z "$(ls -A ${iocroot}/jails/${_fulluuid}/root/usr/local)" ] ; then
+            mv    ${iocroot}/jails/${_fulluuid}/root/usr/local \
+                  ${iocroot}/jails/${_fulluuid}/_/usr/local
+        else
+            mkdir ${iocroot}/jails/${_fulluuid}/_/usr/local
+        fi
     fi
 
     # If the user had a ports tree, move it for migration
     if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/ports" ] ; then
-        mv    ${iocroot}/jails/${_fulluuid}/root/usr/ports \
-              ${iocroot}/jails/${_fulluuid}/_/usr/ports
-    else
-        mkdir ${iocroot}/jails/${_fulluuid}/_/usr/ports
+        if [ ! -z "$(ls -A ${iocroot}/jails/${_fulluuid}/root/usr/ports)" ] ; then
+            mv    ${iocroot}/jails/${_fulluuid}/root/usr/ports \
+                  ${iocroot}/jails/${_fulluuid}/_/usr/ports
+        else
+            mkdir ${iocroot}/jails/${_fulluuid}/_/usr/ports
+        fi
     fi
 
     # If the user had a compat directory, move it for migration
     if [ -e "${iocroot}/jails/${_fulluuid}/root/compat" ] ; then
-        mv    ${iocroot}/jails/${_fulluuid}/root/compat \
-              ${iocroot}/jails/${_fulluuid}/_/compat
-    else
-        mkdir ${iocroot}/jails/${_fulluuid}/_/compat
+        if [ ! -z "$(ls -A ${iocroot}/jails/${_fulluuid}/root/compat)" ] ; then
+            mv    ${iocroot}/jails/${_fulluuid}/root/compat \
+                  ${iocroot}/jails/${_fulluuid}/_/compat
+        else
+            mkdir ${iocroot}/jails/${_fulluuid}/_/compat
+        fi
+    fi
+
+    # If the user had a usr/obj directory, move it for migration
+    if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/obj" ] ; then
+        if [ ! -z "$(ls -A ${iocroot}/jails/${_fulluuid}/root/usr/obj)" ] ; then
+            mv    ${iocroot}/jails/${_fulluuid}/root/compat \
+                  ${iocroot}/jails/${_fulluuid}/_/compat
+        else
+            mkdir ${iocroot}/jails/${_fulluuid}/_/compat
+        fi
     fi
 
     # Move all the r/w required mountpoints for migration
@@ -274,7 +290,7 @@ __reclone_basejail () {
     else
         # Destroy the old datasets
         for _fs in ${_fs_list} ; do
-            zfs destroy -f ${_fs}
+            zfs destroy -f ${_fs} > /dev/null 2>&1
         done
         # Set up the new RELEASE root dataset to be cloned from
         zfs snapshot ${pool}/iocage/base/${_jail_base}/root@${_fulluuid}
@@ -294,6 +310,33 @@ __reclone_basejail () {
     # Make sure the /compat directory exists in the RELEASE
     if [ ! -e "${iocroot}/base/${_jail_base}/root/compat" ] ; then
         mkdir ${iocroot}/base/${_jail_base}/root/compat
+    fi
+
+    # Make sure the /var/ports directory exists in the basejail overlay
+    # if needed
+    if [ -e "${iocroot}/base/${_jail_base}/root/var/ports" ] ; then
+        if [ "${_hack88}" = "1" ] ; then
+            if [ ! -e "${iocroot}/jails/${_shortuuid}/_/var/ports" ] ; then
+                mkdir ${iocroot}/jails/${_shortuuid}/_/var/ports
+                mkdir ${iocroot}/jails/${_shortuuid}/_/var/ports/distfiles
+                mkdir ${iocroot}/jails/${_shortuuid}/_/var/ports/packages
+            fi
+        else
+            if [ ! -e "${iocroot}/jails/${_fulluuid}/_/var/ports" ] ; then
+                mkdir ${iocroot}/jails/${_fulluuid}/_/var/ports
+                mkdir ${iocroot}/jails/${_fulluuid}/_/var/ports/distfiles
+                mkdir ${iocroot}/jails/${_fulluuid}/_/var/ports/packages
+            fi
+        fi
+    fi
+
+    # Make sure the /usr/obj directory exists in the basejail overlay
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/_/usr/obj" ] ; then
+        if [ "${_hack88}" = "1" ] ; then
+            mkdir ${iocroot}/jails/${_shortuuid}/_/usr/obj
+        else
+            mkdir ${iocroot}/jails/${_fulluuid}/_/usr/obj
+        fi
     fi
 
     # Look for hack88, if it exists, pass the short uuid
@@ -824,6 +867,9 @@ __mount_basejail () {
         ${iocroot}/jails/${_fulluuid}/_/usr/local \
         ${iocroot}/jails/${_fulluuid}/root/usr/local
     mount -t unionfs -o noatime,copymode=transparent \
+        ${iocroot}/jails/${_fulluuid}/_/usr/obj \
+        ${iocroot}/jails/${_fulluuid}/root/usr/obj
+    mount -t unionfs -o noatime,copymode=transparent \
         ${iocroot}/jails/${_fulluuid}/_/var \
         ${iocroot}/jails/${_fulluuid}/root/var
 
@@ -854,6 +900,7 @@ __umount_basejail () {
     umount ${iocroot}/jails/${_fulluuid}/root/usr/home  > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/usr/obj   > /dev/null 2>&1
 }
 
 # Accepts one argument. It uses that argument as the name/UUID.
