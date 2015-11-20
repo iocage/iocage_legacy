@@ -75,8 +75,7 @@ __networking () {
     local ip6_list="$(echo $ip6 | sed 's/,/ /g')"
 
     # Get the default and current interfaces specified
-    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
-                awk '{ print $6 }')"
+    local default_iface="$(__get_default_iface)"
     local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
     local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
     _bridge_ifaces="$(netstat -iWn | grep -E 'bridge0|bridge1' | \
@@ -291,8 +290,7 @@ __stop_legacy_networking () {
     local ip6_addr="$(__get_jail_prop ip6_addr $_fulluuid $_dataset)"
 
     # Get the default and current interfaces specified
-    local default_iface="$(netstat -f inet -nrW | grep '^default' |\
-                awk '{ print $6 }')"
+    local default_iface="$(__get_default_iface)"
 
     # Change the DEFAULT tag to correct iface
     ip4_addr=$(echo $ip4_addr | sed "s/DEFAULT|/$default_iface|/g")

@@ -324,8 +324,7 @@ __legacy_start () {
     _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${_name}" ${_dataset})"
 
     # Get the default and current interfaces specified
-    _default_iface="$(netstat -f inet -nrW | grep '^default' |\
-                         awk '{ print $6 }')"
+    _default_iface="$(__get_default_iface)"
     _cur_ip4_iface=$(echo "${_ip4_addr}" | cut -d '|' -f 1)
     _cur_ip6_iface=$(echo "${_ip6_addr}" | cut -d '|' -f 1)
 

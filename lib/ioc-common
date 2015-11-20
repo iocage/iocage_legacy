@@ -637,3 +637,13 @@ DISTDIR=        /var/ports/distfiles
 PACKAGES=       /var/ports/packages
 EOT
 }
+
+# Return the default network interface
+__get_default_iface() {
+    which -s dispatcherctl
+    if [ $? -eq 0 ] ; then
+       dispatcherctl call container.get_default_interface | jq -r .
+    else
+       netstat -f inet -nrW | grep '^default' | awk '{ print $6 }'
+    fi
+}
