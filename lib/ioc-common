@@ -92,7 +92,7 @@ __set_jail_prop () {
         _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
         _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
         _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
-        _jail_zfs_dataset_nlen="${#_jzfs_dataset}"
+        _jail_zfs_dataset_nlen="${#_jail_zfs_dataset}"
 
         if [ -z "${_state}" ] ; then
             zfs set org.freebsd.iocage:${_pname}="${jail_zfs_mountpoint}" \

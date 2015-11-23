@@ -3,7 +3,7 @@
 __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid _jail_type \
           _tag _jail_hostid _jail_path _jail_base _template _cpuset \
-          _procfs _state _vnet _nics _jzfs_dataset _jzfs _clone_check \
+          _procfs _state _vnet _nics _jail_zfs_dataset _jail_zfs _clone_check \
           _exec_fib _exec_start _bpf _dhcp _devfs_string _linprocfs
 
     if [ "$1" = "ALL" ] ; then
@@ -107,21 +107,21 @@ __start_jail () {
         fi
     fi
 
-    _jzfs="$(__get_jail_prop jail_zfs ${_fulluuid} ${_dataset})"
-    _jzfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
-    _jzfs_dataset_olen="${#_jzfs_dataset}"
-    _jzfs_dataset="${_jzfs_dataset#iocage/jails}"
-    _jzfs_dataset_nlen="${#_jzfs_dataset}"
+    _jail_zfs="$(__get_jail_prop jail_zfs ${_fulluuid} ${_dataset})"
+    _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
+    _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
+    _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
+    _jail_zfs_dataset_nlen="${#_jail_zfs_dataset}"
 
-    if [ "${_jzfs_dataset_olen}" -ne "${_jzfs_dataset_nlen}" ] ; then
-        _jzfs_dataset="${pool}/iocage/jails${_jzfs_dataset}"
+    if [ "${_jail_zfs_dataset_olen}" -ne "${_jail_zfs_dataset_nlen}" ] ; then
+        _jail_zfs_dataset="${pool}/iocage/jails${_jail_zfs_dataset}"
     fi
 
-    if [ "${_jzfs}" = "on" ] ; then
+    if [ "${_jail_zfs}" = "on" ] ; then
         __set_jail_prop allow_mount=1 "${_fulluuid}" "${_dataset}"
         __set_jail_prop enforce_statfs=1 "${_fulluuid}" "${_dataset}"
         __set_jail_prop allow_mount_zfs=1 "${_fulluuid}" "${_dataset}"
-        zfs set jailed=on "${_jzfs_dataset}"
+        zfs set jailed=on "${_jail_zfs_dataset}"
     fi
 
     if [ "${_dhcp}" = "on" ] ; then
@@ -230,8 +230,8 @@ __start_jail () {
         fi
     fi
 
-    if [ "${_jzfs}" = "on" ] ; then
-        zfs jail "ioc-${_fulluuid}" "${_jzfs_dataset}"
+    if [ "${_jail_zfs}" = "on" ] ; then
+        zfs jail "ioc-${_fulluuid}" "${_jail_zfs_dataset}"
         zfs set readonly=off "${_dataset}/root"
         jexec ioc-${_fulluuid} zfs mount -a
         zfs set readonly=on "${_dataset}/root"
@@ -490,7 +490,7 @@ __stop_jail () {
     _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
     _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
     _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
-    _jail_zfs_dataset_nlen="${#_jzfs_dataset}"
+    _jail_zfs_dataset_nlen="${#_jail_zfs_dataset}"
     _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _exec_prestop="$(__findscript ${_fulluuid} prestop ${_dataset})"
     _exec_stop="$(__get_jail_prop exec_stop ${_fulluuid} ${_dataset})"
