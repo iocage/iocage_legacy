@@ -15,6 +15,7 @@ and forth during the review process, and helps to ensures a consistent codebase.
 - Pull request description should clearly show what the change is including output if relevant.
 - Squash commits before opening a pull request.
 - Test and then test again! Make sure it works with the latest changes in `develop`.
+
 <br>
 
 ####IF statements
@@ -36,6 +37,7 @@ for _var in ${_var_list} ; do
     stuff
 done
 ```
+
 <br>
 
 ####WHILE loops
@@ -46,6 +48,7 @@ while [ "${?}" -gt 0 ] ; do
     stuff
 done
 ```
+
 <br>
 
 ####CASE statements
@@ -59,6 +62,7 @@ case "${_var}" in
         ;;
 esac
 ```
+
 <br>
 
 ####Variables and functions
@@ -68,6 +72,7 @@ esac
 - Use local variables for each function, avoid using global ones.
 - Use braces on all variables "${_var}"
 - Make sure you declare all variables at the top: `local _var1 _var2`
+
 <br>
 
 ####Documentation for Read The Docs
