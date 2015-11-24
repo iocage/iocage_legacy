@@ -71,8 +71,13 @@ __find_jail () {
         for _jail in ${jail_datasets} ; do
             _found="$(echo ${_jail} | grep -iE ${_name}$)"
             _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
+            _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+                       ${_jail})"
 
             if [ "${_tag}" = "${_name}" ] ; then
+                _jlist="${_jlist} ${_jail}"
+                break
+            elif [ "${_fulluuid}" = "${_name}" ] ; then
                 _jlist="${_jlist} ${_jail}"
                 break
             elif [ "${#_found}" -gt 0 ] ; then
