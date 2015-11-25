@@ -273,6 +273,7 @@ __vnet_start () {
 
     jail -c vnet \
     name="ioc-$(__get_jail_prop host_hostuuid ${_fulluuid} ${_dataset})" \
+    host.domainname="$(__get_jail_prop host_domainname ${_fulluuid} ${_dataset})" \
     host.hostname="$(__get_jail_prop host_hostname ${_fulluuid} ${_dataset})" \
     path="${_jail_path}/root" \
     securelevel="$(__get_jail_prop securelevel ${_fulluuid} ${_dataset})" \
@@ -380,6 +381,7 @@ __legacy_start () {
         ip6.saddrsel="$(__get_jail_prop ip6_saddrsel "${_name}" ${_dataset})" \
         ip6="${ip6}" \
         name="ioc-$(__get_jail_prop host_hostuuid "${_name}" ${_dataset})" \
+        host.domainname="$(__get_jail_prop host_domainname "${_name}" ${_dataset})" \
         host.hostname="$(__get_jail_prop host_hostname "${_name}" ${_dataset})" \
         path="${_jail_path}/root" \
         securelevel="$(__get_jail_prop securelevel "${_name}" ${_dataset})" \
@@ -419,6 +421,7 @@ __legacy_start () {
         ip4.saddrsel="$(__get_jail_prop ip4_saddrsel "${_name}" ${_dataset})" \
         ip4="${_ip4}" \
         name="ioc-$(__get_jail_prop host_hostuuid "${_name}" ${_dataset})" \
+        host.domainname="$(__get_jail_prop host_domainname "${_name}" ${_dataset})" \
         host.hostname="$(__get_jail_prop host_hostname "${_name}" ${_dataset})" \
         path="${_jail_path}/root" \
         securelevel="$(__get_jail_prop securelevel "${_name}" ${_dataset})" \

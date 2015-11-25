@@ -504,6 +504,13 @@ PROPERTIES
     Default: vnet0:bridge0,vnet1:bridge1
     Source: local
 
+  host_domainname="NIS domainname"
+
+    The NIS domainname of the jail.
+
+    Default: none
+    Source: jail(8)
+
   host_hostname=UUID
 
     The hostname of the jail.
