@@ -411,6 +411,37 @@ __chroot () {
     fi
 }
 
+# Cleanup release directories
+__cleanup_release_dir () {
+    local _base_exist _base_dir_exist _dwn_rel_exist _dwn_dir_exist _rel_name
+
+    if [ -n "$1" ] ; then
+        _rel_name="$1"
+    else
+        echo "Failed cleanup of release directories. No release name defined" >&2
+        return 1
+    fi
+
+    _base_exist=$(zfs get -H -o value name ${pool}/iocage/base/${_rel_name})
+    _dwn_rel_exist=$(zfs get -H -o value name ${pool}${iocroot}/download/${_rel_name})
+
+    if [ -n "$_base_exist" ] ; then
+        _base_dir_exist=$(zfs get -H -o value mountpoint ${pool}/iocage/base/${_rel_name})
+        zfs destroy -fr ${pool}/iocage/base/${_rel_name}
+        if [ -d "$_base_dir_exist" ]; then
+            rm -rf $_base_dir_exist
+        fi
+    fi
+
+    if [ -n "$_dwn_rel_exist" ] ; then
+        _dwn_dir_exist=$(zfs get -H -o value mountpoint ${pool}${iocroot}/download/${_rel_name})
+        zfs destroy -fr ${pool}${iocroot}/download/${_rel_name}
+        if [ -d "$_dwn_dir_exist" ]; then
+            rm -rf $_dwn_dir_exist
+        fi
+    fi
+}
+
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
     local _rel_exist _release _host_release _non_interactive _dist _ports \
@@ -473,12 +504,24 @@ __fetch_release () {
         _dist=0
     fi
 
-    for _file in ${ftpfiles} ; do
-        if [ ! -e "${_file}" ] ; then
-            fetch http://${ftphost}${ftpdir}/${_file}
-            if [ $? -ne 0 ] ; then
-                echo "Failed fetching ${_file}.." >&2
-                return 1
+    # If $ftplocaldir is set fetch from a local dir else fetch from remote
+    # If fetch fails for remote or local remove new directories
+    for file in $ftpfiles ; do
+        if [ ! -e "$file" ] ; then
+            if [ -n "$ftplocaldir" ] ; then
+                fetch file://${ftplocaldir}/${file}
+                if [ $? -ne 0 ] ; then
+                    echo "Failed fetching local $file.." >&2
+                    __cleanup_release_dir ${_release}
+                    return 1
+                fi
+            else
+                fetch http://${ftphost}${ftpdir}/${file}
+                if [ $? -ne 0 ] ; then
+                    echo "Failed fetching remote $file.." >&2
+                    __cleanup_release_dir ${_release}
+                    return 1
+                fi
             fi
         fi
     done
@@ -503,10 +546,13 @@ __fetch_release () {
     echo "* Updating base jail template."
     sleep 2
 
-    if [ -e ${iocroot}/base/${_release}/root/etc/freebsd-update.conf ] ; then
-        mount -t devfs devfs ${iocroot}/base/${_release}/root/dev
-        cat /etc/resolv.conf > \
-            ${iocroot}/base/${_release}/root/etc/resolv.conf
+    # mount devfs for chroot
+    mount -t devfs devfs ${iocroot}/base/${_release}/root/dev
+    cat /etc/resolv.conf > \
+        ${iocroot}/base/${_release}/root/etc/resolv.conf
+
+    if [ -e ${iocroot}/base/${_release}/root/etc/freebsd-update.conf ] \
+        && [ -z "$ftplocaldir" ] ; then
 
         case "${_release}" in
             9.3-RELEASE | 10.1-RELEASE)
