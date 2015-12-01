@@ -743,8 +743,8 @@ __rc_jails () {
         _boot_order=$(sort -n ${_boot_list})
         _shutdown_order=$(sort -rn ${_boot_list})
     else
-        __info "no jails found with property boot=on”
-        echo “  or hostid: ${hostid}, exiting.."
+        __info "no jails found with property boot=on"
+        echo "  or hostid: ${hostid}, exiting.."
         exit 0
     fi
 
