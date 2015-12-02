@@ -80,10 +80,6 @@ __networking () {
     local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
     _bridge_ifaces="$(netstat -iWn | grep -E 'bridge0|bridge1' | \
                     awk '{ print $1 }')"
-    # Otherwise the list is stale, as it does not include a freshly created
-    # jail
-    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
-                          | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
 
     # Change the DEFAULT tag to correct iface
     nics=$(echo $nics | sed "s/DEFAULT/$default_iface/g")

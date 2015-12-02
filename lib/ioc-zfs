@@ -534,13 +534,13 @@ __create_jail () {
         # in a basejail
         mount -t tmpfs tmpfs ${iocroot}/jails/${uuid}/root/tmp
         mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
-        mount -t unionfs -o noatime,copymode=transparent \
+        mount -t unionfs -o noatime,copymode=traditional \
                  ${iocroot}/jails/${uuid}/_/usr/local/ \
                  ${iocroot}/jails/${uuid}/root/usr/local
-        mount -t unionfs -o noatime,copymode=transparent \
+        mount -t unionfs -o noatime,copymode=traditional \
                  ${iocroot}/jails/${uuid}/_/var/ \
                  ${iocroot}/jails/${uuid}/root/var
-        mount -t unionfs -o noatime,copymode=transparent \
+        mount -t unionfs -o noatime,copymode=traditional \
                  ${iocroot}/jails/${uuid}/_/compat/ \
                  ${iocroot}/jails/${uuid}/root/compat
 
@@ -851,25 +851,25 @@ __mount_basejail () {
     local _fulluuid="$1"
 
     # Mount the overlays needed for basejails
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/etc \
         ${iocroot}/jails/${_fulluuid}/root/etc
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/root \
         ${iocroot}/jails/${_fulluuid}/root/root
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/usr/home \
         ${iocroot}/jails/${_fulluuid}/root/usr/home
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/compat \
         ${iocroot}/jails/${_fulluuid}/root/compat
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/usr/local \
         ${iocroot}/jails/${_fulluuid}/root/usr/local
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/usr/obj \
         ${iocroot}/jails/${_fulluuid}/root/usr/obj
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/var \
         ${iocroot}/jails/${_fulluuid}/root/var
 
@@ -879,7 +879,7 @@ __mount_basejail () {
     fi
 
     # Mount the rest
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount -t unionfs -o noatime,copymode=traditional \
         ${iocroot}/jails/${_fulluuid}/_/usr/ports \
         ${iocroot}/jails/${_fulluuid}/root/usr/ports
 

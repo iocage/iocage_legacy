@@ -336,6 +336,10 @@ __get_jail_prop () {
         __die "missing UUID or property!"
     fi
 
+    # Avoid having a stale list when called.
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+                          | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
+
     if [ -z "$_dataset" ] ; then
         _dataset="$(__find_jail $_name)" || exit $?
     fi
