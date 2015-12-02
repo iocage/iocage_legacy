@@ -18,6 +18,8 @@ __configure_jail () {
             case "${prop_name}" in
                 tag) _value="${tag}"
                     ;;
+                host_domainname) _value="${host_domainname}"
+                    ;;
                 host_hostname) _value="${host_hostname}"
                     ;;
                 host_hostuuid) _value="${host_hostuuid}"
