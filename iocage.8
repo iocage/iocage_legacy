@@ -20,6 +20,7 @@
 \fBiocage\fP [\fB-v\fP] \fIexport\fP UUID|TAG
 \fBiocage\fP [\fB-v\fP] \fIfetch\fP [\fB-P\fP|\fB-p\fP|\fB--ports\fP] [\fIrelease=RELEASE\fP | ftphost=ftp.hostname.org |
                   ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+                  [ ftplocaldir=/dir/ ]
 \fBiocage\fP [\fB-v\fP] \fIget\fP [\fB-r\fP] property|all UUID|TAG
 \fBiocage\fP [\fB-v\fP] \fIhelp\fP
 \fBiocage\fP [\fB-v\fP] \fIimport\fP \fIUUID\fP [\fIproperty=value\fP]
@@ -243,6 +244,7 @@ how the shell is running each of the commands. It's very verbose.
 .fi
 \fIfetch\fP [\fB-P\fP|\fB-p\fP|\fB--ports\fP] [\fIrelease=RELEASE\fP | ftphost=ftp.hostname.org |
 ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+[ ftplocaldir=/dir/ ]
 .RS
 .PP
 Used for downloading and updating/patching releases.
@@ -270,6 +272,12 @@ latest updates applied.
 .PP
 Specifying \fB-P\fP,\fB-p\fP or \fB--ports\fP to \fIfetch\fP will have it also \fIfetch\fP a ports tree
 that all basejails will share with that base.
+.PP
+ftplocaldir: Specifying ftplocaldir=/dev/ will \fIfetch\fP release tar files from a
+local system directory. This is useful when a user wants to use a custom build
+release or use \fBiocage\fP offline.
+.PP
+Example: \fIfetch\fP release=10.2-RELEASE ftplocaldir=/fakeftp/release/10.2-RELEASE
 .RE
 .PP
 \fIget\fP [\fB-r\fP] property|all \fIUUID\fP|TAG

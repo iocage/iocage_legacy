@@ -20,6 +20,7 @@ SYNOPSIS
   iocage [-v] export UUID|TAG
   iocage [-v] fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
                     ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+                    [ ftplocaldir=/dir/ ]
   iocage [-v] get [-r] property|all UUID|TAG
   iocage [-v] help
   iocage [-v] import UUID [property=value]
@@ -180,6 +181,7 @@ SUBCOMMANDS
 
   fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
         ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+        [ ftplocaldir=/dir/ ]
 
     Used for downloading and updating/patching releases.
 
@@ -202,6 +204,12 @@ SUBCOMMANDS
 
     Specifying -P,-p or --ports to fetch will have it also fetch a ports tree
     that all basejails will share with that base.
+
+    ftplocaldir: Specifying ftplocaldir=/dev/ will fetch release tar files from a
+    local system directory. This is useful when a user wants to use a custom build
+    release or use iocage offline.
+
+    Example: fetch release=10.2-RELEASE ftplocaldir=/fakeftp/release/10.2-RELEASE
 
   get [-r] property|all UUID|TAG
 

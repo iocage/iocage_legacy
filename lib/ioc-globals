@@ -267,7 +267,8 @@ CONF_SYNC="sync_stat
 # ftp properties
 CONF_FTP="ftphost
           ftpfiles
-          ftpdir"
+          ftpdir
+          ftplocaldir"
 
 # git properties
 CONF_GIT="gitlocation
