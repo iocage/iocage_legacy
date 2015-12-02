@@ -89,7 +89,8 @@ __set_jail_prop () {
         _state="$(__is_running ${_fulluuid})"
         _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
                               ${_fulluuid} ${_dataset})"
-        _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} ${_dataset})"
+        _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${_fulluuid} \
+                           ${_dataset})"
         _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
         _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
         _jail_zfs_dataset_nlen="${#_jail_zfs_dataset}"
@@ -131,16 +132,20 @@ __set_jail_prop () {
                 # Destroy the root as we don't want an origin on the template
                 zfs destroy -r "${pool}/iocage/jails/${_fulluuid}/root"
                 # Need -r so we can keep the jail's properties
-                zfs snapshot -r "${pool}/iocage/jails/${_fulluuid}@template"
+                zfs snapshot -r \
+                    "${pool}/iocage/jails/${_fulluuid}@template"
                 # Grabbing the real /root from the release the jail was using
-                zfs snapshot "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"
+                zfs snapshot \
+                    "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"
                 # Create the jail in the new spot
-                zfs send -R     "${pool}/iocage/jails/${_fulluuid}@template" | \
+                zfs send -R \
+                    "${pool}/iocage/jails/${_fulluuid}@template" | \
                     zfs recv "${pool}/iocage/base/${_tag}"
                 # No longer need that snapshot
                 zfs destroy "${pool}/iocage/jails/${_fulluuid}@template"
                 # Creating jail's /root in it's new home
-                zfs send -R     "${pool}/iocage/base/${_base}/root@${_fulluuid}-template" | \
+                zfs send -R \
+                    "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"|\
                     zfs recv "${pool}/iocage/base/${_tag}/root"
                 # Since we want whatever changes to be persistent, we must copy
                 # them to the jail's /root, keeping the jails original overlays
@@ -150,11 +155,13 @@ __set_jail_prop () {
                     tar xf -)
                 # Destroy all the snapshot we don't need and the original
                 # location for the jail.
-                zfs destroy  "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"
-                zfs destroy  "${pool}/iocage/base/${_base}/root@${_fulluuid}"
+                zfs destroy \
+                    "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"
+                zfs destroy "${pool}/iocage/base/${_base}/root@${_fulluuid}"
                 zfs destroy "${pool}/iocage/base/${_tag}@template"
-                zfs destroy  "${pool}/iocage/base/${_tag}/root@${_fulluuid}-template"
-                zfs destroy  "${pool}/iocage/jails/${_fulluuid}"
+                zfs destroy \
+                    "${pool}/iocage/base/${_tag}/root@${_fulluuid}-template"
+                zfs destroy "${pool}/iocage/jails/${_fulluuid}"
                 # remove any residual clone snapshots carried over from
                 # the RELEASE datasets
                 __snapremove ${_fulluuid}@ALL ${pool}/iocage/base/${_tag}/root
@@ -586,9 +593,24 @@ __fetch_release () {
         echo "* Updating ports for base: ${_release}."
         sleep 2
 
-        chroot ${iocroot}/base/${_release}/root \
-            env UNAME_r="${_release}" env PAGER="/bin/cat" \
-            portsnap --interactive fetch extract
+        case "${_release}" in
+            9.3-RELEASE)
+                # Remove the interactive check in portsnap
+                sed 's/\[ ! -t 0 \]/false/' \
+                    ${iocroot}/base/${_release}/root/usr/sbin/portsnap \
+                    > ${iocroot}/base/${_release}/root/tmp/portsnap
+                chmod +x ${iocroot}/base/${_release}/root/tmp/portsnap
+                chroot ${iocroot}/base/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    /tmp/portsnap fetch extract
+                rm ${iocroot}/base/${_release}/root/tmp/portsnap
+                ;;
+            *)
+                chroot ${iocroot}/base/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    portsnap --interactive fetch extract
+                ;;
+            esac
         mkdir ${iocroot}/base/${_release}/root/var/ports > /dev/null 2>&1
         mkdir ${iocroot}/base/${_release}/root/var/ports/distfiles \
             > /dev/null 2>&1

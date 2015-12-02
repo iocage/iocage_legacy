@@ -30,15 +30,39 @@ __update () {
                 __die "${_name} does not exist!"
             fi
 
-            mount -t devfs devfs ${iocroot}/base/${_name}/root/dev
-            cat /etc/resolv.conf > \
-                ${iocroot}/base/${_name}/root/etc/resolv.conf
-            chroot ${iocroot}/base/${_name}/root \
-                env UNAME_r="${_name}" env PAGER="/bin/cat" \
-                portsnap --interactive fetch update
-            umount ${iocroot}/base/${_name}/root/dev
-            rm ${iocroot}/base/${_name}/root/etc/resolv.conf
-            ;;
+            _jail_base="$(__get_jail_prop base $_name)"
+
+            # Lets us make sure any templates using 9.3-RELEASE get the right
+            # treatment for non-interactive portsnap.
+            if [ "${_jail_base}" = "none" ] ; then
+                _jail_base="${_name}"
+            fi
+
+            case "${_jail_base}" in
+                9.3-RELEASE)
+                    # Remove the interactive check in portsnap
+                    sed 's/\[ ! -t 0 \]/false/' \
+                        ${iocroot}/base/${_name}/root/usr/sbin/portsnap \
+                        > ${iocroot}/base/${_name}/root/tmp/portsnap
+                    chmod +x ${iocroot}/base/${_name}/root/tmp/portsnap
+                    chroot ${iocroot}/base/${_name}/root \
+                        env UNAME_r="${_name}" env PAGER="/bin/cat" \
+                        /tmp/portsnap fetch update
+                    rm ${iocroot}/base/${_name}/root/tmp/portsnap
+                    ;;
+                *)
+                    chroot ${iocroot}/base/${_name}/root \
+                        env UNAME_r="${_name}" env PAGER="/bin/cat" \
+                        portsnap --interactive fetch update
+                    ;;
+                esac
+
+                mount -t devfs devfs ${iocroot}/base/${_name}/root/dev
+                cat /etc/resolv.conf > \
+                    ${iocroot}/base/${_name}/root/etc/resolv.conf
+                umount ${iocroot}/base/${_name}/root/dev
+                rm ${iocroot}/base/${_name}/root/etc/resolv.conf
+                ;;
         *)
             shift 3
             _name=$1
