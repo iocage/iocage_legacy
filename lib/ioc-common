@@ -120,11 +120,34 @@ __set_jail_prop () {
         fi
 
         if [ "${_pval}" = "yes" ] ; then
+            _base_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
             _state="$(__is_running ${_fulluuid})"
+            _jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage | \
+                            awk '/root/ && !/base/')"
 
             if [ ! -z "${_state}" ] ; then
                 zfs set org.freebsd.iocage:template="no" "${_dataset}"
                 __die "cannot make ${_name} a template - jail is running!"
+            fi
+
+            for _fs in ${_jail_datasets} ; do
+                _jail_fs="$(echo ${_fs} | sed -e 's#/root##g')"
+                _origin="$(zfs get -H -o value origin ${_fs} | cut -f1 -d@)"
+                _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail_fs})"
+                _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+                       ${_jail_fs})"
+
+                if [ "${_origin}" = "${_dataset}/root" ] ; then
+                    __info "${_base_tag} has dependent clone, uuid: ${_uuid} (${_tag})"
+                    _parent=1
+                fi
+            done
+
+            if [ "${_parent}" = "1" ] ; then
+                # To make sure this stays put, otherwise it goes back to yes
+                zfs set org.freebsd.iocage:template="no" \
+                    "${pool}/iocage/jails/${_fulluuid}"
+                __die "please destroy before converting ${_base_tag} to a template"
             fi
 
             __unlink_tag "${_dataset}"
