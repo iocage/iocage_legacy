@@ -10,7 +10,7 @@ and forth during the review process, and helps to ensures a consistent codebase.
 - Keep code to 80 characters or less, otherwise split them with a `\`
 - Comment your code
 - Use 4 spaces instead of tabs
-- Update ioc-help if needed for your change  -- requires `txt2man`
+- Update ioc-help (**_not iocage.8/iocage.8.txt_**) if new/changed docs are needed for your change. Requires `txt2man`.
 <p>(`iocage help | txt2man -t iocage -s 8 -v "FreeBSD System Manager's Manual" > iocage.8`, followed by `iocage help > iocage.8.txt`)</p>
 - Pull request description should clearly show what the change is including output if relevant.
 - Squash commits before opening a pull request.
