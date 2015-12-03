@@ -7,7 +7,7 @@ and forth during the review process, and helps to ensures a consistent codebase.
 ####A few general rules first:
 - Open any pull request against the `develop` branch
 - Use double quotes for everything that isn't a `FOR` loop.
-- Keep code to 80 characters of less, otherwise split them with a `\`
+- Keep code to 80 characters or less, otherwise split them with a `\`
 - Comment your code
 - Use 4 spaces instead of tabs
 - Update ioc-help if needed for your change  -- requires `txt2man`
