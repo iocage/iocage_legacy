@@ -36,7 +36,7 @@ SYNOPSIS
   iocage [-v] snaplist UUID|TAG
   iocage [-v] snapremove UUID|TAG@snapshotname|ALL
   iocage [-v] snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
-  iocage [-v] start UUID|TAG
+  iocage [-v] start [-f] UUID|TAG
   iocage [-v] stop UUID|TAG|ALL
   iocage [-v] uncap UUID|TAG
   iocage [-v] update UUID|TAG
@@ -326,9 +326,11 @@ SUBCOMMANDS
     POOL/iocage/jails/UUID/root. If no snapshot name is specified defaults
     to auto snapshot name based on current date and time.
 
-  start UUID|TAG
+  start [-f] UUID|TAG
 
-    Start jail identified by UUID or TAG.
+    Start jail identified by UUID or TAG. If the -f switch is supplied, it will
+    force start a template for editing. This flag does not apply to normal
+    jails.
 
   stop UUID|TAG|ALL
 

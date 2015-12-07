@@ -72,14 +72,15 @@ __set_jail_prop () {
     fi
 
     if [ "${_pname}" = "jail_zfs" ] ; then
-        _jailed_dataset="${_dataset}/data"
+        _jailed_dataset="$(__get_jail_prop jail_zfs_dataset \
+            ${_fulluuid} ${_dataset})"
         _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                               /dev/null 2>&1 ; echo $?)"
         if [ "${_jailed_dataset_check}" != "0" ] ; then
             zfs create -o compression=lz4 \
                 -o mountpoint="${jail_zfs_mountpoint}" \
                 -o jailed=on \
-                ${_dataset}/data
+                ${pool}/${_jailed_dataset}
         fi
     # Do they want bpf exposed?
     elif [ "${_pname}" = "bpf" ] ; then
@@ -170,16 +171,42 @@ __set_jail_prop () {
                     zfs recv "${pool}/iocage/base/${_tag}"
                 # No longer need that snapshot
                 zfs destroy "${pool}/iocage/jails/${_fulluuid}@template"
-                # Creating jail's /root in it's new home
-                zfs send -R \
-                    "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"|\
-                    zfs recv "${pool}/iocage/base/${_tag}/root"
-                # Since we want whatever changes to be persistent, we must copy
-                # them to the jail's /root, keeping the jails original overlays
-                # so it can be transformed back to a jail
-                cd "${iocroot}/base/${_tag}/_" \
-                    && tar cf - .|$(cd "${iocroot}/base/${_tag}/root";\
-                    tar xf -)
+                # __spinner needs to be recreated here as we use multiple commands
+                _spinner='/-\|'
+                printf "  INFO: converting ${_tag} to a template:  "
+
+                while true; do
+                    printf '\b%.1s' "${_spinner}"
+                    _spinner=${_spinner#?}${_spinner%???}
+                    sleep .1
+                    done &
+
+                    trap "kill $!" 2 3
+                    # Creating jail's /root in it's new home
+                    zfs send -R \
+                        "${pool}/iocage/base/${_base}/root@${_fulluuid}-template"|\
+                        zfs recv "${pool}/iocage/base/${_tag}/root"
+                    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+
+                # __spinner needs to be recreated here as we use multiple commands
+                _spinner='/-\|'
+                printf "  INFO: copying overlay data into template's root:  "
+
+                while true; do
+                    printf '\b%.1s' "${_spinner}"
+                    _spinner=${_spinner#?}${_spinner%???}
+                    sleep .1
+                    done &
+
+                    trap "kill $!" 2 3
+                    # Since we want whatever changes to be persistent, we must copy
+                    # them to the jail's /root, keeping the jails original overlays
+                    # so it can be transformed back to a jail
+                    cd "${iocroot}/base/${_tag}/_" \
+                        && tar cf - .|$(cd "${iocroot}/base/${_tag}/root";\
+                        tar xf -)
+                    zfs set readonly=on "${pool}/iocage/base/${_tag}/root"
+                    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
                 # Destroy all the snapshot we don't need and the original
                 # location for the jail.
                 zfs destroy \
@@ -701,7 +728,7 @@ __unlink_tag () {
     _dataset=$1
 
     if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
-        find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \;
+        find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \; > /dev/null 2>&1
     fi
 }
 

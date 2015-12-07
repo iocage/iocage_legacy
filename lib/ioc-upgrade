@@ -244,8 +244,8 @@ __upgrade () {
     # If jail is a basejail then set the new release and reclone the datasets
     # back up /etc just in case the merge fails
     if [ ${_jail_type} = "basejail" ] ; then
-        _jail_datasets="$(__find_jail ALL | \
-                        grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")"
+        _jails=$(__find_jail ALL | \
+                awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
         # Check to see if the jail has a stale upgrade snapshot.
         for _fs in ${_jail_datasets} ; do
             _snapcheck="$(zfs list -Ht snap | \

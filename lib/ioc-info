@@ -97,8 +97,6 @@ __find_jail () {
 __list_jails () {
     local _jails _switch _all_jids _ioc_jids _non_ioc_jids _releases \
           _temp_loop_var _state
-    _jails=$(__find_jail ALL | \
-           grep -Ev "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>|${pool}/iocage/base_old|*./root|*./data")
     _switch=$1
     _all_jids=$(jls -N -h jid | grep -v -x jid )
 
@@ -119,6 +117,16 @@ __list_jails () {
 
     if [ ! -z "${_switch}" -a "${_switch}" != "-t" ] ; then
         __die "invalid switch ${_switch}"
+    fi
+
+    # If the -t switch is given, show templates otherwise show the jails
+    if [ "${_switch}" = "-t" ] ; then
+        _jails=$(__find_jail ALL | \
+            awk -v base="${pool}/iocage/base" '$0 ~ base { if (!/base\/[0-9]/) \
+            { print }}')
+    else
+        _jails=$(__find_jail ALL | \
+            awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
     fi
 
     # Setup the column names, this is all piped to column to deal with long TAGs
@@ -153,18 +161,8 @@ __list_jails () {
                 _switch=zero
             fi
 
-            # If the -t switch is given, show templates otherwise, show the jails
-            if [ "${_switch}" = "-t" ] ; then
-                if [ "${_template}" = "yes" ] ; then
-                    printf "%s^%s^%s^%s^%s^%s\n" "${_jid}" \
-                           "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
-                fi
-            elif [ "${_switch}" != "-t" ] ; then
-                if [ "${_template}" != "yes" ] ; then
-                    printf "%s^%s^%s^%s^%s^%s\n" "${_jid}" \
-                           "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
-                fi
-            fi
+            printf "%s^%s^%s^%s^%s^%s\n" "${_jid}" \
+                   "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
         done
         # create list of active jids not registered in iocage
         for _all_jail in ${_all_jids} ; do
@@ -208,7 +206,7 @@ __list_jails_warden () {
           _vnet1_mac _vnet2_mac _vnet3_mac _type
 
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+            awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
     _switch=$1
 
     for _jail in ${_jails} ; do

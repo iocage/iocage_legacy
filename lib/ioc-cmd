@@ -233,7 +233,14 @@ __parse_cmd () {
             snapshot)   __snapshot "$2" "$3"
                         exit
                 ;;
-            start)      shift
+            start)      if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift 2
+                        else
+                            export _force=0
+                            shift
+                        fi
+
                         for _j in $@ ; do
                             __start_jail "${_j}"
                         done
