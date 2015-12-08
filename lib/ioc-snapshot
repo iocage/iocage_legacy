@@ -1,7 +1,7 @@
 #!/bin/sh
 
 __snapshot () {
-    local _name _snapshot _dataset _date
+    local _name _snapshot _dataset _date _jail_type
 
     _date=$(date "+%F_%T")
 
@@ -10,11 +10,15 @@ __snapshot () {
         _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
         _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
         _dataset="$(__find_jail $_name)" || exit $?
+        _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
 
         if [ -z $_name ] ; then
             __die "missing UUID!"
         fi
 
+        if [ "${_jail_type}" = "basejail" ] ; then
+            __die "cannot use recursive snapshots with a basejail"
+        fi
 
         if [ ! -z $_snapshot ] ; then
             zfs snapshot -r ${_dataset}@${_snapshot}

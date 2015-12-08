@@ -877,7 +877,7 @@ __umount_basejail () {
     local _fulluuid="$1"
 
   # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
-    umount ${iocroot}/jails/${_fulluuid}/root/tmp        > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/tmp         > /dev/null 2>&1
     umount -ft unionfs ${iocroot}/jails/${_fulluuid}/root > /dev/null 2>&1
 }
 
