@@ -356,7 +356,7 @@ __create_jail () {
 
     _installed=$(zfs list -rH ${pool}/iocage/base | grep ${base})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
-    _supported_release=$(echo "${base}" | grep "RELEASE")
+    _supported_release=$(echo "${base}" | grep "RELEASE\|CURRENT")
     _devfs_string="$(grep -Fxq \
                   "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
                   ; echo $?)"
@@ -547,13 +547,13 @@ __create_jail () {
         # in a basejail
         mount -t tmpfs tmpfs ${iocroot}/jails/${uuid}/root/tmp
         mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
-        mount -t unionfs -o noatime,copymode=traditional \
+        mount -t unionfs -o noatime,copymode=transparent \
                  ${iocroot}/jails/${uuid}/_/usr/local/ \
                  ${iocroot}/jails/${uuid}/root/usr/local
-        mount -t unionfs -o noatime,copymode=traditional \
+        mount -t unionfs -o noatime,copymode=transparent \
                  ${iocroot}/jails/${uuid}/_/var/ \
                  ${iocroot}/jails/${uuid}/root/var
-        mount -t unionfs -o noatime,copymode=traditional \
+        mount -t unionfs -o noatime,copymode=transparent \
                  ${iocroot}/jails/${uuid}/_/compat/ \
                  ${iocroot}/jails/${uuid}/root/compat
 
@@ -722,7 +722,7 @@ __destroy_jail () {
                 __die "cannot destroy ${_name} - jail is running!"
             fi
 
-            __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
+            __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type} ${_jail_path}
         else
             echo "  Command not confirmed.  No action taken."
         fi
@@ -730,17 +730,18 @@ __destroy_jail () {
         if [ ! -z ${_state} ] ; then
             __stop_jail ${_fulluuid} ${_dataset}
         fi
-        __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
+        __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type} ${_jail_path}
     fi
 }
 
 __destroy_func () {
-    local _fulluuid _dataset _origin _jail_type _base_inuse
+    local _fulluuid _dataset _origin _jail_type _base_inuse _jail_path
 
     _fulluuid="$1"
     _dataset="$2"
     _origin="$3"
     _jail_type="$4"
+    _jail_path="$5"
     _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
                  grep ${pool}/iocage/base > \
                  /dev/null 2>&1 ; echo $?)"
@@ -754,11 +755,21 @@ __destroy_func () {
     if [ "${_origin}" != "-" ] ; then
         echo "  Destroying clone origin: ${_origin}"
         zfs destroy -r ${_origin}
+
+        if [ -d "${_jail_path}" ] ; then
+            rm -rf ${_jail_path}
+        fi
+
     fi
 
     if [ ${_jail_type} = "basejail" ] ; then
         if [ "${_base_inuse}" = "0" ] ; then
             zfs destroy -fr ${pool}/iocage/base@${_fulluuid} > /dev/null 2>&1
+
+            if [ -d "${_jail_path}" ] ; then
+                rm -rf ${_jail_path}
+            fi
+
         fi
     fi
 }
@@ -864,7 +875,7 @@ __mount_basejail () {
     local _fulluuid="$1"
 
     # Mount the overlays needed for basejails
-    mount -t unionfs -o noatime,copymode=traditional \
+    mount -t unionfs -o noatime,copymode=transparent \
         ${iocroot}/jails/${_fulluuid}/_/ \
         ${iocroot}/jails/${_fulluuid}/root
 
@@ -886,7 +897,7 @@ __mount_template () {
     local _tag="$1"
 
     # Mount the overlays needed for basejails
-    mount -t unionfs -o noatime,copymode=traditional \
+    mount -t unionfs -o noatime,copymode=transparent \
         ${iocroot}/base/${_tag}/_/ \
         ${iocroot}/base/${_tag}/root
 

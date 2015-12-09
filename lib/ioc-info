@@ -3,7 +3,8 @@
 # Print supported releases----------------------------------
 __print_release () {
     supported="10.2-RELEASE
-                9.3-RELEASE"
+                9.3-RELEASE
+                11.0-CURRENT"
 
     echo "Supported releases are: "
     for rel in $(echo $supported) ; do
@@ -108,7 +109,7 @@ __list_jails () {
     if [ ! -z "${_switch}" -a "${_switch}" = "-r" ] ; then
         echo "Downloaded releases:"
         _releases="$(zfs list -o name -Hr ${pool}/iocage/base \
-                   | grep RELEASE$ | cut -d \/ -f 4)"
+                   | grep root$ | cut -d \/ -f 4)"
         for _rel in $(echo ${_releases}) ; do
             printf "%15s\n" "${_rel}"
         done
