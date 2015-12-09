@@ -356,7 +356,7 @@ __create_jail () {
 
     _installed=$(zfs list -rH ${pool}/iocage/base | grep ${base})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
-    _supported_release=$(echo "${base}" | grep "RELEASE")
+    _supported_release=$(echo "${base}" | grep "RELEASE\|CURRENT")
     _devfs_string="$(grep -Fxq \
                   "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
                   ; echo $?)"
