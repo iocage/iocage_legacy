@@ -118,15 +118,22 @@ __snaplist () {
 }
 
 __rollback () {
-    local _name _snapshot _dataset _fs
+    local _name _snapshot _fs _fulluuid_dataset _fulluuid _dataset _jail_type
 
     _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-    _dataset="$(__find_jail $_name)" || exit $?
+    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
+    set ${_fulluuid_dataset}
+    _fulluuid="$1"
+    _dataset="$2"
+    _jail_type="$(__get_jail_prop type ${_fulluuid})"
     _fs_list=$(zfs list -rH -o name $_dataset)
 
     if [ ! -z "$_snapshot" ] ; then
         for _fs in $_fs_list ; do
+            if [ "${_jail_type}" = "basejail" -a "${_fs}" = "${_dataset}/root" ] ; then
+                continue
+            fi
             echo "* Rolling back to ${_fs}@${_snapshot}"
             zfs rollback -r ${_fs}@${_snapshot}
         done
