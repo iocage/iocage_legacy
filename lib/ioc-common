@@ -430,22 +430,22 @@ __chroot () {
     # If the jail is a basejail, mount all the overlays
     if [ "${_jail_type}" == "basejail" ] ; then
         if [ "${_state}" == "0" ] ; then
-            mount -t unionfs -o noatime,copymode=traditional \
+            mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/etc \
                 ${iocroot}/jails/${_fulluuid}/root/etc
-            mount -t unionfs -o noatime,copymode=traditional \
+            mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/root \
                 ${iocroot}/jails/${_fulluuid}/root/root
-            mount -t unionfs -o noatime,copymode=traditional \
+            mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/usr/home \
                 ${iocroot}/jails/${_fulluuid}/root/usr/home
-            mount -t unionfs -o noatime,copymode=traditional \
+            mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/compat \
                 ${iocroot}/jails/${_fulluuid}/root/compat
-            mount -t unionfs -o noatime,copymode=traditional \
+            mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/usr/local \
                 ${iocroot}/jails/${_fulluuid}/root/usr/local
-            mount -t unionfs -o noatime,copymode=traditional \
+            mount -t unionfs -o noatime,copymode=transparent \
                 ${iocroot}/jails/${_fulluuid}/_/var \
                 ${iocroot}/jails/${_fulluuid}/root/var
             mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
@@ -456,7 +456,7 @@ __chroot () {
         fi
 
         # Mount the rest
-        mount -t unionfs -o noatime,copymode=traditional \
+        mount -t unionfs -o noatime,copymode=transparent \
             ${iocroot}/jails/${_fulluuid}/_/usr/ports \
             ${iocroot}/jails/${_fulluuid}/root/usr/ports
         fi
