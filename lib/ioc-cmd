@@ -24,9 +24,10 @@ __parse_cmd () {
             clean)      __clean "$2"
                         exit
                 ;;
-            clone)      __export_props "$@"
-                        __clone_jail "$2"
-                        exit
+            clone)      #__export_props "$@"
+                        #__clone_jail "$2"
+                        __die "cloning is not currently functioning"
+                        #exit
                 ;;
             console)    __console "$2"
                         exit
