@@ -29,18 +29,26 @@ __snapshot () {
         _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
         _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
         _dataset="$(__find_jail $_name)" || exit $?
+        _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
 
         if [ -z $_name ] ; then
             __die "missing UUID!"
         fi
 
         if [ ! -z $_snapshot ] ; then
-            zfs snapshot ${_dataset}/root@${_snapshot}
+            if [ "${_jail_type}" = "basejail" ] ; then
+                zfs snapshot ${_dataset}@${_snapshot}
+            else
+                zfs snapshot ${_dataset}/root@${_snapshot}
+            fi
         else
-            zfs snapshot ${_dataset}/root@ioc-${_date}
+            if [ "${_jail_type}" = "basejail" ] ; then
+                zfs snapshot ${_dataset}@ioc-${_date}
+            else
+                zfs snapshot ${_dataset}/root@ioc-${_date}
+            fi
         fi
     fi
-
 }
 
 
