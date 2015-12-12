@@ -32,14 +32,23 @@ __parse_cmd () {
             console)    __console "$2"
                         exit
                 ;;
-            create)     local _tag _hostname
+            create)     local _tag _hostname _ip4if _ip4addr _ip4subnet _ip4ip
                         __export_props "$@"
                         _hostname="${host_hostname}"
                         _tag="${tag}"
+                        _ip4if="$(echo ${ip4_addr} | awk 'BEGIN { FS = "|" } \
+                            ; { print $1 }')"
+                        _ip4addr="$(echo ${ip4_addr} | \
+                            awk 'BEGIN { FS = "|" } \
+                            ; { gsub("\/[0-9]+","") ; print $2 }')"
+                        _ip4subnet="$(echo ${ip4_addr} | awk 'BEGIN { FS = "/" } \
+                            ; { print $2 }')"
+
                         for _i in $(seq ${count}) ; do
                             unset uuid host_hostuuid host_hostname
                             uuid="$(uuidgen)"
                             host_hostuuid="${uuid}"
+
                             if [ "${count}" -eq 1 ] ; then
                                 tag="${_tag}"
                                 if [ -n "${iocset_host_hostname}" ] ; then
@@ -54,7 +63,16 @@ __parse_cmd () {
                                 else
                                     host_hostname="${uuid}"
                                 fi
+
+                                if [ "${_i}" = 1 ] ; then
+                                    _ip4ip="$(echo ${_ip4addr} | cut -d "." -f 4)"
+                                else
+                                    _ip4ip="$(expr ${_ip4ip} + 1)"
+                                    ip4_addr="${_ip4if}|$(echo ${_ip4addr} | \
+                                        cut -d "." -f 1-3).${_ip4ip}/${_ip4subnet}"
+                                fi
                             fi
+
                             __create_jail "$@"
                         done
                         exit
