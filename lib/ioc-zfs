@@ -722,7 +722,7 @@ __destroy_jail () {
                 __die "cannot destroy ${_name} - jail is running!"
             fi
 
-            __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
+            __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type} ${_jail_path}
         else
             echo "  Command not confirmed.  No action taken."
         fi
@@ -730,17 +730,18 @@ __destroy_jail () {
         if [ ! -z ${_state} ] ; then
             __stop_jail ${_fulluuid} ${_dataset}
         fi
-        __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type}
+        __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type} ${_jail_path}
     fi
 }
 
 __destroy_func () {
-    local _fulluuid _dataset _origin _jail_type _base_inuse
+    local _fulluuid _dataset _origin _jail_type _base_inuse _jail_path
 
     _fulluuid="$1"
     _dataset="$2"
     _origin="$3"
     _jail_type="$4"
+    _jail_path="$5"
     _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
                  grep ${pool}/iocage/base > \
                  /dev/null 2>&1 ; echo $?)"
@@ -754,11 +755,21 @@ __destroy_func () {
     if [ "${_origin}" != "-" ] ; then
         echo "  Destroying clone origin: ${_origin}"
         zfs destroy -r ${_origin}
+
+        if [ -d "${_jail_path}" ] ; then
+            rm -rf ${_jail_path}
+        fi
+
     fi
 
     if [ ${_jail_type} = "basejail" ] ; then
         if [ "${_base_inuse}" = "0" ] ; then
             zfs destroy -fr ${pool}/iocage/base@${_fulluuid} > /dev/null 2>&1
+
+            if [ -d "${_jail_path}" ] ; then
+                rm -rf ${_jail_path}
+            fi
+
         fi
     fi
 }
