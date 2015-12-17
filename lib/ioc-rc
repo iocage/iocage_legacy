@@ -248,7 +248,7 @@ __start_jail () {
         zfs set readonly=on "${_dataset}/root"
     fi
 
-    __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf &
+    __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf
     echo -n "  + Starting services"
     setfib ${_exec_fib} jexec ioc-${_fulluuid} ${_exec_start} \
      >> "${iocroot}/log/${_fulluuid}-console.log" 2>&1
