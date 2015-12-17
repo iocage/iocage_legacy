@@ -64,12 +64,15 @@ __parse_cmd () {
                                     host_hostname="${uuid}"
                                 fi
 
-                                if [ "${_i}" = 1 ] ; then
-                                    _ip4ip="$(echo ${_ip4addr} | cut -d "." -f 4)"
-                                else
-                                    _ip4ip="$(expr ${_ip4ip} + 1)"
-                                    ip4_addr="${_ip4if}|$(echo ${_ip4addr} | \
-                                        cut -d "." -f 1-3).${_ip4ip}/${_ip4subnet}"
+                                if [ "${ip4_addr}"  != "none" ] ; then
+                                    if [ "${_i}" = 1 ] ; then
+                                        _ip4ip="$(echo ${_ip4addr} | \
+                                            cut -d "." -f 4)"
+                                    else
+                                        _ip4ip="$(expr ${_ip4ip} + 1)"
+                                        ip4_addr="${_ip4if}|$(echo ${_ip4addr} | \
+                                            cut -d "." -f 1-3).${_ip4ip}/${_ip4subnet}"
+                                    fi
                                 fi
                             fi
 
