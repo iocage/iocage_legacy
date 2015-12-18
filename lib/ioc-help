@@ -39,7 +39,7 @@ SYNOPSIS
   iocage [-v] set property=value [property=value] UUID|TAG
   iocage [-v] snaplist UUID|TAG
   iocage [-v] snapremove UUID|TAG@snapshotname|ALL
-  iocage [-v] snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
+  iocage [-v] snapshot [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
   iocage [-v] start [-f] UUID|TAG
   iocage [-v] stop UUID|TAG|ALL
   iocage [-v] uncap UUID|TAG
@@ -323,12 +323,18 @@ SUBCOMMANDS
     Destroy specified jail snapshot. If the keyword ALL is specified all
     snapshots will be destroyed for the jail.
 
-  snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
+  snapshot [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
 
     Create a ZFS snapshot for jail. If the -r flag is specified it will by
     recursively snapshot POOL/iocage/jails/UUID. Otherwise it will only snapshot
     POOL/iocage/jails/UUID/root. If no snapshot name is specified defaults
     to auto snapshot name based on current date and time.
+
+    The -f flag is to bypass the interactive question if you have a running
+    database in the jail. Make sure to pass -f on it's own and first before any
+    other flag like -r.
+
+    Example: iocage snapshot -f -r JAIL
 
   start [-f] UUID|TAG
 
