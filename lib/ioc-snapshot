@@ -1,7 +1,8 @@
 #!/bin/sh
 
 __snapshot () {
-    local _name _snapshot _dataset _date _jail_type
+    local _name _snapshot _fulluuid_dataset _fulluuid _dataset _date \
+          _jail_type _jid _database_check _answer
 
     _date=$(date "+%F_%T")
 
@@ -9,11 +10,31 @@ __snapshot () {
         shift
         _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
         _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-        _dataset="$(__find_jail $_name)" || exit $?
+        _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
+        set ${_fulluuid_dataset}
+        _fulluuid="$1"
+        _dataset="$2"
         _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+        _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
+        _database_check="$(ps -axJ ${_jid} 2> /dev/null | \
+            grep -qE 'mysqld|postgresql' ; echo $?)"
 
         if [ -z $_name ] ; then
             __die "missing UUID!"
+        fi
+
+        if [ "${_database_check}" -eq 0 ] ; then
+            if [ "${_force}" != "1" ] ; then
+                echo " "
+                echo "  WARNING: A database is running! This may cause issues!"
+                echo " "
+                echo -n "  Would you like to continue? y[N]: "
+                read _answer
+
+                if [ "${_answer}" = "N" -o "${_answer}" = "n" ] ; then
+                    exit 0
+                fi
+            fi
         fi
 
         if [ "${_jail_type}" = "basejail" ] ; then
@@ -28,11 +49,31 @@ __snapshot () {
     else
         _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
         _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-        _dataset="$(__find_jail $_name)" || exit $?
+        _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
+        set ${_fulluuid_dataset}
+        _fulluuid="$1"
+        _dataset="$2"
         _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+        _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
+        _database_check="$(ps -axJ ${_jid} 2> /dev/null | \
+            grep -qE 'mysqld|postgresql' ; echo $?)"
 
         if [ -z $_name ] ; then
             __die "missing UUID!"
+        fi
+
+        if [ "${_database_check}" -eq 0 ] ; then
+            if [ "${_force}" != "1" ] ; then
+                echo " "
+                echo "  WARNING: A database is running! This may cause issues!"
+                echo " "
+                echo -n "  Would you like to continue? y[N]: "
+                read _answer
+
+                if [ "${_answer}" = "N" -o "${_answer}" = "n" ] ; then
+                    exit 0
+                fi
+            fi
         fi
 
         if [ ! -z $_snapshot ] ; then

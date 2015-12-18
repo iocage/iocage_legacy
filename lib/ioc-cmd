@@ -252,7 +252,12 @@ __parse_cmd () {
             snapremove) __snapremove "$2"
                         exit
                 ;;
-            snapshot)   __snapshot "$2" "$3"
+            snapshot)   if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift
+                        fi
+
+                        __snapshot "$2" "$3"
                         exit
                 ;;
             start)      if [ "$2" = "-f" ] ; then
