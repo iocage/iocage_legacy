@@ -70,9 +70,10 @@ __find_jail () {
     else
         for _jail in ${jail_datasets} ; do
             _found="$(echo ${_jail} | grep -iE ${_name}$)"
-            _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
+            _tag="$(zfs get -H -o value org.freebsd.iocage:tag \
+                  ${_jail} 2> /dev/null)"
             _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
-                       ${_jail})"
+                       ${_jail} 2> /dev/null)"
 
             if [ "${_tag}" = "${_name}" ] ; then
                 _jlist="${_jlist} ${_jail}"
@@ -137,16 +138,25 @@ __list_jails () {
 
         # For every jail we need to get the property
         for _jail in ${_jails} ; do
-            _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_jail})
-            _boot=$(zfs get -H -o value org.freebsd.iocage:boot ${_jail})
-            _tag=$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})
-            _template=$(zfs get -H -o value org.freebsd.iocage:template ${_jail})
-            _type="$(zfs get -H -o value org.freebsd.iocage:type ${_jail})"
+            _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+                  ${_jail} 2> /dev/null)
+            _boot=$(zfs get -H -o value org.freebsd.iocage:boot \
+                  ${_jail} 2> /dev/null)
+            _tag=$(zfs get -H -o value org.freebsd.iocage:tag \
+                  ${_jail} 2> /dev/null)
+            _template=$(zfs get -H -o value org.freebsd.iocage:template \
+                      ${_jail} 2> /dev/null)
+            _type="$(zfs get -H -o value org.freebsd.iocage:type \
+                   ${_jail} 2> /dev/null)"
             # get jid for iocage jails
             _jid=$(jls -j ioc-${_uuid} jid 2> /dev/null)
 
-            if [ -z "${_jid}"  ] ; then
+            if [ -z "${_jid}" ] ; then
                 _jid="-"
+            fi
+
+            if [ -z "${_uuid}" ] ; then
+                break
             fi
 
             _ioc_jids=${_ioc_jids}" "${_jid}
