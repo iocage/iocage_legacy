@@ -197,7 +197,7 @@ __export () {
     _fulluuid="$(__check_name $_name)"
     _jail_path="$(__get_jail_prop mountpoint $_fulluuid)"
     _state=$(jls|grep ${_jail_path} | wc -l)
-    _mountpoint="$(__get-jail_prop mountpoint $_fulluuid)"
+    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
 
     if [ -z $_name ] ; then
         echo "  ERROR: Missing UUID!"
