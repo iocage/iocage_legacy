@@ -279,41 +279,45 @@ __get_autoip4 () {
 }
 
 __stop_legacy_networking () {
-    local _fulluuid="$1"
-    local _dataset="$2"
+    local _fulluuid _dataset _ip4_addr _ip6_addr _default_iface _iface _ip4
 
-    local ip4_addr="$(__get_jail_prop ip4_addr $_fulluuid $_dataset)"
-    local ip6_addr="$(__get_jail_prop ip6_addr $_fulluuid $_dataset)"
+
+    _fulluuid="$1"
+    _dataset="$2"
+    _ip4_addr="$(__get_jail_prop ip4_addr ${_fulluuid} ${_dataset})"
+    _ip6_addr="$(__get_jail_prop ip6_addr ${_fulluuid} ${_dataset})"
 
     # Get the default and current interfaces specified
-    local default_iface="$(__get_default_iface)"
+    _default_iface="$(__get_default_iface)"
 
     # Change the DEFAULT tag to correct iface
-    ip4_addr=$(echo $ip4_addr | sed "s/DEFAULT|/$default_iface|/g")
-    ip6_addr=$(echo $ip6_addr | sed "s/DEFAULT|/$default_iface|/g")
+    _ip4_addr=$(echo ${_ip4_addr} | sed "s/DEFAULT|/${_default_iface}|/g")
+    _ip6_addr=$(echo ${_ip6_addr} | sed "s/DEFAULT|/${_default_iface}|/g")
 
-    if [ $ip4_addr != "none" ] ; then
+    if [ "${_ip4_addr}" != "none" ] ; then
         local IFS=','
-        for ip in $ip4_addr ; do
-            local iface="$(echo $ip | \
-                         awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            local ip4="$(echo $ip | \
-                       awk 'BEGIN { FS = "|" } ; { print $2 }' | \
-                       awk 'BEGIN { FS = "/" } ; { print $1 }')"
+        for _ip4 in ${_ip4_addr} ; do
+            _iface="$(echo ${_ip4} | \
+                awk 'BEGIN { FS = "|" } ; { print $1 }')"
+            _ip4="$(echo ${_ip4} | \
+                awk 'BEGIN { FS = "|" } ; { print $2 }' | \
+                awk 'BEGIN { FS = "/" } ; { print $1 }' | \
+                awk 'BEGIN { FS = " " } ; { print $1 }')"
 
-            ifconfig $iface $ip4 -alias
+            ifconfig ${_iface} ${_ip4} -alias
         done
     fi
 
-    if [ $ip6_addr != "none" ] ; then
+    if [ "${_ip6_addr}" != "none" ] ; then
         local IFS=','
-        for ip6 in $ip6_addr ; do
-            local iface="$(echo $ip6 | \
+        for _ip6 in ${_ip6_addr} ; do
+            _iface="$(echo ${_ip6} | \
                          awk 'BEGIN { FS = "|" } ; { print $1 }')"
-            local ip6="$(echo $ip6 | \
+            _ip6="$(echo ${_ip6} | \
                        awk 'BEGIN { FS = "|" } ; { print $2 }' | \
-                       awk 'BEGIN { FS = "/" } ; { print $1 }')"
-            ifconfig $iface inet6 $ip6 -alias
+                       awk 'BEGIN { FS = "/" } ; { print $1 }' | \
+                       awk 'BEGIN { FS = " " } ; { print $1 }')"
+            ifconfig ${_iface} inet6 ${_ip6} -alias
         done
     fi
 }

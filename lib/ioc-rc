@@ -324,7 +324,7 @@ __vnet_start () {
 
 # Start a shared IP jail
 __legacy_start () {
-    local _name _dataset _jail_path _ip4_addr _ip6_addr _ip4 _exec_fib \
+    local _name _dataset _jail_path _ip4_addr _ip6_addr _ip4 _ip6 _exec_fib \
           _fdescfs _tmpfs _default_iface _cur_ip4_iface _cur_ip6_iface \
           _ip4_addr_propline _ip6_addr_propline _new_iface
 
@@ -334,6 +334,7 @@ __legacy_start () {
     _ip4_addr="$(__get_jail_prop ip4_addr "${_name}" ${_dataset})"
     _ip6_addr="$(__get_jail_prop ip6_addr "${_name}" ${_dataset})"
     _ip4="$(__get_jail_prop ip4 "${_name}" ${_dataset})"
+    _ip6="$(__get_jail_prop ip6 "${_name}" ${_dataset})"
     _exec_fib="$(__get_jail_prop exec_fib "${_name}" ${_dataset})"
     _fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs "${_name}" ${_dataset})"
     _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs "${_name}" ${_dataset})"
@@ -353,7 +354,7 @@ __legacy_start () {
         _ip4_addr=""
     fi
 
-    if [ "${ip6_addr}" = "none" ] ; then
+    if [ "${_ip6_addr}" = "none" ] ; then
         _ip6_addr=""
     fi
 
@@ -364,8 +365,8 @@ __legacy_start () {
     # this is mostly a temporary workaround for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=196474
     if [ "${_ip4}" = 'inherit' ] ; then
         _ip4="inherit"
-        _ip6="inherit"
         _ip4_addr_propline=""
+        _ip6="inherit"
         _ip6_addr_propline=""
     else
         _ip4_addr_propline="ip4.addr=${_ip4_addr}"
@@ -393,7 +394,7 @@ __legacy_start () {
         ip4="${_ip4}" \
         "${_ip6_addr_propline}" \
         ip6.saddrsel="$(__get_jail_prop ip6_saddrsel "${_name}" ${_dataset})" \
-        ip6="${ip6}" \
+        ip6="${_ip6}" \
         name="ioc-$(__get_jail_prop host_hostuuid "${_name}" ${_dataset})" \
         host.domainname="$(__get_jail_prop host_domainname "${_name}" ${_dataset})" \
         host.hostname="$(__get_jail_prop host_hostname "${_name}" ${_dataset})" \
