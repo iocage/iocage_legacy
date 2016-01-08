@@ -295,6 +295,7 @@ __stop_legacy_networking () {
     _ip6_addr=$(echo ${_ip6_addr} | sed "s/DEFAULT|/${_default_iface}|/g")
 
     if [ "${_ip4_addr}" != "none" ] ; then
+        local oIFS=$IFS
         local IFS=','
         for _ip4 in ${_ip4_addr} ; do
             _iface="$(echo ${_ip4} | \
@@ -306,9 +307,11 @@ __stop_legacy_networking () {
 
             ifconfig ${_iface} ${_ip4} -alias
         done
+        local IFS=$oIFS
     fi
 
     if [ "${_ip6_addr}" != "none" ] ; then
+        local oIFS=$IFS
         local IFS=','
         for _ip6 in ${_ip6_addr} ; do
             _iface="$(echo ${_ip6} | \
@@ -319,5 +322,6 @@ __stop_legacy_networking () {
                        awk 'BEGIN { FS = " " } ; { print $1 }')"
             ifconfig ${_iface} inet6 ${_ip6} -alias
         done
+        local IFS=$oIFS
     fi
 }
