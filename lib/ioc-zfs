@@ -364,8 +364,8 @@ __create_jail () {
                    var/run"
 
     if [ -z "${_supported_release}" -a "${2}" != "-e" -a "${1}" = "create" -a -z "${_installed}" ] ; then
-        echo "  You are not running a production RELEASE. (${base})" >&2
-        echo "  ERROR: Please specify base=RELEASE." >&2
+        echo "  You are not running a production RELEASE. (${release})" >&2
+        echo "  ERROR: Please specify release=RELEASE." >&2
         exit 1
     fi
 
