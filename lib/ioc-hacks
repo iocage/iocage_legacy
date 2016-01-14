@@ -10,7 +10,7 @@ __hack88_mount () {
     _dataset="$2"
     _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
     _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
-    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
+    _template="$(__get_jail_prop istemplate ${_fulluuid} ${_dataset})"
     _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
     _jail_zfs_dataset="$(__get_jail_prop jail_zfs_mountpoint \
         ${_fulluuid} ${_dataset})"

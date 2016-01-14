@@ -2,7 +2,7 @@
 
 __update () {
   local _name _dataset _fulluuid _mountpoint _date _jail_type _non_interactive \
-        _resolv _jail_release _jail_base
+        _resolv _jail_release
 
   _name=$2
   _resolv="0"
@@ -26,42 +26,44 @@ __update () {
             esac
             ;;
         -P|-p|--ports)
-            if [ ! -e "${iocroot}/base/${_name}/root" ] ; then
+            if [ ! -e "${iocroot}/releases/${_name}/root" ] ; then
                 __die "${_name} does not exist!"
             fi
 
-            _jail_base="$(__get_jail_prop base $_name)"
+            _jail_release="$(__get_jail_prop release $_name)"
+
+            # The user might be supplying a RELEASE instead of a jail
+            if [ "${_jail_release}" = "none" ] ; then
+                _jail_release="${_name}"
+            fi
+
+            mount -t devfs devfs ${iocroot}/releases/${_name}/root/dev
+            cat /etc/resolv.conf > \
+                ${iocroot}/releases/${_name}/root/etc/resolv.conf
 
             # Lets us make sure any templates using 9.3-RELEASE get the right
             # treatment for non-interactive portsnap.
-            if [ "${_jail_base}" = "none" ] ; then
-                _jail_base="${_name}"
-            fi
-
-            case "${_jail_base}" in
+            case "${_jail_release}" in
                 9.3-RELEASE)
                     # Remove the interactive check in portsnap
                     sed 's/\[ ! -t 0 \]/false/' \
-                        ${iocroot}/base/${_name}/root/usr/sbin/portsnap \
-                        > ${iocroot}/base/${_name}/root/tmp/portsnap
-                    chmod +x ${iocroot}/base/${_name}/root/tmp/portsnap
-                    chroot ${iocroot}/base/${_name}/root \
+                        ${iocroot}/releases/${_name}/root/usr/sbin/portsnap \
+                        > ${iocroot}/releases/${_name}/root/tmp/portsnap
+                    chmod +x ${iocroot}/releases/${_name}/root/tmp/portsnap
+                    chroot ${iocroot}/releases/${_name}/root \
                         env UNAME_r="${_name}" env PAGER="/bin/cat" \
                         /tmp/portsnap fetch update
-                    rm ${iocroot}/base/${_name}/root/tmp/portsnap
+                    rm ${iocroot}/releases/${_name}/root/tmp/portsnap
                     ;;
                 *)
-                    chroot ${iocroot}/base/${_name}/root \
+                    chroot ${iocroot}/releases/${_name}/root \
                         env UNAME_r="${_name}" env PAGER="/bin/cat" \
                         portsnap --interactive fetch update
                     ;;
                 esac
 
-                mount -t devfs devfs ${iocroot}/base/${_name}/root/dev
-                cat /etc/resolv.conf > \
-                    ${iocroot}/base/${_name}/root/etc/resolv.conf
-                umount ${iocroot}/base/${_name}/root/dev
-                rm ${iocroot}/base/${_name}/root/etc/resolv.conf
+                umount ${iocroot}/releases/${_name}/root/dev
+                rm ${iocroot}/releases/${_name}/root/etc/resolv.conf
                 ;;
         *)
             shift 3
@@ -72,56 +74,56 @@ __update () {
             _date=$(date "+%F_%T")
             _jail_type="$(__get_jail_prop type $_fulluuid)"
             _jail_release="$(__get_jail_prop release $_fulluuid)"
-            _jail_base="$(__get_jail_prop base ${_fulluuid})"
 
             # Check all jail types and do the right thing
             case $_jail_type in
                 basejail)
-                    if [ -e ${iocroot}/base/${_jail_base}/root/etc/freebsd-update.conf ] ; then
-                        if [ ! -e ${iocroot}/base/${_jail_base}/root/etc/resolv.conf ] ; then
+                    if [ -e ${iocroot}/releases/${_jail_release}/root/etc/freebsd-update.conf ] ; then
+                        if [ ! -e ${iocroot}/releases/${_jail_release}/root/etc/resolv.conf ] ; then
                             export _resolv="1"
                             cat /etc/resolv.conf > \
-                            ${iocroot}/base/${_jail_base}/root/etc/resolv.conf
+                            ${iocroot}/releases/${_jail_release}/root/etc/resolv.conf
                         fi
 
                         mount -t devfs devfs \
-                            ${iocroot}/base/${_jail_base}/root/dev
+                            ${iocroot}/releases/${_jail_release}/root/dev
 
-                        case "${_jail_base}" in
+                        case "${_jail_release}" in
                             9.3-RELEASE | 10.1-RELEASE)
                                 # Remove the interactive check in freebsd-update
                                 sed 's/\[ ! -t 0 \]/false/' \
-                                    ${iocroot}/base/${_jail_base}/root/usr/sbin/freebsd-update \
-                                    > ${iocroot}/base/${_jail_base}/root/tmp/freebsd-update
-                                chmod +x ${iocroot}/base/${_jail_base}/root/tmp/freebsd-update
-                                chroot ${iocroot}/base/${_jail_base}/root \
-                                    env UNAME_r="${_jail_base}" \
+                                    ${iocroot}/releases/${_jail_release}/root/usr/sbin/freebsd-update \
+                                    > ${iocroot}/releases/${_jail_release}/root/tmp/freebsd-update
+                                chmod +x ${iocroot}/releases/${_jail_release}/root/tmp/freebsd-update
+                                chroot ${iocroot}/releases/${_jail_release}/root \
+                                    env UNAME_r="${_jail_release}" \
                                     env PAGER="/bin/cat" \
                                     /tmp/freebsd-update fetch
-                                rm ${iocroot}/base/${_jail_base}/root/tmp/freebsd-update
+                                rm ${iocroot}/releases/${_jail_release}/root/tmp/freebsd-update
                                 ;;
                             *)
-                                chroot ${iocroot}/base/${_jail_base}/root \
-                                    env UNAME_r="${_jail_base}" \
+                                chroot ${iocroot}/releases/${_jail_release}/root \
+                                    env UNAME_r="${_jail_release}" \
                                     env PAGER="/bin/cat" \
                                     freebsd-update --not-running-from-cron fetch
                                 ;;
                             esac
 
-                        chroot ${iocroot}/base/${_jail_base}/root \
-                            env UNAME_r="${_jail_base}" env PAGER="/bin/cat" \
+                        chroot ${iocroot}/releases/${_jail_release}/root \
+                            env UNAME_r="${_jail_release}" env PAGER="/bin/cat" \
                             freebsd-update install
-                        umount ${iocroot}/base/${_jail_base}/root/dev
+                        umount ${iocroot}/releases/${_jail_release}/root/dev
 
                         if [ "${_resolv}" = "1" ] ; then
                             if [ $? -eq 0 ] ; then
                                 rm -f \
-                                    ${iocroot}/base/${_jail_base}/root/etc/resolv.conf
+                                    ${iocroot}/releases/${_jail_release}/root/etc/resolv.conf
                             fi
                         fi
                     fi
+
                     # Re-clone required filesystems
-                    __reclone_basejail "${_fulluuid}" "${_dataset}"
+                    __check_basejail "${_fulluuid}" "${_dataset}"
                     __umount_basejail "${_fulluuid}"
                     echo "* ${_name} updated successfully"
                     ;;
@@ -137,12 +139,7 @@ __update () {
                     # set the pager to cat so that it isn't interactive
                     echo "* Updating jail.."
 
-                    # Migrate release property to base
-                    if [ -z ${_jail_base} ] ; then
-                        _jail_base="${_jail_release}"
-                    fi
-
-                    if [ -e ${iocroot}/base/${_jail_base}/root/etc/freebsd-update.conf ] ; then
+                    if [ -e ${iocroot}/releases/${_jail_release}/root/etc/freebsd-update.conf ] ; then
                         if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
                             export _resolv="1"
                             cat /etc/resolv.conf > \
@@ -152,7 +149,7 @@ __update () {
                         mount -t devfs devfs \
                             ${_mountpoint}/root/dev
 
-                        case "${_jail_base}" in
+                        case "${_jail_release}" in
                             9.3-RELEASE | 10.1-RELEASE)
                                 # Remove the interactive check in freebsd-update
                                 sed 's/\[ ! -t 0 \]/false/' \
@@ -160,21 +157,21 @@ __update () {
                                     > ${_mountpoint}/root/tmp/freebsd-update
                                 chmod +x ${_mountpoint}/root/tmp/freebsd-update
                                 chroot ${_mountpoint}/root \
-                                    env UNAME_r="${_jail_base}" \
+                                    env UNAME_r="${_jail_release}" \
                                     env PAGER="/bin/cat" \
                                     /tmp/freebsd-update fetch
                                 rm ${_mountpoint}/root/tmp/freebsd-update
                                 ;;
                             *)
                                 chroot ${_mountpoint}/root \
-                                    env UNAME_r="${_jail_base}" \
+                                    env UNAME_r="${_jail_release}" \
                                     env PAGER="/bin/cat" \
                                     freebsd-update --not-running-from-cron fetch
                                 ;;
                             esac
 
                         chroot ${_mountpoint}/root \
-                            env UNAME_r="${_jail_base}" env PAGER="/bin/cat" \
+                            env UNAME_r="${_jail_release}" env PAGER="/bin/cat" \
                             freebsd-update install
                         umount ${_mountpoint}/root/dev
 
@@ -204,16 +201,16 @@ __update () {
 }
 
 __upgrade () {
-    local _name _base _fulluuid _jail_type _mountpoint _date _oldbase _resolv \
-          _origin _date
+    local _name _release _fulluuid _jail_type _mountpoint _date _oldrelease \
+          _resolv _origin _date _etcsuccess
 
     _name="$1"
-    _base="$(uname -r|cut -f 1,2 -d'-'|sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
+    _release="$(uname -r|cut -f 1,2 -d'-'|sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
     _dataset="$(__find_jail ${_name})" || exit $?
     _fulluuid="$(__check_name ${_name})"
     _jail_type="$(__get_jail_prop type ${_fulluuid})"
     _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
-    _oldbase="$(zfs get -H -o value org.freebsd.iocage:base ${_dataset})"
+    _oldrelease="$(zfs get -H -o value org.freebsd.iocage:release ${_dataset})"
     _date=$(date "+%F")
     _resolv="0"
 
@@ -225,27 +222,21 @@ __upgrade () {
         __die "${_name} not found!"
     fi
 
-    if [ -n "${iocset_base}" ] ; then
-        _base="${iocset_base}"
+    if [ -n "${iocset_release}" ] ; then
+        _release="${iocset_release}"
     fi
 
-    if [ ! -d ${iocroot}/base/${_base} ] ; then
-        __error "${_base} not found!"
+    if [ ! -d ${iocroot}/releases/${_release} ] ; then
+        __error "${_release} not found!"
         echo "  Please run iocage fetch first." >&2
         exit 1
     fi
 
-    # Migrate from release to base property
-    if [ "${_oldbase}" = "-" ] ; then
-        _oldbase="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
-        __set_jail_prop base="${_oldbase}" "${_fulluuid}"
-    fi
-
-    # If jail is a basejail then set the new release and reclone the datasets
+    # If jail is a basejail then set the new release and check the datasets
     # back up /etc just in case the merge fails
     if [ ${_jail_type} = "basejail" ] ; then
         _jails=$(__find_jail ALL | \
-                awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
+            awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
         # Check to see if the jail has a stale upgrade snapshot.
         for _fs in ${_jail_datasets} ; do
             _snapcheck="$(zfs list -Ht snap | \
@@ -259,17 +250,26 @@ __upgrade () {
             fi
         done
 
-        zfs set org.freebsd.iocage:base="${_base}" ${_dataset}
-        __reclone_basejail ${_fulluuid}
-        cp -Rp ${_mountpoint}/_/etc \
-               ${_mountpoint}/_/etc.old
+        zfs set org.freebsd.iocage:release="${_release}" ${_dataset}
+        __check_basejail ${_fulluuid}
+        cp -Rp ${_mountpoint}/root/etc \
+               ${_mountpoint}/etc.old
         zfs snapshot ${_dataset}/root@ioc-upgrade_${_date}
+        chroot ${_mountpoint}/root etcupdate -F
+        _etcsuccess="$?"
+
+        if [ -d ${_mountpoint}/root/var/spool/mqueue ] ; then
+            chroot ${_mountpoint}/root newaliases > /dev/null 2>&1
+        else
+            mkdir -p ${_mountpoint}/root/var/spool/mqueue
+            chroot ${_mountpoint}/root newaliases > /dev/null 2>&1
+        fi
 
         # Check for zero exit code(success) otherwise bail and revert everything
-        if [ $? -eq 0 ] ; then
+        if [ "${_etcsuccess}" -eq 0 ] ; then
             echo "* ${_name} upgraded successfully. Please reboot jail and inspect."
             echo "* Remove:"
-            echo "    /etc backup: ${_mountpoint}/_/etc.old"
+            echo "    /etc backup: ${_mountpoint}/etc.old"
             echo "    snapshot: ${_dataset}/root@ioc-upgrade_${_date}"
             echo "* if everything is OK."
             __umount_basejail "${_fulluuid}"
@@ -277,14 +277,13 @@ __upgrade () {
         else
             echo "" >&2
             echo "* Upgrade failed! Backing out." >&2
-            zfs set org.freebsd.iocage:base="${_oldbase}" ${_dataset}
+            zfs set org.freebsd.iocage:release="${_oldrelease}" ${_dataset}
             zfs rollback -rRf ${_dataset}/root@ioc-upgrade_${_date}
             zfs destroy ${_dataset}/root@ioc-upgrade_${_date}
-            umount ${_mountpoint}/root/etc
-            rm -rf ${_mountpoint}/_/etc
-            mv ${_mountpoint}/_/etc.old \
-               ${_mountpoint}/_/etc
-            __reclone_basejail
+            rm -rf ${_mountpoint}/root/etc
+            mv ${_mountpoint}/etc.old \
+               ${_mountpoint}/root/etc
+            __check_basejail "${_fulluuid}"
             __umount_basejail "${_fulluuid}"
             exit 1
         fi
@@ -307,7 +306,7 @@ __upgrade () {
         echo "* Creating back-out upgrade snapshot."
         zfs snapshot ${_dataset}/root@ioc-upgrade_${_date}
         echo "* Upgrading jail."
-        if [ -e ${iocroot}/base/${_base}/root/etc/freebsd-update.conf ] ; then
+        if [ -e ${iocroot}/releases/${_release}/root/etc/freebsd-update.conf ] ; then
             if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
                 export _resolv="1"
                 cat /etc/resolv.conf > \
@@ -316,20 +315,20 @@ __upgrade () {
             mount -t devfs devfs \
                 ${_mountpoint}/root/dev
             chroot ${_mountpoint}/root \
-                env UNAME_r="${_oldbase}" env PAGER="/bin/cat" \
-                freebsd-update -r ${_base} upgrade
+                env UNAME_r="${_oldrelease}" env PAGER="/bin/cat" \
+                freebsd-update -r ${_release} upgrade
             if [ $? -eq 0 ] ; then
                 while [ $? -eq 0 ] ; do
                     chroot ${_mountpoint}/root \
-                        env UNAME_r="${_oldbase}" env PAGER="/bin/cat" \
-                        freebsd-update -r ${_base} install
+                        env UNAME_r="${_oldrelease}" env PAGER="/bin/cat" \
+                        freebsd-update -r ${_release} install
                 done
                 if [ "${_resolv}" == "1" ] ; then
                     rm -f ${_mountpoint}/root/etc/resolv.conf
                 fi
                 umount ${_mountpoint}/root/dev
                 # Set jail's zfs property to new release
-                zfs set org.freebsd.iocage:base="${_base}" ${_dataset}
+                zfs set org.freebsd.iocage:release="${_release}" ${_dataset}
             else
                 echo "* Upgrade failed, aborting install." >&2
                 zfs rollback -rRf ${_dataset}/root@ioc-upgrade_${_date}

@@ -2,7 +2,7 @@
 
 __snapshot () {
     local _name _snapshot _fulluuid_dataset _fulluuid _dataset _date \
-          _jail_type _jid _database_check _answer
+          _jid _database_check _answer
 
     _date=$(date "+%F_%T")
 
@@ -14,7 +14,6 @@ __snapshot () {
         set ${_fulluuid_dataset}
         _fulluuid="$1"
         _dataset="$2"
-        _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
         _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
         _database_check="$(ps -axJ ${_jid} 2> /dev/null | \
             grep -qE 'mysqld|postgresql' ; echo $?)"
@@ -35,10 +34,6 @@ __snapshot () {
                     exit 0
                 fi
             fi
-        fi
-
-        if [ "${_jail_type}" = "basejail" ] ; then
-            __die "cannot use recursive snapshots with a basejail"
         fi
 
         if [ ! -z $_snapshot ] ; then
@@ -53,7 +48,6 @@ __snapshot () {
         set ${_fulluuid_dataset}
         _fulluuid="$1"
         _dataset="$2"
-        _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
         _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
         _database_check="$(ps -axJ ${_jid} 2> /dev/null | \
             grep -qE 'mysqld|postgresql' ; echo $?)"
@@ -77,17 +71,9 @@ __snapshot () {
         fi
 
         if [ ! -z $_snapshot ] ; then
-            if [ "${_jail_type}" = "basejail" ] ; then
-                zfs snapshot ${_dataset}@${_snapshot}
-            else
                 zfs snapshot ${_dataset}/root@${_snapshot}
-            fi
         else
-            if [ "${_jail_type}" = "basejail" ] ; then
-                zfs snapshot ${_dataset}@ioc-${_date}
-            else
                 zfs snapshot ${_dataset}/root@ioc-${_date}
-            fi
         fi
     fi
 }

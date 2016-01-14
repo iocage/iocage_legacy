@@ -2,7 +2,7 @@
 
 __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid _jail_type \
-          _tag _jail_hostid _jail_path _jail_base _template _cpuset \
+          _tag _jail_hostid _jail_path _jail_release _template _cpuset \
           _procfs _state _vnet _nics _jail_zfs_dataset _jail_zfs _clone_check \
           _exec_fib _exec_start _bpf _dhcp _devfs_string _linprocfs
 
@@ -28,8 +28,8 @@ __start_jail () {
     _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _jail_hostid="$(__get_jail_prop hostid ${_fulluuid} ${_dataset})"
     _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
-    _jail_base="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
-    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
+    _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
+    _template="$(__get_jail_prop istemplate ${_fulluuid} ${_dataset})"
     _cpuset="$(__get_jail_prop cpuset ${_fulluuid} ${_dataset})"
     _procfs="$(__get_jail_prop mount_procfs ${_fulluuid} ${_dataset})"
     _linprocfs="$(__get_jail_prop mount_linprocfs ${_fulluuid} ${_dataset})"
@@ -99,15 +99,8 @@ __start_jail () {
     fi
 
     if [ "${_linprocfs}" = "1" ] ; then
-        if [ "${_jail_type}" = basejail ] ; then
-            if [ ! -e "${iocroot}/base/${_jail_base}/root/compat/linux/proc" ] ; then
-                mkdir -p \
-                    "${iocroot}/base/${_jail_base}/root/compat/linux/proc"
-            fi
-        elif [ "${_jail_type}" = thickjail ] ; then
-            if [ ! -e "${_jail_path}/root/compat/linux/proc" ] ; then
-                mkdir -p "${_jail_path}/root/compat/linux/proc"
-            fi
+        if [ ! -e "${_jail_path}/root/compat/linux/proc" ] ; then
+            mkdir -p "${_jail_path}/root/compat/linux/proc"
         fi
     fi
 
@@ -145,13 +138,13 @@ __start_jail () {
     fi
 
     if [ "${_jail_type}" = "basejail" ] ; then
-        # Re-clone required filesystems
-        __reclone_basejail "${_fulluuid}" "${_dataset}"
+        # Check the required filesystems
+        __check_basejail "${_fulluuid}" "${_dataset}"
     fi
 
     if [ "${_jail_type}" = "clonejail" ] ; then
         # Mount old filesystems
-        __mount_basejail "${_fulluuid}"
+        __mount_basejail "${_fulluuid}" "${_jail_release}"
     fi
 
     if [ "${_linprocfs}" = "1" ] ; then

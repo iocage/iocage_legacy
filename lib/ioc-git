@@ -156,12 +156,12 @@ __fetch_plugin () {
                     __fetch_release > /dev/null 2>&1
                     zfs set org.freebsd.iocage:base="${_branch_rel}" \
                         ${pool}/iocage/jails/${uuid}
-                    __reclone_basejail ${uuid} ${_dataset} > /dev/null 2>&1
+                    __check_basejail ${uuid} ${_dataset} > /dev/null 2>&1
                     printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
             else
                 zfs set org.freebsd.iocage:base="${_branch_rel}" \
                     ${pool}/iocage/jails/${uuid}
-                __reclone_basejail ${uuid} ${_dataset} > /dev/null 2>&1
+                __check_basejail ${uuid} ${_dataset} > /dev/null 2>&1
             fi
         fi
     else

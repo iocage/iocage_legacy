@@ -8,9 +8,9 @@ NAME
 SYNOPSIS
   iocage [-v] activate ZPOOL
   iocage [-v] cap UUID|TAG
-  iocage [-v] clean [-a|-b|-j]
+  iocage [-v] clean [-f] [-a|-r|-j|-t]
   iocage [-v] clone UUID|TAG [UUID|TAG@snapshot] [property=value]
-  iocage [-v] console UUID|TAG
+  iocage [-v] console [-f] UUID|TAG
   iocage [-v] create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value] [count=value]
   iocage [-v] deactivate ZPOOL
   iocage [-v] defaults
@@ -27,7 +27,7 @@ SYNOPSIS
   iocage [-v] init-host IP ZPOOL
   iocage [-v] inuse UUID|TAG
   iocage [-v] limits [UUID|TAG]
-  iocage [-v] list [-b|-t|-r]
+  iocage [-v] list [-t|-r]
   iocage [-v] promote UUID|TAG
   iocage [-v] rcboot
   iocage [-v] reboot UUID|TAG
@@ -39,7 +39,7 @@ SYNOPSIS
   iocage [-v] set property=value [property=value] UUID|TAG
   iocage [-v] snaplist UUID|TAG
   iocage [-v] snapremove UUID|TAG@snapshotname|ALL
-  iocage [-v] snapshot [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
+  iocage [-v] snapshot|snap [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
   iocage [-v] start [-f] UUID|TAG
   iocage [-v] stop UUID|TAG|ALL
   iocage [-v] uncap UUID|TAG
@@ -95,13 +95,14 @@ SUBCOMMANDS
 
     Reapply resource limits on jail while it is running.
 
-  clean [-a|-b|-j]
+  clean [-f] [-a|-r|-j|-t]
 
-    This removes the ZFS datasets associated with the flag called. The -a switch
-    will destroy everything associated with iocage. The -b switch will destroy
-    all bases that have been fetched. Basejails rely on these to exist,
-    so be sure you don't use this flag if you have any. The -j switch will
-    destroy the jails dataset.
+    This removes the ZFS datasets associated with the flag called. The -a flag
+    will destroy everything associated with iocage. The -r flag will destroy
+    all RELEASEs that have been fetched. Basejails rely on these to exist,
+    so be sure you don't use this flag if you have any. The -j flag will
+    destroy the jails dataset. The -t flag will destroy the templates dataset.
+    Same warning applies here as with cleaning the RELEASE dataset.
 
   clone UUID|TAG [UUID|TAG@snapshot] [property=value]
 
@@ -118,9 +119,10 @@ SUBCOMMANDS
     Clone a jail from a custom snapshot (snapshot taken previously):
     iocage clone UUID@snapshotname tag=www02
 
-  console UUID|TAG
+  console [-f] UUID|TAG
 
-    Execute login to have a shell inside the jail
+    Execute login to have a shell inside the jail. If the -f flag is specified,
+    and the jail is not running it will be started for the console command.
 
   create [-e] [base=[RELEASE|NAME]] [property=value] [property=value] [count=value]
 
@@ -249,7 +251,7 @@ SUBCOMMANDS
     Display active resource limits for a jail or all jails. With no UUID
     supplied display all limits active for all jails.
 
-  list [-b|-t|-r]
+  list [-t|-r]
 
     List all jails, if -t is specified list only templates,
     with -r list downloaded releases.
@@ -323,7 +325,7 @@ SUBCOMMANDS
     Destroy specified jail snapshot. If the keyword ALL is specified all
     snapshots will be destroyed for the jail.
 
-  snapshot [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
+  snapshot|snap [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
 
     Create a ZFS snapshot for jail. If the -r flag is specified it will by
     recursively snapshot POOL/iocage/jails/UUID. Otherwise it will only snapshot

@@ -108,7 +108,7 @@ __list_jails () {
 
     if [ ! -z "${_switch}" -a "${_switch}" = "-r" ] ; then
         echo "Downloaded releases:"
-        _releases="$(zfs list -o name -Hr ${pool}/iocage/base \
+        _releases="$(zfs list -o name -Hr ${pool}/iocage/releases \
                    | grep RELEASE$ | cut -d \/ -f 4)"
         for _rel in $(echo ${_releases}) ; do
             printf "%15s\n" "${_rel}"
@@ -123,7 +123,8 @@ __list_jails () {
     # If the -t switch is given, show templates otherwise show the jails
     if [ "${_switch}" = "-t" ] ; then
         _jails=$(__find_jail ALL | \
-            awk -v base="${pool}/iocage/base" '$0 ~ base { if (!/base\/[0-9]/) \
+            awk -v base="${pool}/iocage/templates" \
+            '$0 ~ base { if (!/releases\/[0-9]/) \
             { print }}')
     else
         _jails=$(__find_jail ALL | \
@@ -144,7 +145,7 @@ __list_jails () {
                   ${_jail} 2> /dev/null)
             _tag=$(zfs get -H -o value org.freebsd.iocage:tag \
                   ${_jail} 2> /dev/null)
-            _template=$(zfs get -H -o value org.freebsd.iocage:template \
+            _template=$(zfs get -H -o value org.freebsd.iocage:istemplate \
                       ${_jail} 2> /dev/null)
             _type="$(zfs get -H -o value org.freebsd.iocage:type \
                    ${_jail} 2> /dev/null)"
@@ -223,7 +224,7 @@ __list_jails_warden () {
         _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_jail})
         _boot=$(zfs get -H -o value org.freebsd.iocage:boot ${_jail})
         _tag=$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})
-        _template=$(zfs get -H -o value org.freebsd.iocage:template ${_jail})
+        _template=$(zfs get -H -o value org.freebsd.iocage:istemplate ${_jail})
         _interfaces=$(zfs get -H -o value org.freebsd.iocage:interfaces ${_jail})
         _ip4_addr=$(zfs get -H -o value org.freebsd.iocage:ip4_addr ${_jail})
         _ip6_addr=$(zfs get -H -o value org.freebsd.iocage:ip6_addr ${_jail})
@@ -331,22 +332,22 @@ __get_jail_prop () {
            $CONF_FTP
            $CONF_GIT"
 
-    if [ "${1}" = "-r" ] ; then
-        __show "${2}"
-        return
+    if [ -z "$_name" ] ; then
+        __die "missing UUID or property!"
     fi
 
     if [ -z "$_property" ] ; then
         __die "get failed, incorrect property syntax!"
     fi
 
-    if [ -z "$_name" ] ; then
-        __die "missing UUID or property!"
+    if [ "${1}" = "-r" ] ; then
+        __show "${2}"
+        return
     fi
 
     # Avoid having a stale list when called.
     export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
-                          | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
+                          | grep -Ev "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
 
     if [ -z "$_dataset" ] ; then
         _dataset="$(__find_jail $_name)" || exit $?
@@ -462,7 +463,7 @@ __check_name () {
 
     if [ -z $name ] ; then
         echo "ERROR" >&2
-        exit 1
+        return 1
     fi
 
     if [ $2 ] ; then

@@ -21,15 +21,19 @@ __parse_cmd () {
             cap)        __rctl_limits "$2"
                         exit
                 ;;
-            clean)      __clean "$2"
+            clean)      __clean "$2" "$3"
                         exit
                 ;;
-            clone)      #__export_props "$@"
-                        #__clone_jail "$2"
-                        __die "cloning is not currently functioning"
-                        #exit
+            clone)      __export_props "$@"
+                        __clone_jail "$2"
+                        exit
                 ;;
-            console)    __console "$2"
+            console)    export _force=0
+                        if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift
+                        fi
+                        __console "$2"
                         exit
                 ;;
             create)     local _tag _hostname _ip4if _ip4addr _ip4subnet _ip4ip
@@ -41,7 +45,8 @@ __parse_cmd () {
                         _ip4addr="$(echo ${ip4_addr} | \
                             awk 'BEGIN { FS = "|" } \
                             ; { gsub("\/[0-9]+","") ; print $2 }')"
-                        _ip4subnet="$(echo ${ip4_addr} | awk 'BEGIN { FS = "/" } \
+                        _ip4subnet="$(echo ${ip4_addr} | \
+                            awk 'BEGIN { FS = "/" } \
                             ; { print $2 }')"
 
                         for _i in $(seq ${count}) ; do
@@ -95,7 +100,7 @@ __parse_cmd () {
                                       _fulluuid_dataset _fs _jail_type
                                 export jail_datasets="$(zfs list -d3 -rH -o \
                                        name ${pool}/iocage | grep -Ev \
-                                       "jails$|base$|download|${pool}/iocage$|*./root")"
+                                       "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
                             done
                         else
                             export _force=0
@@ -106,7 +111,7 @@ __parse_cmd () {
                                       _fulluuid_dataset _fs _jail_type
                                 export jail_datasets="$(zfs list -d3 -rH -o \
                                        name ${pool}/iocage | grep -Ev \
-                                       "jails$|base$|download|${pool}/iocage$|*./root")"
+                                       "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
                             done
                         fi
 
@@ -119,15 +124,14 @@ __parse_cmd () {
                         __exec "$@"
                         exit
                 ;;
-            export)        local _fulluuid _jail_type
-                           _fulluuid="$(__check_name ${2})"
-                           _jail_type="$(__get_jail_prop type ${_fulluuid})"
-                           if [ "${_jail_type}" = "thickjail" ] ; then
-                               __export_thick "$2"
-                           else
-                               __export "$2"
-                           fi
-
+        export)         local _fulluuid _jail_type
+                        _fulluuid="$(__check_name ${2})"
+                        _jail_type="$(__get_jail_prop type ${_fulluuid})"
+                        if [ "${_jail_type}" = "thickjail" ] ; then
+                            __export_thick "$2"
+                        else
+                            __export "$2"
+                        fi
                         exit
                 ;;
             fetch)      __export_props "$@"
@@ -211,38 +215,51 @@ __parse_cmd () {
                         exit
                 ;;
             set)        __export_props "$@"
-                        local _jail _jail_check _fulluuid _pname _pval
-                        # Hack to be able to see the last argument
-                        for _last ; do
-                            true
-                        done
-
                         shift
-                        # Split the input on anything that isn't a = and print
-                        # the last thing awk sees
-                        _jail="$(echo $@ | awk 'BEGIN { FS != "=" } \
-                            ; { print $NF }')"
-                        _jail_check="$(echo ${_jail} | grep "=")"
+                        # Big thanks to john@ix for his huge help with this
+                        local _nprops _props _njails _jails _var _pair _i \
+                              _jail _fulluuid _j _prop _pname _pval
 
-                        # If the last variable doesn't equal or the jail_check
-                        # is not empty, the user did not specify a jail
-                        if [ "${_last}" != "${_jail}" -o ! -z "${_jail_check}" ] ; then
-                            __die "please specify a jail"
-                        fi
+                        _nprops=0
+                        _njails=0
 
-                        # Loop through the props and call the function for each
-                        _fulluuid="$(__check_name ${_jail})"
-                        for _prop in "$@" ; do
-                            _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } \
-                                ; { print $1 }')"
-                            _pval="$(echo ${_prop} | awk 'BEGIN { FS = "=" } \
-                                ; { print $2 }')"
+                        for _jset in "$@" ; do
+                            _var="$(echo ${_jset} | cut -f1 -d'=' -s)"
 
-                            if [ "${_pname} = ${_jail}" -a -z "${_pval}" ] ; then
+                            if [ -n "${_var}" ] ; then
+                                _pair="_prop_${_nprops}='${_jset}'"
+                                eval "${_pair}"
+                                _nprops=$((_nprops + 1))
                                 continue
                             fi
 
-                            __set_jail_prop "${_pname}=${_pval}" "${_fulluuid}"
+                            eval "_jail_${_njails}=${_jset}"
+                            _njails=$((_njails + 1))
+                        done
+
+                        if [ "${_njails}" = "0" ] ; then
+                            __die "please specify a jail!"
+                        fi
+
+                        _i=0
+                        while [ "${_i}" -lt "${_njails}" ] ; do
+                            _var=\$$(printf "_jail_${_i}")
+                            _jail=$(eval "echo ${_var}")
+                            _fulluuid="$(__check_name ${_jail})"
+                            _j=0
+
+                            while [ "${_j}" -lt "${_nprops}" ] ; do
+                                _var=\$$(printf "_prop_${_j}")
+                                _prop=$(eval "echo ${_var}")
+                                _pname=$(echo "${_prop}" | cut -f1 -d'=' -s)
+                                _pval=$(echo "${_prop}" | cut -f2 -d'=' -s)
+
+                                __set_jail_prop "${_pname}=${_pval}" \
+                                    "${_fulluuid}"
+                                _j=$((_j + 1))
+                            done
+
+                            _i=$((_i + 1))
                         done
                         exit
                 ;;
@@ -252,7 +269,7 @@ __parse_cmd () {
             snapremove) __snapremove "$2"
                         exit
                 ;;
-            snapshot)   if [ "$2" = "-f" ] ; then
+            snapshot|snap)   if [ "$2" = "-f" ] ; then
                             export _force=1
                             shift
                         fi

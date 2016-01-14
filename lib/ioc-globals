@@ -98,9 +98,9 @@ shmsize="off"
 wallclock="off"
 
 # Custom properties
-iocroot="/iocage"
+iocroot=/iocage
 tag=$(date "+%F@%T")
-template="no"
+istemplate="no"
 bpf="off"
 dhcp="off"
 boot="off"
@@ -109,8 +109,8 @@ owner="root"
 priority="99"
 last_started="none"
 type="basejail"
-release=""
-base=$(uname -r|cut -f 1,2 -d'-')
+release=$(uname -r|cut -f 1,2 -d'-')
+template=""
 hostid=$(cat /etc/hostid)
 jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/data"
@@ -142,6 +142,24 @@ ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
 # Git properties
 gitlocation="https://github.com"
+
+basedirs="bin
+          boot
+          lib
+          libexec
+          rescue
+          sbin
+          etcupdate
+          usr/bin
+          usr/include
+          usr/lib
+          usr/libexec
+          usr/ports
+          usr/sbin
+          usr/share
+          usr/src
+          usr/libdata
+          usr/lib32"
 
 # Resource limits
 CONF_RCTL="memoryuse
@@ -227,6 +245,7 @@ CONF_JAIL="devfs_ruleset
 # Custom properties
 CONF_CUSTOM="tag
              template
+             istemplate
              rlimits
              bpf
              boot
@@ -243,7 +262,6 @@ CONF_CUSTOM="tag
              jail_zfs_dataset
              jail_zfs_mountpoint
              release
-             base
              hack88
              start
              count"

@@ -1,19 +1,19 @@
 #!/bin/sh
 
 __import_thick () {
-    local _name _image _icount _icksum _new_cksum _old_cksum _uuid _ibase
+    local _name _image _icount _icksum _new_cksum _old_cksum _uuid _irelease
 
     _name="${1}"
     _image="$(find ${iocroot}/images/ -name ${_name}\*.tar.xz)"
     _icount="$(echo ${_image}|wc -w)"
-    _ibase="$(echo ${_image} | cut -d "_" -f 2 | \
+    _irelease="$(echo ${_image} | cut -d "_" -f 2 | \
         awk 'BEGIN { FS = "." } ; { print $1"."$2 }')"
     _icksum="$(find ${iocroot}/images/ -name ${_name}\*.sha256)"
 
     # If they don't have a release specified, we assume it's the same as host
-    if [ "$(echo ${_ibase} | grep "/")" ] ; then
+    if [ "$(echo ${_irelease} | grep "/")" ] ; then
         # Remove STABLE or CURRENT from the name as we only can fetch RELEASEs
-        _ibase="$(echo ${base} | sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
+        _irelease="$(echo ${release} | sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
     fi
 
     if [ "${_icount}" -gt 0 ] ; then
@@ -36,7 +36,7 @@ __import_thick () {
             export type=thickjail
             _uuid="$(__create_jail "" -e)"
             tar -xvJf "${_image}" -C "${iocroot}/jails/${_uuid}/root"
-            zfs set org.freebsd.iocage:base="${_ibase}" \
+            zfs set org.freebsd.iocage:release="${_irelease}" \
             "${pool}/iocage/jails/${_uuid}"
         fi
 
@@ -53,7 +53,7 @@ __import_thick () {
 }
 
 __import () {
-    local _name _fulluuid _tag _image _icount _ibase _idate _jail_base \
+    local _name _fulluuid _tag _image _icount _irelease _idate _jail_release \
           _spinner _date
 
     _name="${1}"
@@ -63,7 +63,7 @@ __import () {
     fi
 
     _image="$(find ${iocroot}/images/ ! -name '*.sha256' -name ${_name}\*)"
-    _ibase="$(echo ${_image} | cut -d "_" -f 2 | \
+    _irelease="$(echo ${_image} | cut -d "_" -f 2 | \
         awk 'BEGIN { FS = "." } ; { print $1"."$2 }')"
     _date=$(date "+%F")
     _idate="$(echo ${_image} | cut -d "-" -f 6-)"
@@ -74,9 +74,9 @@ __import () {
     fi
 
     # If they don't have a release specified, we assume it's the same as host
-    if [ "$(echo ${_ibase} | grep "/")" ] ; then
+    if [ "$(echo ${_irelease} | grep "/")" ] ; then
         # Remove STABLE or CURRENT from the name as we only can fetch RELEASEs
-        _ibase="$(echo ${base} | sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
+        _irelease="$(echo ${release} | sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
     fi
 
     if [ "${_icount}" -gt 1 ] ; then
@@ -107,8 +107,8 @@ __import () {
         _fulluuid="$(__check_name ${_name})"
         _tag="$(__get_jail_prop tag ${_fulluuid})"
         __die "${_name} has already been imported (${_tag})"
-    elif [ ! -e "${iocroot}/base/${_ibase}" ] ; then
-        __die "please fetch ${_ibase} first."
+    elif [ ! -e "${iocroot}/releases/${_irelease}" ] ; then
+        __die "please fetch ${_irelease} first."
     else
         # __spinner needs to be recreated here as we redirect with zfs send
         _spinner='/-\|'
@@ -129,27 +129,27 @@ __import () {
 
 # Basejail needs to have it's /root recreated before it can be started
 __post_import_tasks () {
-    local _name _dataset _jail_base
+    local _name _dataset _jail_release
 
     _name="${1}"
     _dataset="${pool}/iocage/jails/${_name}"
-    _jail_base="$(zfs get -H -o value org.freebsd.iocage:base ${_dataset})"
+    _jail_release="$(zfs get -H -o value org.freebsd.iocage:release ${_dataset})"
 
-    zfs snapshot "${pool}/iocage/base/${_jail_base}/root@${_name}"
+    zfs snapshot "${pool}/iocage/releases/${_jail_release}/root@${_name}"
     zfs clone -o readonly=on \
-        "${pool}/iocage/base/${_jail_base}/root@${_name}" \
+        "${pool}/iocage/releases/${_jail_release}/root@${_name}" \
         "${pool}/iocage/jails/${_name}/root"
 }
 
 __export () {
-    local _name _dataset _date _fulluuid _jail_base  _spinner
+    local _name _dataset _date _fulluuid _jail_release  _spinner
 
     _name="${1}"
     _dataset=$(__find_jail ${_name})
     _fulluuid="$(__check_name ${_name})"
     _tag="$(__get_jail_prop tag ${_fulluuid})"
     _date=$(date "+%F")
-    _jail_base="$(__get_jail_prop base ${_fulluuid})"
+    _jail_release="$(__get_jail_prop release ${_fulluuid})"
     _export_name="${iocroot}/images/${_fulluuid}-basejail-${_date}_${_jail_base}"
 
     if [ -z "${_name}" ] ; then
@@ -185,7 +185,7 @@ __export () {
 
 __export_thick () {
     # Export a thiickjail with a sha256 checksum
-    local _name _dataset _date _fulluuid _jail_path _jail_base _state \
+    local _name _dataset _date _fulluuid _jail_path _jail_release _state \
           _mountpoint
 
     _name="${1}"
@@ -193,7 +193,7 @@ __export_thick () {
     _date=$(date "+%F")
     _fulluuid="$(__check_name ${_name})"
     _jail_path="$(__get_jail_prop mountpoint ${_fulluuid})"
-    _jail_base="$(__get_jail_prop base ${_fulluuid})"
+    _jail_release="$(__get_jail_prop release ${_fulluuid})"
     _state=$(jls|grep ${_jail_path} | wc -l)
     _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
 
@@ -220,12 +220,6 @@ __export_thick () {
 
     if [ ! -d "${iocroot}/images" ] ; then
         mkdir ${iocroot}/images
-    fi
-
-    # thickjails aren't supported for creation with 2.0
-    # this is to migrate their property.
-    if [ "${_jail_base}" = "none" ] ; then
-        _jail_base="$(__get_jail_prop release ${_fulluuid})"
     fi
 
     _export_name="${iocroot}/images/${_fulluuid}-thickjail-${_date}_${_jail_base}"
