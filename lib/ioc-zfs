@@ -316,6 +316,20 @@ __check_basejail () {
         __migrate_basejail "${_fulluuid}" "${_jail_release}"
     fi
 
+    # Make sure the etcupdate we need for upgrades exists
+    if [ ! -e "${iocroot}/releases/${_jail_release}/root/etcupdate" ] ; then
+        mount -t devfs devfs ${iocroot}/releases/${_jail_release}/root/dev
+        mkdir ${iocroot}/releases/${_jail_release}/root/etcupdate
+        chroot ${iocroot}/releases/${_jail_release}/root \
+            etcupdate build /etcupdate/etcupdate-${_jail_release}.tbz
+        # Extract the etcupdate since it did not exist
+        mount -t devfs devfs ${iocroot}/jails/${_fulluuid}/root/dev
+        chroot ${iocroot}/jails/${_fulluuid}/root etcupdate \
+            extract -t /etcupdate/etcupdate-${_jail_release}.tbz
+        umount ${iocroot}/releases/${_jail_release}/root/dev
+        umount ${iocroot}/jails/${_fulluuid}/root/dev
+    fi
+
     # Look for hack88, if it exists, pass the short uuid
     if [ "${_hack88}" = "1" ] ; then
         __mount_basejail "${_shortuuid}" "${_jail_release}"
@@ -505,6 +519,14 @@ __create_jail () {
         __pkg_install "${iocroot}/jails/${uuid}/root"
     fi
 
+    # Make sure the etcupdate we need for upgrades exists
+    if [ ! -e "${iocroot}/releases/${release}/root/etcupdate" ] ; then
+        mount -t devfs devfs ${iocroot}/releases/${release}/root/dev
+        mkdir ${iocroot}/releases/${release}/root/etcupdate
+        chroot ${iocroot}/releases/${release}/root \
+            etcupdate build /etcupdate/etcupdate-${release}.tbz
+        umount ${iocroot}/releases/${release}/root/dev
+    fi
     mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
     __mount_basejail "${uuid}" "${release}"
     mkdir -p ${iocroot}/jails/${uuid}/root/var/db/etcupdate
