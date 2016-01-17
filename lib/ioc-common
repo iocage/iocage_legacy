@@ -2,8 +2,12 @@
 
 # Export every property specified on command line ----------------------
 __export_props () {
+    local _pname
+
     for i in "$@" ; do
         if [ "$(echo $i | grep -e ".*=.*")" ] ; then
+            _pname="$(echo $i|awk 'BEGIN { FS = "=" } ; { print $1 }')"
+            __validate_pname $_pname
             export "$i"
             export "iocset_${i}"
         fi
@@ -18,36 +22,228 @@ __export_props () {
 
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
-    local _name _property _dataset _pname _pval _found _CONF
+    local _name _property _dataset _pname _pval _found _CONF \
+          _type _state _tag _release _inherit_props _jail_type \
+          _jail_zfs_mountpoint _jail_zfs_dataset _jail_zfs_dataset_olen \
+          _jail_zfs_dataset_nlen _jail_datasets _parent _release_tag _jid
+
     _name="$2"
     _property="$1"
 
-    if [ -z "$_name" ] || [ -z "$_property" ] ; then
-        echo "  ERROR: Missing property or UUID!"
-        exit 1
+    if [ -z "${_name}" -o -z "${_property}" ] ; then
+        __die "missing property or UUID!"
     fi
 
-    _dataset="$(__find_jail $_name)"
+    # Avoid having a stale list when called.
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+        | grep -Ev "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
 
-    if [ -z "$_dataset" ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
+    if [ "$3" ] ; then
+        _dataset="$3"
+    else
+        _dataset="$(__find_jail ${_name})" || exit $?
     fi
 
-    if [ "$_dataset" == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+    if [ -z "${_dataset}" ] ; then
+        __die "${_name} not found!"
     fi
 
-    _pname="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    _pval="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _fulluuid="$(__check_name ${_name})"
 
-    if [ -z "$_pname" ] || [ -z "$_pval" ] ; then
-        echo "  ERROR: Set failed, incorrect property syntax!"
-        exit 1
+    _pname="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $1 }')"
+    _pval="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+
+    if [ -z "${_pname}" -o -z "${_pval}" ] ; then
+        __die "set failed, incorrect property syntax!"
     fi
 
-    _found="0"
+    _type="$(__validate_pname ${_pname} type)" || exit $?
+
+    case "${_pname}" in
+        tag)
+            __unlink_tag ${_dataset}
+            __link_tag ${_dataset}
+            ;;
+        jail_zfs)
+            _jailed_dataset="$(__get_jail_prop jail_zfs_dataset \
+                ${_fulluuid} ${_dataset})"
+            _jailed_dataset_check="$(zfs get -H creation \
+                ${_jailed_dataset} > \
+                /dev/null 2>&1 ; echo $?)"
+            if [ "${_jailed_dataset_check}" != "0" ] ; then
+                zfs create -o compression=lz4 \
+                    -o mountpoint="${jail_zfs_mountpoint}" \
+                    -o jailed=on \
+                    ${pool}/${_jailed_dataset}
+            fi
+            ;;
+        bpf)
+            # Do they want bpf exposed?
+            if [ "${_devfs_string}" != "0" ] ; then
+                __bpf_devfs >> /etc/devfs.rules
+                service devfs restart 1> /dev/null
+            fi
+            ;;
+        notes)
+            # Needed for notes="aaa=bbb" issue #243
+            zfs set org.freebsd.iocage:${_pname}="${notes}" "${_dataset}"
+            return
+            ;;
+        jail_zfs_mountpoint)
+            _state="$(__is_running ${_fulluuid})"
+            _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
+                ${_fulluuid} ${_dataset})"
+            _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset \
+                ${_fulluuid} ${_dataset})"
+            _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
+            _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
+            _jail_zfs_dataset_nlen="${#_jail_zfs_dataset}"
+
+            if [ -z "${_state}" ] ; then
+                zfs set org.freebsd.iocage:${_pname}="${jail_zfs_mountpoint}" \
+                    "${_dataset}"
+                _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
+                    ${_fulluuid} ${_dataset})"
+                if [ "${_jail_zfs_dataset_olen}" -ne "${_jail_zfs_dataset_nlen}" ] ; then
+                    _jail_zfs_dataset="${pool}/iocage/jails${_jail_zfs_dataset}"
+                fi
+
+                zfs set jailed=off "${_jail_zfs_dataset}"
+                zfs set mountpoint="${_jail_zfs_mountpoint}" \
+                    "${_jail_zfs_dataset}"
+                zfs set jailed=on "${_jail_zfs_dataset}"
+            else
+                __die " jail is running! please stop it before changing the mountpoint."
+            fi
+            ;;
+        istemplate)
+            if [ "${_jail_type}" != "basejail" -a "${_jail_type}" != "template" ] ; then
+                __die "templates aren't supported for this jail type (${_jail_type})"
+            fi
+
+            if [ "${_pval}" = "yes" ] ; then
+                _release_tag="$(__get_jail_prop tag ${_fulluuid} \
+                    ${_dataset})"
+                _state="$(__is_running ${_fulluuid})"
+                _jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+                    | awk '/root/ && !/releases/')"
+
+                if [ ! -z "${_state}" ] ; then
+                    __die "cannot make ${_name} a template - jail is running!"
+                fi
+
+                __unlink_tag "${_dataset}"
+                _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+                _release="$(__get_jail_prop release ${_fulluuid} \
+                    ${_dataset})"
+
+                zfs set org.freebsd.iocage:type="template" "${_dataset}"
+                if [ -d "${iocroot}/jails/${_fulluuid}" ] ; then
+                    # __spinner needs to be recreated here as we use
+                    # multiple commands
+                    _spinner='/-\|'
+                    printf "  INFO: converting ${_tag} to a template:  "
+
+                    while true; do
+                        printf '\b%.1s' "${_spinner}"
+                        _spinner=${_spinner#?}${_spinner%???}
+                        sleep .1
+                        done &
+
+                        trap "kill $!" 2 3
+                        # Creating jail's /root in it's new home
+                        zfs rename -f \
+                            "${pool}/iocage/jails/${_fulluuid}" \
+                            "${pool}/iocage/templates/${_tag}"
+                        _dataset="${pool}/iocage/templates/${_tag}"
+                        printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+                else
+                    __die "${_name} is already a template"
+                fi
+            elif [ "${_pval}" = "no" ] ; then
+                _template_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+                _release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
+                _jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage | \
+                                awk '/root/ && !/releases/')"
+
+                for _fs in ${_jail_datasets} ; do
+                    _jail_fs="$(echo ${_fs} | sed -e 's#/root##g')"
+                    _origin="$(zfs get -H -o value origin ${_fs} | \
+                        cut -f1 -d@)"
+                    _tag="$(zfs get -H -o value org.freebsd.iocage:tag \
+                        ${_jail_fs})"
+                    _uuid="$(zfs get -H -o value \
+                        org.freebsd.iocage:host_hostuuid \
+                        ${_jail_fs})"
+
+                    if [ "${_origin}" = "${_dataset}/root" ] ; then
+                        __info "${_template_tag} has dependent clone, uuid: ${_uuid} (${_tag})"
+                        _parent=1
+                    fi
+                done
+
+                if [ "${_parent}" = "1" ] ; then
+                    __die "please destroy before converting ${_template_tag} back to a jail"
+                fi
+
+                zfs set org.freebsd.iocage:type="basejail" "${_dataset}"
+                # Have to manually specify this for later, as it will still be
+                # the old /iocage/templates location
+                _dataset="${pool}/iocage/jails/${_fulluuid}"
+
+                if [ -d "${iocroot}/templates/${_template_tag}" ] ; then
+                    # Move jail back to the jails dataset
+                    zfs rename -f "${pool}/iocage/templates/${_template_tag}" \
+                                  "${pool}/iocage/jails/${_fulluuid}"
+                    # Updating the jail tag
+                    __link_tag "${_dataset}"
+                    # Throw jail through the checking process and unmount
+                    # what remains.
+                    __check_basejail "${_fulluuid}" "${_dataset}" > /dev/null 2>&1
+                    __umount_basejail "${_fulluuid}" "${_dataset}" > /dev/null 2>&1
+                else
+                    __die "${_template_tag} is not a template"
+                fi
+            fi
+            ;;
+        allow*)
+            # get jid for iocage jails
+            _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
+
+            if [ ! -z "${_jid}" ] ; then
+                # These actually still want one _ instead of all periods.
+                if [ "${_pname}" = "allow_raw_sockets" -o "${_pname}" = "allow_socket_af" ] ; then
+                    _pname="$(echo ${_pname} | sed 's/_/./')"
+                else
+                    _pname="$(echo ${_pname} | sed 's/_/./g')"
+                fi
+
+                jail -m "jid=${_jid}" "${_pname}=${_pval}"
+            fi
+            ;;
+        template)
+            if [ "${_pval}" = "yes" ] ; then
+                __die "please set istemplate=yes instead."
+            elif [ "${_pval}" = "no" ] ; then
+                __die "please set istemplate=no instead."
+            fi
+            ;;
+        esac
+
+    if [ "${_type}" = "custom" ] ; then
+        zfs set org.freebsd.iocage:${_pname}="${_pval}" ${_dataset}
+    elif [ "${_type}" = "native" ] ; then
+        zfs set ${_pname}="${_pval}" ${_dataset}
+    fi
+}
+
+__validate_pname () {
+    local _prop _pname _found
+
+    _pname="$1"
+    _type="$2"
+    _found=0
 
     _CONF="$CONF_NET
            $CONF_JAIL
@@ -57,65 +253,65 @@ __set_jail_prop () {
            $CONF_FTP
            $CONF_GIT"
 
-    for prop in $_CONF ; do
-        if [ "$prop" == "$_pname" ] ; then
+    for _prop in $_CONF ; do
+        if [ "$_prop" == "$_pname" ] ; then
             _found=1
-            zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
-            if [ "$_pname" == "tag" ] ; then
-                __unlink_tag $_dataset
-                __link_tag $_dataset
+            if [ $_type ] ; then
+                echo "custom"
             fi
+            break
         fi
     done
 
-    for prop in $CONF_ZFS ; do
-        if [ "$prop" == "$_pname" ] ; then
-            zfs set $prop="$_pval" $_dataset
+    for _prop in $CONF_ZFS ; do
+        if [ "$_prop" == "$_pname" ] ; then
             _found=1
+            if [ $_type ] ; then
+                echo "native"
+            fi
+            break
         fi
     done
 
     if [ $_found -ne "1" ] ; then
-        echo "  ERROR: Unsupported property: $_pname!"
-        exit 1
+        __die "unsupported property: $_pname!"
     fi
 }
 
 __console () {
-    local _name _dataset _fulluuid _login_flags _jexec _exec_fib
+    local _name _dataset _fulluuid _login_flags _jexec _exec_fib \
+          _state
+
     _name=$1
 
     if [ -z $_name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
-    _dataset=$(__find_jail $_name)
+    _dataset=$(__find_jail $_name) || exit $?
 
     if [ -z $_dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ $_dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     _fulluuid="$(__check_name $_name)"
-
-    _login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
-                  $pool/iocage/jails/$_fulluuid)
-
-    _exec_fib=$(zfs get -H -o value org.freebsd.iocage:exec_fib \
-                  $pool/iocage/jails/$_fulluuid)
-
+    _state=$(__is_running $_fulluuid)
+    _login_flags=$(__get_jail_prop login_flags ${_name})
+    _exec_fib=$(__get_jail_prop exec_fib ${_name})
     _jexec="jexec"
+
     if [ $_exec_fib -ne "0" ] ; then
         _jexec="setfib $_exec_fib jexec"
     fi
 
-    $_jexec ioc-${_fulluuid} login $_login_flags
+    if [ "$_state" ] ; then
+        $_jexec ioc-${_fulluuid} login $_login_flags
+    elif [ "${_force}" = "1" ] ; then
+        __start_jail "${_jail}" "${_dataset}"
+       $_jexec ioc-${_fulluuid} login $_login_flags
+    else
+        __die "jail: $_name is not running!"
+    fi
 }
 
 __exec () {
@@ -126,8 +322,7 @@ __exec () {
     while getopts u:U: opt "$@"; do
         case "$opt" in
             [uU]) _jexecopts="$_jexecopts -$opt $OPTARG";;
-            ?)    echo "  ERROR: Invalid exec option: $opt"
-                  exit 1
+            ?)    __die "invalid exec option: $opt"
                   ;;
         esac
     done
@@ -137,8 +332,7 @@ __exec () {
     shift
 
     if [ -z $_name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+        __die "missing UUID!"
     elif [ $_name == ALL ]; then
         local _jails _fulluuid
         _jails="$(__find_jail ALL)"
@@ -151,16 +345,10 @@ __exec () {
         exit 0
     fi
 
-    _dataset=$(__find_jail $_name)
+    _dataset=$(__find_jail $_name) || exit $?
 
     if [ -z $_dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
-    fi
-
-    if [ $_dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
+        __die "$_name not found!"
     fi
 
     _fulluuid="$(__check_name $_name)"
@@ -176,126 +364,226 @@ __exec () {
     $_jexec $_jexecopts ioc-${_fulluuid} "$@"
 }
 
-__chroot () {
-    local _name _command
-    _name="$1"
-    _command="$2"
+# Cleanup release directories
+__cleanup_release_dir () {
+    local _rel_exist _rel_dir_exist _dwn_rel_exist _dwn_dir_exist _rel_name
 
-    if [ -z $_name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+    if [ -n "$1" ] ; then
+        _rel_name="$1"
+    else
+        __die "Failed cleanup of release directories. No release name defined" >&2
     fi
 
-    _dataset=$(__find_jail $_name)
+    _rel_exist=$(zfs get -H -o value name ${pool}/iocage/releases/${_rel_name})
+    _dwn_rel_exist=$(zfs get -H -o value name ${pool}${iocroot}/download/${_rel_name})
 
-    if [ -z $_dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
+    if [ -n "$_rel_exist" ] ; then
+        _rel_dir_exist=$(zfs get -H -o value mountpoint ${pool}/iocage/releases/${_rel_name})
+        zfs destroy -fr ${pool}/iocage/releases/${_rel_name}
+        if [ -d "$_rel_dir_exist" ]; then
+            rm -rf $_rel_dir_exist
+        fi
     fi
 
-    if [ $_dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
+    if [ -n "$_dwn_rel_exist" ] ; then
+        _dwn_dir_exist=$(zfs get -H -o value mountpoint ${pool}${iocroot}/download/${_rel_name})
+        zfs destroy -fr ${pool}${iocroot}/download/${_rel_name}
+        if [ -d "$_dwn_dir_exist" ]; then
+            rm -rf $_dwn_dir_exist
+        fi
     fi
-
-    _fulluuid="$(__check_name $_name)"
-    _jailroot="$(zfs get -Ho value mountpoint $_dataset)"
-
-    chroot ${_jailroot}/root $_command
 }
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local _rel_exist _default_rel
-    _default_rel=$(uname -r|cut -f 1,2 -d'-')
+    local _rel_exist _release _host_release _non_interactive _dist _ports \
+          _ports_string
 
-    if [ -z "$iocset_release" ] ; then
-  __print_release
+    _release=$(uname -r|cut -f 1,2 -d'-')
+    # Needed to check for PC-BSD import
+    _host_release=$(uname -r|cut -f 1,2 -d'-')
 
-  echo -n "Please select a release [$release]: "
-  read answer
-
-  if [ -z "$answer" ] ; then
-    answer="$release"
-  else
-    release="$answer"
-    for rel in $(echo $supported) ; do
-      if [ "$answer" == "$rel" ] ; then
-        release="$rel"
-        match="1"
-        break
-      fi
+    for _args in "$@" ; do
+        case "${_args}" in
+            -P|-p|--ports) _ports=1
+                ;;
+        esac
     done
 
-    if [ -z $match ] ; then
-      echo "Invalid release $release specified, exiting.."
-      exit 1
+    if [ -z "${iocset_release}" ] ; then
+        __print_release
+        echo -n "Please select a release [${_release}]: "
+        read _answer
+
+        if [ -z "${_answer}" ] ; then
+            _answer="${_release}"
+        else
+            _release="${_answer}"
+            for _rel in $(echo ${supported}) ; do
+                if [ "${_answer}" == "${_rel}" ] ; then
+                    _release="${_rel}"
+                    match="1"
+                    break
+                fi
+            done
+
+            if [ -z ${match} ] ; then
+                echo "Invalid release ${_release} specified, exiting.." >&2
+                exit 1
+            fi
+        fi
+    else
+        _release="${iocset_release}"
     fi
-  fi
+
+
+    _rel_exist=$(zfs list -H | grep -w ^${pool}/iocage/releases/${_release})
+
+    if [ -z "${_rel_exist}" ] ; then
+        zfs create -o compression=lz4 -p ${pool}/iocage/releases/${_release}/root
+        zfs create -o compression=lz4 -p ${pool}/iocage/download/${_release}
     fi
 
-
-    _rel_exist=$(zfs list | grep -w ^${pool}${iocroot}/releases/${release})
-
-    if [ -z "$_rel_exist" ] ; then
-        zfs create -o compression=lz4 -p ${pool}${iocroot}/releases/${release}/root
-        zfs create -o compression=lz4 -p ${pool}${iocroot}/download/${release}
+    if [ -z "${ftpdir}" ] ; then
+        ftpdir="/pub/FreeBSD/releases/amd64/${_release}"
     fi
 
-    if [ -z "$ftpdir" ] ; then
-        ftpdir="/pub/FreeBSD/releases/amd64/$release"
+    if [ -e "/usr/local/tmp/iocage-dist" -a "${_release}" = "${_host_release}" ] ; then
+        cd "/usr/local/tmp/iocage-dist"
+        _dist=1
+    else
+        cd ${iocroot}/download/${_release}
+        _dist=0
     fi
 
-    cd ${iocroot}/download/${release}
+    # If $ftplocaldir is set fetch from a local dir else fetch from remote
+    # If fetch fails for remote or local remove new directories
     for file in $ftpfiles ; do
         if [ ! -e "$file" ] ; then
-            fetch http://${ftphost}${ftpdir}/${file}
-            if [ $? -ne 0 ] ; then
-                echo "Failed fetching $file.."
-                exit 1
+            if [ -n "$ftplocaldir" ] ; then
+                fetch file://${ftplocaldir}/${file}
+                if [ $? -ne 0 ] ; then
+                    echo "Failed fetching local $file.." >&2
+                    __cleanup_release_dir ${_release}
+                    return 1
+                fi
+            else
+                fetch http://${ftphost}${ftpdir}/${file}
+                if [ $? -ne 0 ] ; then
+                    echo "Failed fetching remote $file.." >&2
+                    __cleanup_release_dir ${_release}
+                    return 1
+                fi
             fi
         fi
     done
 
-    for file in $(echo $ftpfiles) ; do
-        if [ -e "$file" ] ; then
-            echo "Extracting: $file"
-            chflags -R noschg ${iocroot}/releases/${release}/root
-            tar -C ${iocroot}/releases/${release}/root -xf $file
+    for _file in $(echo ${ftpfiles}) ; do
+        if [ -e "${_file}" ] ; then
+            echo "Extracting: ${_file}"
+            chflags -R noschg ${iocroot}/releases/${_release}/root
+            tar -C ${iocroot}/releases/${_release}/root -xf ${_file}
         fi
     done
 
-        echo "* Updating base jail.."
+    # Create these dirs for basejails
+    if [ ! -e ${iocroot}/releases/${_release}/root/usr/home ] ; then
+        mkdir ${iocroot}/releases/${_release}/root/usr/home > /dev/null 2>&1
+        cd ${iocroot}/releases/${_release}/root && ln -s usr/home home 2>&1
+    fi
+
+    mkdir ${iocroot}/releases/${_release}/root/compat > /dev/null 2>&1
+    mkdir ${iocroot}/releases/${_release}/root/usr/ports > /dev/null 2>&1
+
+    echo "* Updating base jail template."
+    sleep 2
+
+    # mount devfs for chroot
+    mount -t devfs devfs ${iocroot}/releases/${_release}/root/dev
+    cat /etc/resolv.conf > \
+        ${iocroot}/releases/${_release}/root/etc/resolv.conf
+
+    if [ -e ${iocroot}/releases/${_release}/root/etc/freebsd-update.conf ] \
+        && [ -z "$ftplocaldir" ] ; then
+
+        case "${_release}" in
+            9.3-RELEASE | 10.1-RELEASE)
+                # Remove the interactive check in freebsd-update
+                sed 's/\[ ! -t 0 \]/false/' \
+                    ${iocroot}/releases/${_release}/root/usr/sbin/freebsd-update \
+                    > ${iocroot}/releases/${_release}/root/tmp/freebsd-update
+                chmod +x ${iocroot}/releases/${_release}/root/tmp/freebsd-update
+                chroot ${iocroot}/releases/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    /tmp/freebsd-update fetch
+                rm ${iocroot}/releases/${_release}/root/tmp/freebsd-update
+                ;;
+            *)
+                chroot ${iocroot}/releases/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    freebsd-update --not-running-from-cron fetch
+                ;;
+            esac
+
+        chroot ${iocroot}/releases/${_release}/root \
+            env UNAME_r="${_release}" env PAGER="/bin/cat" \
+            freebsd-update install
+    fi
+
+    if [ "${_dist}" = "1" ] ; then
+        rm -rf "/usr/local/tmp/iocage-dist"
+    fi
+
+    if [ "${_ports}" = "1" ] ; then
+        echo "* Updating ports for release: ${_release}."
         sleep 2
 
-        if [ -e $iocroot/releases/$release/root/etc/freebsd-update.conf ] ; then
-            env UNAME_r="$release" env PAGER="/bin/cat" \
-                /usr/sbin/freebsd-update \
-                -b $iocroot/releases/$release/root \
-                -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
-                -d $iocroot/releases/$release/root/var/db/freebsd-update/ fetch
-            env UNAME_r="$release" env PAGER="/bin/cat" \
-                /usr/sbin/freebsd-update \
-                -b $iocroot/releases/$release/root \
-                -f $iocroot/releases/$release/root/etc/freebsd-update.conf \
-                -d $iocroot/releases/$release/root/var/db/freebsd-update/ install
+        case "${_release}" in
+            9.3-RELEASE)
+                # Remove the interactive check in portsnap
+                sed 's/\[ ! -t 0 \]/false/' \
+                    ${iocroot}/releases/${_release}/root/usr/sbin/portsnap \
+                    > ${iocroot}/releases/${_release}/root/tmp/portsnap
+                chmod +x ${iocroot}/releases/${_release}/root/tmp/portsnap
+                chroot ${iocroot}/releases/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    /tmp/portsnap fetch extract
+                rm ${iocroot}/releases/${_release}/root/tmp/portsnap
+                ;;
+            *)
+                chroot ${iocroot}/releases/${_release}/root \
+                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                    portsnap --interactive fetch extract
+                ;;
+            esac
+        mkdir ${iocroot}/releases/${_release}/root/var/ports > /dev/null 2>&1
+        mkdir ${iocroot}/releases/${_release}/root/var/ports/distfiles \
+            > /dev/null 2>&1
+        mkdir ${iocroot}/releases/${_release}/root/var/ports/packages \
+            > /dev/null 2>&1
+        if [ -e "${iocroot}/releases/${_release}/root/etc/make.conf" ] ; then
+            _ports_string="$(grep -Fxq \
+                          "## IOCAGE -- Allow a read-only /usr/ports" \
+                          ${iocroot}/releases/${_release}/root/etc/make.conf \
+                          ; echo $?)"
+            if [ "${_ports_string}" != "0" ] ; then
+                __ports_make_conf >> \
+                    ${iocroot}/releases/${_release}/root/etc/make.conf
+                sed -i '' s/UNAME_r=REPLACE/UNAME_r="${_release}"/ \
+                    "${iocroot}/releases/${_release}/root/etc/make.conf"
+            fi
+        else
+            __ports_make_conf > ${iocroot}/releases/${_release}/root/etc/make.conf
+            sed -i '' s/UNAME_r=REPLACE/UNAME_r="${_release}"/ \
+                "${iocroot}/releases/${_release}/root/etc/make.conf"
         fi
-
-    if [ ! -d $iocroot/log ] ; then
-        mkdir $iocroot/log
     fi
 
-    __create_basejail $release
-    chflags -R noschg $iocroot/base/$release/root
-    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/releases/$release/root -cf - . | \
-    tar --exclude \.zfs --exclude usr/sbin/chown -C $iocroot/base/$release/root -xf -
-
-    if [ ! -e "$iocroot/base/$release/root/usr/sbin/chown" ] ; then
-       cd $iocroot/base/$release/root/usr/sbin && ln -s ../bin/chgrp chown
-    fi
-
-    etcupdate extract -D $iocroot/base/$release/root \
-    -s $iocroot/base/$release/root/usr/src
+    rm -f ${iocroot}/releases/${_release}/root/etc/resolv.conf
+    mkdir ${iocroot}/releases/${_release}/root/etcupdate
+    chroot ${iocroot}/releases/${_release}/root \
+        etcupdate build /etcupdate/etcupdate-${_release}.tbz
+    umount ${iocroot}/releases/${_release}/root/dev
 }
 
 # reads tag property from given jail dataset
@@ -324,8 +612,7 @@ __link_tag () {
             fi
         fi
     else
-        echo "  ERROR: No such dataset: $_dataset!"
-        exit 1
+        __die "no such dataset: $_dataset!"
     fi
 }
 
@@ -335,6 +622,71 @@ __unlink_tag () {
     _dataset=$1
 
     if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
-        find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \;
+        find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \; > /dev/null 2>&1
+    fi
+}
+
+# Log error to stderr
+__error () {
+    echo "  ERROR: $@" >&2
+}
+
+# Log error to stderr and exit
+__die () {
+    echo "  ERROR: $@" >&2
+    exit 1
+}
+
+# Log info to stdout
+__info () {
+    echo "  INFO: $@"
+}
+
+# Takes two arguments one is which text gets displayed and the other
+# is the command
+__spinner () {
+    local _spinner
+    _spinner='/-\|'
+
+    printf "${1}"
+
+    while true; do
+        printf '\b%.1s' "${_spinner}"
+        _spinner=${_spinner#?}${_spinner%???}
+        sleep .1
+    done &
+
+    trap "kill $!" 2 3
+    $2
+    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+    return $?
+}
+
+# The make.conf entries needed for read-only ports in a jail
+__ports_make_conf () {
+cat << 'EOT'
+
+## IOCAGE -- Allow a read-only /usr/ports
+UNAME_ENV+=     UNAME_s=FreeBSD
+UNAME_ENV+=     UNAME_r=REPLACE
+UNAME_ENV+=     UNAME_v="${UNAME_s} ${UNAME_r}"
+.MAKEFLAGS:     ${UNAME_ENV}
+MAKE_ENV+=      ${UNAME_ENV}
+CONFIGURE_ENV+= ${UNAME_ENV}
+SCRIPTS_ENV+=   ${UNAME_ENV}
+WRKDIRPREFIX=   /var/ports
+DISTDIR=        /var/ports/distfiles
+PACKAGES=       /var/ports/packages
+EOT
+}
+
+# Return the default network interface
+__get_default_iface() {
+    which -s dispatcherctl
+
+    if [ $? -eq 0 ] ; then
+        dispatcherctl call container.get_default_interface | jq -r .
+    else
+        netstat -f inet -nrW | grep '^default' | awk '{ print $6 }'
     fi
 }

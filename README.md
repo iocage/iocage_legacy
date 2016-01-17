@@ -36,10 +36,11 @@ cannot open 'zroot/iocage/jails/XXXXXXXX-XXXX-XXXX-a5be-3417ebb13845': dataset d
 [: -ne: unexpected operator
   ERROR: jail: pepperd is not running!
 ````
-- Use the [Markdown Basics](https://help.github.com/articles/markdown-basics/#code-formatting) GitHub page for more information on how to paste lines of code and terminal output. 
+
+- Use the [Markdown Basics](https://help.github.com/articles/markdown-basics/#code-formatting) GitHub page for more information on how to paste lines of code and terminal output.
 
 **FEATURES:**
-- Templates, clones, basejails, fully independent jails
+- Templates, basejails and empty jails
 - Ease of use
 - Zero configuration files
 - Rapid thin provisioning within seconds
@@ -71,49 +72,45 @@ Start the jail:
 
 **USAGE:**
 ```
-  iocage activate ZPOOL
-  iocage cap UUID|TAG
-  iocage chroot UUID|TAG [command]
-  iocage clean [-a|-r|-j]
-  iocage clone UUID|TAG [UUID|TAG@snapshot] [property=value]
-  iocage console UUID|TAG
-  iocage create [-b|-c|-e] [release=RELEASE] [pkglist=file] [property=value]
-  iocage deactivate ZPOOL
-  iocage defaults
-  iocage destroy [-f] UUID|TAG
-  iocage df
-  iocage exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
-  iocage export UUID|TAG
-  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org | ftpdir=/dir/ |
-                ftpfiles="base.txz doc.txz lib32.txz src.txz"]
-  iocage get property|all UUID|TAG
-  iocage help
-  iocage import UUID [property=value]
-  iocage init-host IP ZPOOL
-  iocage inuse UUID|TAG
-  iocage limits [UUID|TAG]
-  iocage list [-b|-t|-r]
-  iocage package UUID|TAG
-  iocage promote UUID|TAG
-  iocage rcboot
-  iocage reboot UUID|TAG
-  iocage rcshutdown
-  iocage record start|stop UUID|TAG
-  iocage reset UUID|TAG|ALL
-  iocage restart UUID|TAG
-  iocage rollback UUID|TAG@snapshotname
-  iocage runtime UUID|TAG
-  iocage set property=value UUID|TAG
-  iocage show property
-  iocage snaplist UUID|TAG
-  iocage snapremove UUID|TAG@snapshotname|ALL
-  iocage snapshot UUID|TAG [UUID|TAG@snapshotname]
-  iocage start UUID|TAG
-  iocage stop UUID|TAG
-  iocage uncap UUID|TAG
-  iocage update UUID|TAG
-  iocage upgrade UUID|TAG [release=RELEASE]
-  iocage version | --version
+  iocage [-v] activate ZPOOL
+  iocage [-v] cap UUID|TAG
+  iocage [-v] clean [-a|-b|-j]
+  iocage [-v] clone UUID|TAG [UUID|TAG@snapshot] [property=value]
+  iocage [-v] console UUID|TAG
+  iocage [-v] create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value] [count=value]
+  iocage [-v] deactivate ZPOOL
+  iocage [-v] defaults
+  iocage [-v] destroy [-f] UUID|TAG
+  iocage [-v] df
+  iocage [-v] exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
+  iocage [-v] export UUID|TAG
+  iocage [-v] fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
+                    ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+  iocage [-v] get [-r] property|all UUID|TAG
+  iocage [-v] help
+  iocage [-v] import UUID [property=value]
+  iocage [-v] init-host IP ZPOOL
+  iocage [-v] inuse UUID|TAG
+  iocage [-v] limits [UUID|TAG]
+  iocage [-v] list [-b|-t|-r]
+  iocage [-v] promote UUID|TAG
+  iocage [-v] rcboot
+  iocage [-v] reboot UUID|TAG
+  iocage [-v] rcshutdown
+  iocage [-v] reset UUID|TAG|ALL
+  iocage [-v] restart UUID|TAG
+  iocage [-v] rollback UUID|TAG@snapshotname
+  iocage [-v] runtime UUID|TAG
+  iocage [-v] set property=value [property=value] UUID|TAG
+  iocage [-v] snaplist UUID|TAG
+  iocage [-v] snapremove UUID|TAG@snapshotname|ALL
+  iocage [-v] snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
+  iocage [-v] start UUID|TAG
+  iocage [-v] stop UUID|TAG|ALL
+  iocage [-v] uncap UUID|TAG
+  iocage [-v] update UUID|TAG
+  iocage [-v] upgrade UUID|TAG [release=RELEASE]
+  iocage [-v] version | --version
   ```
 
 **REQUIREMENTS**
@@ -131,7 +128,6 @@ Start the jail:
 **OTHER CONSIDERATIONS**
 - For resource limiting please read rctl(8)
 - For the explanations on jail properties read jail(8)
-- Create bridge0 and bridge1 interfaces
 
 **HINTS**
 - Use iocage set/get to modify properties

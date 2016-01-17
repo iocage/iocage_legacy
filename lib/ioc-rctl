@@ -1,54 +1,43 @@
 #!/bin/sh
 
 __rctl_limits () {
-    local name="$1"
-    local failed=0
+    local _fulluuid _dataset _value _limit _action _prop _failed \
+          _rlimits
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
-        exit 1
-    fi
+    _failed=0
+    _fulluuid_dataset="$(__get_uuid_and_dataset $1 $2)"
 
-    local dataset=$(__find_jail $name)
+    set ${_fulluuid_dataset}
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
-        exit 1
-    fi
+    _fulluuid="$1"
+    _dataset="$2"
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
-    fi
+    _rlimits="$(__get_jail_prop rlimits $_fulluuid $_dataset)"
 
-    local fulluuid="$(__check_name $name)"
-
-    local rlimits="$(__get_jail_prop rlimits $fulluuid)"
-
-    if [ $rlimits == "on" ] ; then
+    if [ $_rlimits == "on" ] ; then
         echo -n "  + Applying resource limits"
-        for prop in $CONF_RCTL ; do
-            value="$(__get_jail_prop $prop $fulluuid)"
-            limit=$(echo $value | awk 'BEGIN { FS = ":" } ; { print $1 }')
-            action=$(echo $value | awk 'BEGIN { FS = ":" } ; { print $2 }')
+        for _prop in $CONF_RCTL ; do
+            _value="$(__get_jail_prop $_prop $_fulluuid $_dataset)"
+            _limit=$(echo $_value | awk 'BEGIN { FS = ":" } ; { print $1 }')
+            _action=$(echo $_value | awk 'BEGIN { FS = ":" } ; { print $2 }')
 
-            if [ $limit == "off" ] ; then
+            if [ $_limit == "off" ] ; then
                 continue
             else
-                if [ -z "$limit" ] || [ -z "$action" ] ; then
-                    echo -n "  ERROR: incorrect resource limit: $limit action: "
-                    echo "$action for property: $prop"
+                if [ -z "$_limit" ] || [ -z "$_action" ] ; then
+                    echo -n "  ERROR: incorrect resource limit: $_limit action: "
+                    echo "$_action for property: $_prop"
                     echo "  HINT : check man page for syntax."
                 else
-                    rctl -a jail:ioc-${fulluuid}:${prop}:${action}=${limit}
+                    rctl -a jail:ioc-${_fulluuid}:${_prop}:${_action}=${_limit}
                     if [ $? -eq 1 ] ; then
-                        echo "    FAILED to apply ${prop}=${action}:${limit}"
-                        failed=1
+                        echo "    FAILED to apply ${_prop}=${_action}:${_limit}"
+                        _failed=1
                     fi
                 fi
             fi
         done
-        if [ $failed -ne 1 ] ; then
+        if [ $_failed -ne 1 ] ; then
             echo " OK"
         fi
     fi
@@ -82,8 +71,7 @@ __rctl_uncap () {
     local name="$1"
 
     if [ -z $name ] ; then
-        echo "  ERROR: missing UUID"
-        exit 1
+        __die "missing UUID!"
     fi
 
     local fulluuid="$(__check_name $name)"
@@ -96,37 +84,34 @@ __rctl_uncap () {
 
 
 __rctl_inuse () {
-    local name="$1"
+    local _name _dataset _fulluuid
 
-    if [ -z $name ] ; then
+    _name="$1"
+
+    if [ -z $_name ] ; then
         __rctl_inuse_all
         exit 0
     fi
 
-    local dataset=$(__find_jail $name)
+    _dataset="$(__find_jail $_name)" || exit $?
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found"
-        exit 1
+    if [ -z $_dataset ] ; then
+        __die "$_name not found!"
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
-    fi
-
-    local fulluuid="$(__check_name $name)"
+    _fulluuid="$(__check_name $_name)"
 
     echo "Consumed resources:"
     echo "-------------------"
-    rctl -hu jail:ioc-${fulluuid}
+    rctl -hu jail:ioc-${_fulluuid}
 }
 
 __rctl_inuse_all () {
     local _jails _fulluuid _tag _print_head\
           _line _res _jail _header
 
-    _jails="$(__find_jail ALL)"
+    _jails=$(__find_jail ALL | \
+            awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
     _print_head=1
 
     for _jail in $(echo $_jails) ; do

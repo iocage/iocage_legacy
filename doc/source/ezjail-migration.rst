@@ -6,7 +6,7 @@ iocage fetch
 #re0 is the network adapter. 192.168.1.3/24 the ip of the jailname@ezjail
 iocage create tag=jailname ip4_addr="lo1|127.0.1.1,re0|192.168.1.3/24"
 #iocage list lists the newly created iocage jail and the old ezjail
-iocage set hostname=jailname UUID/TAG
+iocage set host_hostname=jailname UUID/TAG
 iocage set boot=on UUID/TAG
 #had these options on /usr/local/etc/ezjail/jailname. If you are migrating from one box to another inside the archive there is a #prop* file which includes the jail configuration We can extract it
 tar -xzvf jailname-201507062224.48.tar.gz -C /iocage/jails/UUID/root/ -s /ezjail// --include 'prop*'

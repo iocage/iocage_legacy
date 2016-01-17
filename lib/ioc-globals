@@ -7,7 +7,6 @@ uuid=$(uuidgen)
 pkglist="none"
 
 # Network defaults for jails start here
-
 # detect VNET kernel and adjust jail default
 # if supported turn it on by default
 if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
@@ -19,9 +18,9 @@ fi
 ipv6="on"
 
 interfaces="vnet0:bridge0,vnet1:bridge1"
+host_domainname="none"
 host_hostname=$uuid
 exec_fib=0
-hostname=$uuid
 ip4_addr="none"
 ip4_autostart="none"
 ip4_autoend="none"
@@ -61,7 +60,7 @@ children_max="0"
 login_flags='-f root'
 securelevel="2"
 host_hostuuid=$uuid
-allow_set_hostname=0
+allow_set_hostname=1
 allow_sysvipc=0
 allow_raw_sockets=0
 allow_chflags=0
@@ -99,21 +98,27 @@ shmsize="off"
 wallclock="off"
 
 # Custom properties
-iocroot="/iocage"
+iocroot=/iocage
 tag=$(date "+%F@%T")
-template="no"
+istemplate="no"
+bpf="off"
+dhcp="off"
 boot="off"
 notes="none"
 owner="root"
 priority="99"
 last_started="none"
-type="jail"
+type="basejail"
 release=$(uname -r|cut -f 1,2 -d'-')
+template=""
 hostid=$(cat /etc/hostid)
 jail_zfs="off"
-jail_zfs_dataset="iocage/jails/${uuid}/root/data"
+jail_zfs_dataset="iocage/jails/${uuid}/data"
+jail_zfs_mountpoint="none"
 mount_procfs="0"
+mount_linprocfs="0"
 hack88="0"
+count="1"
 
 # Native ZFS properties
 compression="lz4"
@@ -137,6 +142,24 @@ ftpfiles="base.txz doc.txz lib32.txz src.txz"
 
 # Git properties
 gitlocation="https://github.com"
+
+basedirs="bin
+          boot
+          lib
+          libexec
+          rescue
+          sbin
+          etcupdate
+          usr/bin
+          usr/include
+          usr/lib
+          usr/libexec
+          usr/ports
+          usr/sbin
+          usr/share
+          usr/src
+          usr/libdata
+          usr/lib32"
 
 # Resource limits
 CONF_RCTL="memoryuse
@@ -163,8 +186,8 @@ CONF_RCTL="memoryuse
 # Networking configuration
 CONF_NET="interfaces
           vnet
+          host_domainname
           host_hostname
-          hostname
           ip4_addr
           ip4_autostart
           ip4_autoend
@@ -200,6 +223,7 @@ CONF_JAIL="devfs_ruleset
            exec_system_user
            mount_fdescfs
            mount_procfs
+           mount_linprocfs
            enforce_statfs
            children_max
            login_flags
@@ -221,19 +245,26 @@ CONF_JAIL="devfs_ruleset
 # Custom properties
 CONF_CUSTOM="tag
              template
+             istemplate
              rlimits
+             bpf
              boot
+             dhcp
              notes
              owner
              priority
+             pkglist
              last_started
              type
              hostid
              cpuset
              jail_zfs
              jail_zfs_dataset
+             jail_zfs_mountpoint
              release
-             hack88"
+             hack88
+             start
+             count"
 
 # Native ZFS properties
 CONF_ZFS="compression
@@ -253,34 +284,10 @@ CONF_SYNC="sync_stat
 
 # ftp properties
 CONF_FTP="ftphost
-          ftpdir"
+          ftpfiles
+          ftpdir
+          ftplocaldir"
 
 # git properties
 CONF_GIT="gitlocation
           branch"
-
-# Basejail filesystems
-bfs_list="bin
-          boot
-          lib
-          libexec
-          rescue
-          sbin
-          usr/bin
-          usr/include
-          usr/lib
-          usr/libexec
-          usr/sbin
-          usr/share
-          usr/src
-          usr/libdata
-          usr/lib32"
-
-# Basejail directories
-bdir_list="dev
-           tmp
-           var
-           etc
-           root
-           proc
-           mnt"

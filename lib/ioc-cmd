@@ -4,10 +4,11 @@
 # and therefore doesn't need root credentials
 __readonly_cmd () {
     case "$1" in
-        defaults|df|get|list) return 0;;
+        defaults|df|get|list|show|snaplist) echo "0"
+            ;;
+        *) echo "1"
+            ;;
     esac
-
-    return 1
 }
 
 # Process command line options-------------------------
@@ -20,21 +21,68 @@ __parse_cmd () {
             cap)        __rctl_limits "$2"
                         exit
                 ;;
-            chroot)     __chroot "$2" "$3"
-                        exit
-                ;;
-            clean)      __clean "$2"
+            clean)      __clean "$2" "$3"
                         exit
                 ;;
             clone)      __export_props "$@"
                         __clone_jail "$2"
                         exit
                 ;;
-            console)    __console "$2"
+            console)    export _force=0
+                        if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift
+                        fi
+                        __console "$2"
                         exit
                 ;;
-            create)     __export_props "$@"
-                        __create_jail "$@"
+            create)     local _tag _hostname _ip4if _ip4addr _ip4subnet _ip4ip
+                        __export_props "$@"
+                        _hostname="${host_hostname}"
+                        _tag="${tag}"
+                        _ip4if="$(echo ${ip4_addr} | awk 'BEGIN { FS = "|" } \
+                            ; { print $1 }')"
+                        _ip4addr="$(echo ${ip4_addr} | \
+                            awk 'BEGIN { FS = "|" } \
+                            ; { gsub("\/[0-9]+","") ; print $2 }')"
+                        _ip4subnet="$(echo ${ip4_addr} | \
+                            awk 'BEGIN { FS = "/" } \
+                            ; { print $2 }')"
+
+                        for _i in $(seq ${count}) ; do
+                            unset uuid host_hostuuid host_hostname
+                            uuid="$(uuidgen)"
+                            host_hostuuid="${uuid}"
+
+                            if [ "${count}" -eq 1 ] ; then
+                                tag="${_tag}"
+                                if [ -n "${iocset_host_hostname}" ] ; then
+                                    host_hostname="${_hostname}"
+                                else
+                                    host_hostname="${uuid}"
+                                fi
+                            elif [ "${count}" -gt 1 ] ; then
+                                tag="${_tag}_${_i}"
+                                if [ -n "${iocset_host_hostname}" ] ; then
+                                    host_hostname="${_hostname}_${_i}"
+                                else
+                                    host_hostname="${uuid}"
+                                fi
+
+                                if [ "${ip4_addr}"  != "none" ] ; then
+                                    if [ "${_i}" = 1 ] ; then
+                                        _ip4ip="$(echo ${_ip4addr} | \
+                                            cut -d "." -f 4)"
+                                    else
+                                        _ip4ip="$(expr ${_ip4ip} + 1)"
+                                        ip4_addr="${_ip4if}|$(echo ${_ip4addr} | \
+                                            cut -d "." -f 1-3).${_ip4ip}/${_ip4subnet}"
+                                    fi
+                                fi
+                            fi
+
+                            __create_jail "$@"
+                        done
                         exit
                 ;;
             deactivate) __deactivate "$2"
@@ -43,7 +91,30 @@ __parse_cmd () {
             defaults)   __print_defaults
                         exit
                 ;;
-            destroy)    __destroy_jail "$2" "$3"
+            destroy)    if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift 2
+                            for _jdel in $@ ; do
+                                __destroy_jail "${_jdel}"
+                                unset jail_datasets uuid jail_zfs_dataset \
+                                      _fulluuid_dataset _fs _jail_type
+                                export jail_datasets="$(zfs list -d3 -rH -o \
+                                       name ${pool}/iocage | grep -Ev \
+                                       "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
+                            done
+                        else
+                            export _force=0
+                            shift
+                            for _jdel in $@ ; do
+                                __destroy_jail "${_jdel}"
+                                unset jail_datasets uuid jail_zfs_dataset \
+                                      _fulluuid_dataset _fs _jail_type
+                                export jail_datasets="$(zfs list -d3 -rH -o \
+                                       name ${pool}/iocage | grep -Ev \
+                                       "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
+                            done
+                        fi
+
                         exit
                 ;;
             df)         __print_disk
@@ -57,7 +128,24 @@ __parse_cmd () {
                         exit
                 ;;
             fetch)      __export_props "$@"
-                        __fetch_release
+                        local _gitcheck=$(echo $* | grep -v "ftp" | \
+                                        grep -q "/" ; echo $?)
+
+                        # Check if the user is specifying a git plugin and also
+                        # check to see if they want a thick plugin
+                        if [ "${_gitcheck}" = "0" ] ; then
+                            shift
+                            if [ $1 = "-t" ] ; then
+                                shift
+                                __fetch_plugin_thick "$@"
+                                exit 0
+                            else
+                                __fetch_plugin "$@"
+                                exit 0
+                            fi
+                        fi
+
+                        __fetch_release "$@"
                         exit
                 ;;
             get)        __get_jail_prop "$2" "$3"
@@ -72,8 +160,8 @@ __parse_cmd () {
             inuse)      __rctl_inuse "$2"
                         exit
                 ;;
-            import)     __export_props "$@"
-                        __import "$2"
+            import)     shift
+                        __import "$@"
                         exit
                 ;;
             limits)     __rctl_list "$2"
@@ -82,14 +170,10 @@ __parse_cmd () {
             list)       __list_jails "$2"
                         exit
                 ;;
-            package)    __package "$2"
-                        exit
-                ;;
             promote)    __promote "$2"
                         exit
                 ;;
-            pull)       __export_props "$@"
-                        __pull "$2"
+            pull)       __pull "$2"
                         exit
                 ;;
             push)       __push "$2"
@@ -101,13 +185,19 @@ __parse_cmd () {
             rcshutdown) __rc_jails shutdown
                         exit
                 ;;
-            record)     __record "$2" "$3"
+            reboot)    shift
+                        for _j in $@ ; do
+                            __reboot_jail "${_j}"
+                        done
                         exit
                 ;;
             reset)      __reset_jail_props "$2"
                         exit
                 ;;
-            restart)    __restart_jail "$2"
+            restart)    shift
+                        for _j in $@ ; do
+                            __restart_jail "${_j}"
+                        done
                         exit
                 ;;
             rollback)   __rollback "$2"
@@ -117,10 +207,52 @@ __parse_cmd () {
                         exit
                 ;;
             set)        __export_props "$@"
-                        __set_jail_prop "$2" "$3"
-                        exit
-                ;;
-            show)       __show "$2"
+                        shift
+                        # Big thanks to john@ix for his huge help with this
+                        local _nprops _props _njails _jails _var _pair _i \
+                              _jail _fulluuid _j _prop _pname _pval
+
+                        _nprops=0
+                        _njails=0
+
+                        for _jset in "$@" ; do
+                            _var="$(echo ${_jset} | cut -f1 -d'=' -s)"
+
+                            if [ -n "${_var}" ] ; then
+                                _pair="_prop_${_nprops}='${_jset}'"
+                                eval "${_pair}"
+                                _nprops=$((_nprops + 1))
+                                continue
+                            fi
+
+                            eval "_jail_${_njails}=${_jset}"
+                            _njails=$((_njails + 1))
+                        done
+
+                        if [ "${_njails}" = "0" ] ; then
+                            __die "please specify a jail!"
+                        fi
+
+                        _i=0
+                        while [ "${_i}" -lt "${_njails}" ] ; do
+                            _var=\$$(printf "_jail_${_i}")
+                            _jail=$(eval "echo ${_var}")
+                            _fulluuid="$(__check_name ${_jail})"
+                            _j=0
+
+                            while [ "${_j}" -lt "${_nprops}" ] ; do
+                                _var=\$$(printf "_prop_${_j}")
+                                _prop=$(eval "echo ${_var}")
+                                _pname=$(echo "${_prop}" | cut -f1 -d'=' -s)
+                                _pval=$(echo "${_prop}" | cut -f2 -d'=' -s)
+
+                                __set_jail_prop "${_pname}=${_pval}" \
+                                    "${_fulluuid}"
+                                _j=$((_j + 1))
+                            done
+
+                            _i=$((_i + 1))
+                        done
                         exit
                 ;;
             snaplist)   __snaplist "$2"
@@ -129,13 +261,31 @@ __parse_cmd () {
             snapremove) __snapremove "$2"
                         exit
                 ;;
-            snapshot)   __snapshot "$2"
+            snapshot|snap)   if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift
+                        fi
+
+                        __snapshot "$2" "$3"
                         exit
                 ;;
-            start)      __start_jail "$2"
+            start)      if [ "$2" = "-f" ] ; then
+                            export _force=1
+                            shift 2
+                        else
+                            export _force=0
+                            shift
+                        fi
+
+                        for _j in $@ ; do
+                            __start_jail "${_j}"
+                        done
                         exit
                 ;;
-            stop)       __stop_jail "$2"
+            stop)       shift
+                        for _j in $@ ; do
+                            __stop_jail "${_j}"
+                        done
                         exit
                 ;;
             uncap)      __rctl_uncap "$2"
@@ -144,10 +294,12 @@ __parse_cmd () {
             update)     __update "$2" "$3"
                         exit
                 ;;
-            upgrade)     __upgrade "$2"
+            upgrade)    __export_props "$@"
+                        shift
+                        __upgrade "$@"
                         exit
                 ;;
-                *)      __usage
+            *)          __usage
                         exit
                 ;;
         esac

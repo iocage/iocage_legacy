@@ -1,19 +1,23 @@
 #!/bin/sh
 
-__pull () {
-    local _gitlocation _jail_type _jail_path
+__fetch_plugin () {
+    local _gitlocation _jail_path _prop _pname _repocheck _host_version \
+          _branch_version _branch_list _branch_rel _base _dataset
 
-    _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-                  ${pool}${iocroot}/.defaults)"
+    _gitlocation="$(__get_default_prop gitlocation)"
+    _plugin="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $2 }')"
+    _repocheck="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $1 }')"
+    _base="$(uname -r|cut -f 1,2 -d'-'|sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
 
-    if [ "$_gitlocation" = "-" ] ; then
-        _gitlocation="none"
+    # Check if the user doesn't have a gitlocation set,
+    # we use github as the default location to clone from
+    if [ "${_gitlocation}" = "-" -o "${_gitlocation}" = "none" ] ; then
+        _gitlocation="https://github.com"
     fi
 
     # Make sure git is installed.
     if [ ! -e "/usr/local/bin/git" ] ; then
-        echo "  ERROR: Git is not installed. Please install git first."
-        exit 1
+        __die "git is not installed. Please install git first."
     fi
 
     # Check to see if the url begins with these otherwise use gitlocation
@@ -23,94 +27,341 @@ __pull () {
             _gitlocation="$1"
         ;;
         *)
-            if [ "$_gitlocation" = "none" -a -z "$iocset_gitlocation" ] ; then
-                echo ""
-                echo "  ERROR: You must either specify gitlocation= or set a default"
-                echo "  iocage set gitlocation=LOCATION default"
-                echo ""
+            if [ "${_gitlocation}" = "none" -a -z "${iocset_gitlocation}" ] ; then
+                echo "" >&2
+                echo "  ERROR: You must either specify gitlocation= or set a default" >&2
+                echo "  iocage set gitlocation=LOCATION default" >&2
+                echo "" >&2
                 exit 1
-            elif [ -n "$iocset_gitlocation" ] ; then
+            elif [ -n "${iocset_gitlocation}" ] ; then
                 unset _gitlocation
-                _gitlocation="$iocset_gitlocation"
+                _gitlocation="${iocset_gitlocation}"
+            fi
+        ;;
+    esac
+
+    if [ ! -z "${iocset_base}" ] ; then
+        _base="${iocset_base}"
+    fi
+
+    _host_version="$(echo ${_base} | cut -d '-' -f 1 | sed 's/\.//')"
+
+    # If it failed fetching before, we need to check for that and remove it
+    # doing the check in the if below will cause problems since the directory
+    # does not exist yet.
+    if [ -d "${iocroot}/base/${_base}" ] ; then
+        if [ -z "$(ls -A ${iocroot}/base/${_base}/root)" ] ; then
+            zfs destroy "${iocroot}/base/${_base}"
+        fi
+    fi
+
+    # Check if the user has fetched a release for their version.
+    # will help us reduce the odds that they need to fetch later.
+    if [ ! -d "${iocroot}/base/${_base}" ] ; then
+        export iocset_release="${_base}"
+        # __spinner needs to be recreated here as we redirect with __fetch
+        _spinner='/-\|'
+
+        printf "  INFO: fetching base ${_base}:  "
+
+        while true; do
+            printf '\b%.1s' "${_spinner}"
+            _spinner=${_spinner#?}${_spinner%???}
+            sleep .1
+        done &
+
+        trap "kill $!" 2 3
+        __fetch_release > /dev/null 2>&1
+
+        if [ "$?" != "0" ] ; then
+            printf "\b%1s\n" "failed!" ; kill $! && trap " " 2 3
+            zfs destroy -fr "${pool}/iocage/base/${_base}"
+            zfs destroy -f "${pool}/iocage/download/${_base}"
+            __die "${_base} could not be found, please try manually fetching it."
+        else
+            printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+        fi
+    fi
+
+    # Create a basejail with the supplied properties to set up our structure
+    # supplying -g so we can skip RELEASE checks.
+    export base="${_base}"
+    __create_jail "-g" $@ 1> /dev/null
+    _jail_path="$(__get_jail_prop mountpoint ${uuid} \
+                ${pool}/iocage/jails/${uuid})"
+
+    # Begin git clone process
+    cd ${_jail_path}/_
+    git init --quiet .
+
+    # The folder isn't empty, so we can't do a normal git clone
+    git remote add origin "${_gitlocation}/$1" 1> /dev/null
+    if [ -z "${iocset_branch}" ] ; then
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
+            "git fetch --quiet"
+        _branch_list="$(git branch -r)"
+
+        # Loop through all the branches checking for a match to the host RELEASE
+        for _branch in ${_branch_list} ; do
+            _branch_version="$(echo "${_branch}" | cut -d '-' -f 1 | \
+                            sed -e 's/\.//' \
+                                -e 's/[[:blank:]]*origin\///' \
+                                -e 's/[^0-9]*//' \
+                                -e '/^$/d')"
+            # If we don't check for zero, we get an invalid comparison
+            if [ ! -z "${_branch_version}" ] ; then
+                if [ "${_host_version}" = "${_branch_version}" ] ; then
+                    branch="${_branch}"
+                    break
+                fi
+            else
+                __info "no branch matches your host, using the latest branch"
+                # Sort by the latest RELEASE that the repo has
+                _branch_version="$(echo "${_branch_list}" | \
+                                 grep -v "master" | \
+                                 sort -n | \
+                                 sed 's/[[:blank:]]*origin\///' | \
+                                 tail -n 1)"
+                branch="${_branch_version}"
+            fi
+        done
+
+        git checkout --quiet "${branch}"
+        # Allows for easy matching with RELEASEs
+        _branch_rel="$(echo ${branch}|sed 's/amd64/RELEASE/'|cut -d "/" -f 2)"
+        _dataset="${pool}/iocage/jails/${uuid}"
+
+        if [ "${_branch_rel}" != "${_base}" ] ; then
+            if [ -d "${iocroot}/base/${_branch_rel}" ] ; then
+                if [ -z "$(ls -A ${iocroot}/base/${_branch_rel}/root)" ] ; then
+                    zfs destroy "${iocroot}/base/${_branch_rel}"
+                fi
+            fi
+
+            if [ ! -d "${iocroot}/base/${_branch_rel}" ] ; then
+                export iocset_release="${_branch_rel}"
+                # __spinner needs to be recreated here as we redirect
+                # with __fetch
+                _spinner='/-\|'
+                printf "  INFO: different base used than host\n"
+                printf "  INFO: fetching base ${_branch_rel}:  "
+
+                while true; do
+                    printf '\b%.1s' "${_spinner}"
+                    _spinner=${_spinner#?}${_spinner%???}
+                    sleep .1
+                    done &
+
+                    trap "kill $!" 2 3
+                    __fetch_release > /dev/null 2>&1
+                    zfs set org.freebsd.iocage:base="${_branch_rel}" \
+                        ${pool}/iocage/jails/${uuid}
+                    __check_basejail ${uuid} ${_dataset} > /dev/null 2>&1
+                    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+            else
+                zfs set org.freebsd.iocage:base="${_branch_rel}" \
+                    ${pool}/iocage/jails/${uuid}
+                __check_basejail ${uuid} ${_dataset} > /dev/null 2>&1
+            fi
+        fi
+    else
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
+            "git fetch --quiet --depth 1 origin "${iocset_branch}""
+        git checkout --quiet "${iocset_branch}"
+    fi
+
+    # Check for the mtree file to reapply permissions
+    if [ -e ".mtree" ] ; then
+        mtree -U -f ./.mtree 1> /dev/null
+    fi
+
+    # Check for the postrun script
+    if [ -e "./root/post-install.sh" ] ; then
+        __mount_basejail "${uuid}"
+        mount -t devfs devfs ${_jail_path}/root/dev
+        chroot ${_jail_path}/root \
+            /bin/sh /root/post-install.sh
+        umount ${_jail_path}/root/dev
+        __umount_basejail "${uuid}"
+        rm ${_jail_path}/_/root/post-install.sh
+    fi
+
+    # Check if user has a custom git location set
+    if [ "${_repocheck}" = "iocage" -o "${_repocheck}" = "pbi-cages" ] ; then
+        echo "  WARNING: Pushing will be disabled, please set a custom repo."
+        echo "  You can do this by issuing: iocage set gitlocation=URL default"
+        git branch --unset-upstream > /dev/null 2>&1
+    fi
+}
+
+__fetch_plugin_thick () {
+    local _gitlocation _jail_path _devfs_string _prop _pname _plugin _repocheck
+
+    _gitlocation="$(__get_default_prop gitlocation)"
+    _plugin="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $2 }')"
+    _repocheck="$(echo $1 | awk 'BEGIN { FS = "/" } ; { print $1 }')"
+    _devfs_string="$(grep -Fxq \
+                  "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
+                  ; echo $?)"
+
+    # Check if the user doesn't have a gitlocation set,
+    # we use github as the default location to clone from
+    if [ "${_gitlocation}" = "-" -o "${_gitlocation}" = "none" ] ; then
+        _gitlocation="https://github.com"
+    fi
+
+    # Make sure git is installed.
+    if [ ! -e "/usr/local/bin/git" ] ; then
+        __die "git is not installed. Please install git first."
+    fi
+
+    # Check to see if the url begins with these otherwise use gitlocation
+    case "$1" in
+        http://*|https://*|git://*)
+            unset _gitlocation
+            _gitlocation="$1"
+        ;;
+        *)
+            if [ "${_gitlocation}" = "none" -a -z "${iocset_gitlocation}" ] ; then
+                echo "" >&2
+                echo "  ERROR: You must either specify gitlocation= or set a default" >&2
+                echo "  iocage set gitlocation=LOCATION default" >&2
+                echo "" >&2
+                exit 1
+            elif [ -n "${iocset_gitlocation}" ] ; then
+                unset _gitlocation
+                _gitlocation="${iocset_gitlocation}"
             fi
         ;;
     esac
 
     # Create an empty jail structure that we clone the git repo into
-    # simulates __create_jail -e but without creating directories
-    # git clone complains about that.
-    zfs create -o compression=lz4 -p ${pool}/iocage/jails/$uuid/root
-    zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
-    zfs set mountpoint=none ${pool}/$jail_zfs_dataset
-    zfs set jailed=on ${pool}/$jail_zfs_dataset
     export type=gitjail
-    __configure_jail ${pool}/iocage/jails/$uuid
 
-    _jail_type="$(__get_jail_prop type $uuid)"
-    _jail_path="$(__get_jail_prop mountpoint $uuid)"
+    # Hack to get around create jail not accepting just -e anymore.
+    __create_jail '' '-e' $@ 1> /dev/null
+    _jail_path="$(__get_jail_prop mountpoint ${uuid} \
+                ${pool}/iocage/jails/${uuid})"
 
     # Begin git clone process
     cd ${_jail_path}/root
-    if [ -z "$iocset_branch" ] ; then
-        git clone --depth 1 $_gitlocation/$1 .
+    if [ -z "${iocset_branch}" ] ; then
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
+            "git clone --quiet --depth 1 ${_gitlocation}/$1 ."
     else
-        git clone -b $iocset_branch --depth 1 $_gitlocation/$1.git .
+        __spinner "  INFO: fetching plugin ${_plugin}:  " \
+            "git clone --quiet -b ${iocset_branch} --depth 1 \
+             ${_gitlocation}/$1.git ."
     fi
 
     # Check if user has a custom git location set
-    if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
+    if [ "${_repocheck}" != "iocage" -o "${_repocheck}" != "pbi-cages" ] ; then
         touch ${_jail_path}/fstab
     else
+    # Check if user has a custom git location set
         echo "  WARNING: Pushing will be disabled, please set a custom repo."
         echo "  You can do this by issuing: iocage set gitlocation=URL default"
-        git branch --unset-upstream
+        git branch --unset-upstream 1> /dev/null
         touch ${_jail_path}/fstab
     fi
 
     # Check for rc.conf and resolv.conf, create them if they don't exist.
     if [ ! -e "${_jail_path}/root/etc/rc.conf" ] ; then
-        echo "hostname=\"${hostname}\"" > ${_jail_path}/root/etc/rc.conf
+        echo "hostname=\"${host_hostname}\"" > ${_jail_path}/root/etc/rc.conf
         __jail_rc_conf >> ${_jail_path}/root/etc/rc.conf
     fi
 
     if [ ! -e "${_jail_path}/root/etc/resolv.conf" ] ; then
-        __resolv_conf ${uuid} > ${_jail_path}/root/etc/resolv.conf
+        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+        ${_jail_path}/root/etc/resolv.conf
+    fi
+    # Check for the mtree file to reapply permissions
+    if [ -e ".mtree" ] ; then
+        mtree -U -f ./.mtree 1> /dev/null
+    fi
+
+    # Check for the postrun script
+    if [ -e "./rootpost-install.sh" ] ; then
+        mount -t devfs devfs ${_jail_path}/root/dev
+        chroot ${_jail_path}/root \
+            /bin/sh /root/post-install.sh
+        umount ${_jail_path}/root/dev
+        rm ${_jail_path}/root/root/post-install.sh
+    fi
+
+    for _prop in "$@" ; do
+        _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
+        # Do they want bpf exposed?
+        if [ "${_pname}" == "bpf" ] ; then
+            if [ "${_devfs_string}" != "0" ] ; then
+                __bpf_devfs >> /etc/devfs.rules
+                service devfs restart > /dev/null 2>&1
+            fi
+
+            # Set the right devfs ruleset for DHCP/BPF.
+            __set_jail_prop devfs_ruleset=5 ${uuid} ${pool}/iocage/jails/${uuid}
+        fi
+    done
+}
+
+__pull () {
+    local _name _fulluuid _mountpoint
+
+    if [ -z $1 ] ; then
+        __die "please provide a jail name"
+    fi
+
+    _name="$1"
+    _fulluuid="$(__check_name ${_name})"
+    _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
+
+    # Fetch the new data and then merge it in
+    __info "checking for plugin updates"
+    echo ""
+    git -C ${_mountpoint}/_ fetch origin 1> /dev/null \
+    && git -C ${_mountpoint}/_ merge --ff-only 1> /dev/null
+    if [ $? -eq 0 ] ; then
+        __info "checking for freebsd updates"
+        __update "${_name}" 1> /dev/null
     fi
 }
 
+## NOT WORKING YET
 __push () {
-  local _gitlocation _gitrepo _answer _match
+    local _gitlocation _gitrepo _answer _match
 
-  _gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation \
-                ${pool}${iocroot}/.defaults)"
-
-  # Make sure git is installed.
-  if [ ! -e "/usr/local/bin/git" ] ; then
-      echo "  ERROR: Git is not installed. Please install git first."
-      exit 1
-  fi
-
-  # Check if user has a custom git location set
-  if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
-      # Will add all files and open a dialog for a git commit
-      git add -A
-      git commit
-      git push
-  else
-      echo -n "Please enter a git repo to push to: "
-      read _answer
-      if [ -z "$_answer" ] ; then
-          _answer="$_gitrepo"
-      else
-          _gitrepo="$_answer"
-          _match="1"
-          git add -A
-          git commit
-          git push -u "$2"
-    if [ -z $_match ] ; then
-        echo "  ERROR: Invalid repo $_gitrepo specified. Exiting."
-        exit 1
+    if [ $# -lt 1 ] ; then
+        __die "please specify either a user/repo or a complete url"
     fi
-  fi
-fi
+
+    _gitlocation="$(__get_default_prop gitlocation)"
+
+    # Make sure git is installed.
+    if [ ! -e "/usr/local/bin/git" ] ; then
+        __die "git is not installed. Please install git first."
+    fi
+
+    # Check if user has a custom git location set
+    if [ "$_gitlocation" != "https://github.com/iocage/cages" ] ; then
+        # Will add all files and open a dialog for a git commit
+        git add -A
+        git commit
+        git push
+    else
+        echo -n "Please enter a git repo to push to: "
+        read _answer
+        if [ -z "$_answer" ] ; then
+            _answer="$_gitrepo"
+        else
+            _gitrepo="$_answer"
+            _match="1"
+            git add -A
+            git commit
+            git push -u "$2"
+        fi
+
+        if [ -z $_match ] ; then
+            __die "invalid repo $_gitrepo specified."
+        fi
+    fi
 }

@@ -28,392 +28,905 @@ __deactivate () {
 }
 
 __clean () {
+    local _answer _force _opt
+
+    _force=0
+
+    # Check for any combination of a clean argument + force
+    while getopts :arjtf _opt "$@" ; do
+        case "${_opt}" in
+            f|--force)
+                _force=1
+            ;;
+        esac
+    done
+
+    # Reset so we can check again
+    OPTIND=1
+
+    # Repeat same thing, this time looking for only clean arguments as force
+    # will be set properly by now.
+    while getopts :arjtf _opt "$@" ; do
+        case "${_opt}" in
+            a)
+                __clean_all
+            ;;
+            r)
+                __clean_releases
+            ;;
+            j)
+                __clean_jails
+            ;;
+            t)
+                __clean_templates
+            ;;
+        esac
+    done
+
+    # Cleanup our commands
+    shift $(expr $OPTIND - 1)
+}
+
+__clean_all () {
     local _answer
 
-    # Look for the right switch and then ask the user if they are sure
-    case "$1" in
-        -a)
-            echo " "
-            echo "  WARNING: this will destroy $pool/iocage"
-            echo " "
-            echo "  Please make sure all jails are stopped before continuing."
-            echo " "
-            echo -n "  Are you sure ? y[N]: "
-            read _answer
+    if [ "${_force}" != "1" ] ; then
+        echo " "
+        echo "  WARNING: this will destroy ${pool}/iocage"
+        echo " "
+        echo -n "  Are you sure ? y[N]: "
+        read _answer
 
-            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage"
-                zfs destroy -rRf $pool/iocage
-                exit 0
-            else
-                echo "  Command not confirmed.  No action taken."
-                exit 1
-            fi
-        ;;
-        -r)
-            echo " "
-            echo "  WARNING: this will destroy all releases"
-            echo " "
-            echo "  Please make sure all basejails are stopped before continuing."
-            echo " "
-            echo -n "  Are you sure ? y[N]: "
-            read _answer
+        if [ "${_answer}" != "Y" -a "${_answer}" != "y" ] ; then
+            __die "command not confirmed.  no action taken."
+        fi
+    fi
 
-            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage/base"
-                zfs destroy -rRf $pool/iocage/base
-                echo "  Destroying $pool/iocage/download"
-                zfs destroy -rRf $pool/iocage/download
-                echo "  Destroying $pool/iocage/releases"
-                zfs destroy -rRf $pool/iocage/releases
-                exit 0
-            else
-                echo "  Command not confirmed.  No action taken."
-                exit 1
-            fi
-        ;;
-        -j)
-            echo " "
-            echo "  WARNING: this will destroy all jails"
-            echo " "
-            echo "  Please make sure all jails are stopped before continuing."
-            echo " "
-            echo -n "  Are you sure ? y[N]: "
-            read _answer
+    __stop_jail_all > /dev/null 2>&1
 
-            if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage/jails"
-                zfs destroy -rRf $pool/iocage/jails
-                echo "  Cleaning TAGs at $pool/iocage/tags"
-                rm -f ${iocroot}/tags/*
-                exit 0
-            else
-                echo "  Command not confirmed.  No action taken."
-                exit 1
-            fi
-        ;;
-    esac
+    if [ $? -eq 0 ] ; then
+        __spinner "  INFO: destroying ${pool}/iocage:  " \
+                  "zfs destroy -rRf ${pool}/iocage"
+        rm -rf ${iocroot}
+        return 0
+    else
+        __die "some jails were unable to be stopped."
+    fi
 }
 
-__create_basejail () {
-    local _release
+__clean_releases () {
+    local _answer
 
-    _release="$1"
+    if [ "${_force}" != "1" ] ; then
+        echo " "
+        echo "  WARNING: this will destroy all RELEASEs"
+        echo "  you cannot use any basejails without them!"
+        echo " "
+        echo -n "  Are you sure ? y[N]: "
+        read _answer
 
-    echo ""
-    echo "Creating basejail ZFS datasets... please wait."
+        if [ "${_answer}" != "Y" -a "${_answer}" != "y" ] ; then
+            __die "command not confirmed.  no action taken."
+        fi
+    fi
 
-    for fs in $(echo $bfs_list) ; do
-        zfs create -o compression=lz4 -p $pool/iocage/base/${_release}/root/$fs
+    if [ $? -eq 0 ] ; then
+        __spinner "  INFO: destroying ${pool}/iocage/download:  " \
+                  "zfs destroy -rRf ${pool}/iocage/download"
+        __spinner "  INFO: destroying ${pool}/iocage/releases:  " \
+                  "zfs destroy -rRf ${pool}/iocage/releases"
+        return 0
+    fi
+}
+
+__clean_jails () {
+    local _answer
+
+    if [ "${_force}" != "1" ] ; then
+        echo " "
+        echo "  WARNING: this will destroy all jails"
+        echo " "
+        echo -n "  Are you sure ? y[N]: "
+        read _answer
+
+        if [ "${_answer}" != "Y" -a "${_answer}" != "y" ] ; then
+            __die "command not confirmed.  no action taken."
+        fi
+    fi
+
+    __clean_snapshots
+    __stop_jail_all > /dev/null 2>&1
+
+    if [ $? -eq 0 ] ; then
+        __spinner "  INFO: destroying ${pool}/iocage/jails:  " \
+                  "zfs destroy -rRf ${pool}/iocage/jails"
+        __spinner "  INFO: cleaning TAGs at ${pool}/iocage/tags:  " \
+                  "rm -rf ${iocroot}/tags"
+        return 0
+    else
+        __die "some jails were unable to be stopped."
+    fi
+}
+
+__clean_templates () {
+    local _answer _jail_datasets _jail_fs _origin _tag _uuid _count
+
+    _count=0
+    _jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage/jails | \
+                    awk '!/jails$/ && !/root$/')"
+
+    if [ "${_force}" != "1" ] ; then
+        echo " "
+        echo "  WARNING: this will destroy all templates"
+        echo " "
+        echo -n "  Are you sure ? y[N]: "
+        read _answer
+
+        if [ "${_answer}" = "Y" -o "${_answer}" = "y" ] ; then
+            echo " "
+            for _fs in ${_jail_datasets} ; do
+                _jail_fs="$(echo ${_fs} | sed -e 's#/root##g')"
+                _origin="$(zfs get -H -o value origin ${_fs} | \
+                    cut -f1 -d@)"
+                _tag="$(zfs get -H -o value org.freebsd.iocage:tag \
+                    ${_jail_fs})"
+                _uuid="$(zfs get -H -o value \
+                        org.freebsd.iocage:host_hostuuid ${_jail_fs})"
+
+                if [ "${_origin}" != "-" ] ; then
+                    echo "  WARNING: ${_uuid} (${_tag}) is a clone."
+                    _count=$(expr $_count + 1)
+                fi
+            done
+
+            if [ $_count -ne 0 ] ; then
+                echo " "
+                echo "  please destroy these first or use -f"
+                return 1
+            fi
+          else
+            __die "command not confirmed.  no action taken."
+        fi
+    fi
+
+    __spinner "  INFO: cleaning templatess at ${pool}/iocage/templates:  " \
+              "zfs destroy -rRf ${pool}/iocage/templates"
+    return 0
+}
+
+__clean_snapshots () {
+    local _snapshots
+
+    _snapshots="$(zfs list -Hrt snapshot -o name ${pool}/iocage)"
+    for _snap in $(echo ${_snapshots}) ; do
+        zfs destroy -rR ${_snap} > /dev/null 2>&1
     done
 }
 
-__reclone_basejail () {
-    local name=$1
+# Accepts two arguments. Which is used as the UUID for the umount operations
+# and what release to use.
+__migrate_basejail () {
+    local _bfs_list _fulluuid _release _basedir_list _spinner
 
-    if [ -z $name ] ; then
-        echo "  ERROR: Missing UUID!"
-        exit 1
+    _fulluuid="$1"
+    _release="$2"
+    _bfs_list="bin
+               boot
+               lib
+               libexec
+               rescue
+               sbin
+               usr"
+
+    _basedir_list="dev
+                   tmp
+                   var
+                   etc
+                   root
+                   proc
+                   mnt
+                   var/run"
+
+    # Spinner is being recreated here because of the number of commands we use
+    _spinner='/-\|'
+
+    printf "  INFO: migrating basejail: \b%2s"
+
+    while true; do
+        printf '\b%.1s' "${_spinner}"
+        _spinner=${_spinner#?}${_spinner%???}
+        sleep .1
+    done &
+
+    trap "kill $!" 2 3
+
+    # If the user has a /usr/local, move it for migration
+    if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/local" ] ; then
+        if [ ! -z "$(ls -A ${iocroot}/jails/${_fulluuid}/root/usr/local)" ] ; then
+            mkdir -p ${iocroot}/jails/${_fulluuid}/usr
+            mv    ${iocroot}/jails/${_fulluuid}/root/usr/local \
+                  ${iocroot}/jails/${_fulluuid}/usr/local
+        fi
+    elif [ ! -e "${iocroot}/jails/${_fulluuid}/root/usr/local" ] ; then
+        mkdir -p ${iocroot}/jails/${_fulluuid}/usr/local
     fi
 
-    local dataset=$(__find_jail $name)
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found."
-        exit 1
+    if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/home" ] ; then
+        if [ ! -z "$(ls -A ${iocroot}/jails/${_fulluuid}/root/usr/home)" ] ; then
+            mkdir -p ${iocroot}/jails/${_fulluuid}/usr
+            mv    ${iocroot}/jails/${_fulluuid}/root/usr/home \
+                  ${iocroot}/jails/${_fulluuid}/usr/home
+        fi
+    elif [ ! -e "${iocroot}/jails/${_fulluuid}/root/usr/home" ] ; then
+        mkdir -p ${iocroot}/jails/${_fulluuid}/usr/home
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
-    fi
-
-    local fulluuid="$(__check_name $name)"
-    local jail_release="$(__get_jail_prop release $fulluuid)"
-
-    zfs destroy -rRf $pool/iocage/base@$fulluuid
-    zfs snapshot -r  $pool/iocage/base@$fulluuid
-
-    echo "* $fulluuid is a basejail, re-cloning jail.."
-
-    # Re-clone required filesystems
-    for fs in $bfs_list ; do
-        # echo "  re-cloning: $pool/iocage/jails/$fulluuid/root/$fs"
-        zfs clone $pool/iocage/base/$jail_release/root/$fs@$fulluuid \
-                  $pool/iocage/jails/$fulluuid/root/$fs
+    # Destroy all the old datasets
+    for _fs in ${_bfs_list} ; do
+        zfs destroy -rf ${pool}/iocage/jails/${_fulluuid}/root/${_fs}
     done
+
+    # Create all the r/w directories needed
+    for _bdir in ${basedirs} ; do
+        mkdir -p ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
+
+    for _bdir in ${_basedir_list} ; do
+        mkdir -p ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
+
+    if [ ! -e ${iocroot}/releases/${_release}/root/usr/ports ] ; then
+        mkdir -p ${iocroot}/releases/${_release}/root/usr/ports
+    fi
+
+    # Move the user data back
+    mv    ${iocroot}/jails/${_fulluuid}/usr/home \
+          ${iocroot}/jails/${_fulluuid}/root/usr/home
+    mv    ${iocroot}/jails/${_fulluuid}/usr/local \
+          ${iocroot}/jails/${_fulluuid}/root/usr/local
+
+    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
+}
+
+__check_basejail () {
+    local _fulluuid _dataset _jail_release _old_base_check _jailed_dataset \
+          _jailed_dataset_check _hack88 _shortuuid
+
+    _fulluuid="$1"
+    _dataset="$2"
+    _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
+    _old_base_check="$(zfs list -Hr ${pool}/iocage/jails/${_fulluuid} | \
+                     grep -v data | wc -l)"
+    _jailed_dataset="${pool}/iocage/jails/${_fulluuid}/root/data"
+    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
+    _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
+    _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
+                           /dev/null 2>&1 ; echo $?)"
+
+    # Check to see if the user has the old style of jailed datasets
+    if [ "${_jailed_dataset_check}" = "0" ] ; then
+        zfs set jailed=off "${_jailed_dataset}"
+        zfs rename -f "${_jailed_dataset}" \
+                      "${pool}/iocage/jails/${_fulluuid}/data"
+        zfs set jailed=on "${pool}/iocage/jails/${_fulluuid}/data"
+    fi
+
+    # If the length is over this, it's an old-style basejail
+    if [ "${_old_base_check}" -gt "15" ] ; then
+        __migrate_basejail "${_fulluuid}" "${_jail_release}"
+    fi
+
+    # Make sure the etcupdate we need for upgrades exists
+    if [ ! -e "${iocroot}/releases/${_jail_release}/root/etcupdate" ] ; then
+        mount -t devfs devfs ${iocroot}/releases/${_jail_release}/root/dev
+        mkdir ${iocroot}/releases/${_jail_release}/root/etcupdate
+        chroot ${iocroot}/releases/${_jail_release}/root \
+            etcupdate build /etcupdate/etcupdate-${_jail_release}.tbz
+        # Extract the etcupdate since it did not exist
+        mount -t devfs devfs ${iocroot}/jails/${_fulluuid}/root/dev
+        chroot ${iocroot}/jails/${_fulluuid}/root etcupdate \
+            extract -t /etcupdate/etcupdate-${_jail_release}.tbz
+        umount ${iocroot}/releases/${_jail_release}/root/dev
+        umount ${iocroot}/jails/${_fulluuid}/root/dev
+    fi
+
+    # Look for hack88, if it exists, pass the short uuid
+    if [ "${_hack88}" = "1" ] ; then
+        __mount_basejail "${_shortuuid}" "${_jail_release}"
+    else
+        __mount_basejail "${_fulluuid}" "${_jail_release}"
+    fi
 }
 
 # This creates jails----------------------------------------------------
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
-          _zfsconfig
+          _pname _prop _isprop _inherit_props _jail_zfs_mountpoint \
+          _basedir_list
 
-    _installed=$(zfs list -r $pool/iocage/releases|grep $release)
-    _releases=$(__list_jails -r|grep -v "Downloaded releases:")
-    _supported_release=$(echo "$release" | grep "RELEASE")
-    _zfsconfig="$(__configure_jail generate)"
-
+    _installed=$(zfs list -rH ${pool}/iocage/releases | grep ${release})
+    _releases=$(__list_jails -r | grep -v "Downloaded releases:")
+    _supported_release=$(echo "${release}" | grep "RELEASE")
+    _devfs_string="$(grep -Fxq \
+                  "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
+                  ; echo $?)"
+    _release_dataset="${pool}/iocage/releases"
+    _release_dataset_check="$(zfs get -H creation ${_release_dataset} > \
+                           /dev/null 2>&1 ; echo $?)"
     _configured="0"
+    _basedir_list="dev
+                   tmp
+                   var
+                   etc
+                   root
+                   proc
+                   mnt
+                   var/run"
 
-    if [ -z "$_supported_release" ] ; then
-        echo "  You are not running a RELEASE."
-        echo "  ERROR: Please specify release=RELEASE."
+    if [ -z "${_supported_release}" -a "${2}" != "-e" -a "${1}" = "create" -a -z "${_installed}" ] ; then
+        echo "  You are not running a production RELEASE. (${release})" >&2
+        echo "  ERROR: Please specify release=RELEASE." >&2
         exit 1
     fi
 
-    if [ -z "$_installed" -a -z "$_releases" ] ; then
-        echo "  ERROR: No RELEASEs found locally, run iocage fetch first."
+    if [ -z "${_installed}" -a -z "${_releases}" -a "${2}" != "-e" ] ; then
+        __die "no RELEASEs found locally, run iocage fetch first."
+    elif [ -z "${_installed}" -a "${2}" != "-e" -a "${1}" != "-g" ] ; then
+        echo "  RELEASE ${release} not found locally." >&2
+        echo "  Please fetch ${release}" >&2
+        echo "" >&2
+
+        echo "  These are the RELEASEs you have already fetched:" >&2
+        printf "${_releases}\n" >&2
         exit 1
-    elif [ -z "$_installed" ] ; then
-        echo "  RELEASE $release not found locally."
-        echo "  Please fetch $release or rerun iocage with release=RELEASE"
-        echo ""
-        echo "  These are the releases you have already fetched:"
-        echo "  $_releases"
-        exit 1
     fi
 
-    if [ "${2}" = "-c" ] ; then
-        fs_list=$(zfs list -rH -o name $pool/iocage/releases/$release)
-        zfs snapshot -r $pool/iocage/releases/$release@$uuid
-        for fs in $fs_list ; do
-            cfs=$(echo $fs | sed s#/releases/$release#/jails/$uuid#g)
-            eval "zfs clone ${_zfsconfig} \"$fs@$uuid\" \"$cfs\""
-        done
-        _configured="1"
-    elif [ "${2}" = "-e" ] ; then
-        eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
-        zfs create -p $pool/iocage/jails/$uuid/root
-        _configured="1"
-    elif [ "${2}" = "-b" ] ; then
-        export type=basejail
-        zfs snapshot -r $pool/iocage/base@$uuid
-        eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
-        __set_jail_prop type=basejail ${uuid}
-        zfs create -o compression=lz4 -p $pool/iocage/jails/$uuid/root/usr
-
-        for fs in $bfs_list ; do
-            zfs clone -o compression=lz4 -o readonly=on \
-            $pool/iocage/base/${release}/root/$fs@$uuid \
-            $pool/iocage/jails/$uuid/root/$fs
-        done
-
-        for dir in $bdir_list ; do
-            cp -a $iocroot/base/${release}/root/$dir \
-                  $iocroot/jails/$uuid/root/$dir
-        done
-        _configured="1"
-    else
-        zfs snapshot -r $pool/iocage/releases/$release@$uuid
-        zfs send     -R $pool/iocage/releases/$release@$uuid | \
-        zfs recv        $pool/iocage/jails/$uuid
-        zfs destroy  -r $pool/iocage/releases/$release@$uuid
-        zfs destroy  -r $pool/iocage/jails/$uuid@$uuid
+    # Remove this as we only needed it to skip the checks for plugins
+    if [ "${1}" = "-g" ] ; then
+        shift 2
     fi
 
-    if [ "${_configured}" -ne "1" ] ; then
-        __configure_jail $pool/iocage/jails/$uuid
+    _isprop="$(echo ${2} | awk 'BEGIN { FS = "=" } ; { print $2 }')"
+
+    # Look for null output, if it is, then no property is following create
+    if [ "${2}" != "-e" -a ! -z "${2}" ] ; then
+        if [ ! "${_isprop}" ] ; then
+            __die "invalid switch ${2}"
+        else
+            for _p in "$@" ; do
+                if [ "$(echo $_p | grep -e ".*=.*")" ] ; then
+                    _pname="$(echo ${_p} | \
+                            awk 'BEGIN { FS = "=" } ; { print $1 }')"
+                    if [ "${_pname}" = "istemplate" ] ; then
+                        __die "please set template after creation"
+                    elif [ "${_pname}" = "template" ] ; then
+                        __die "use clone for templates"
+                    fi
+                fi
+            done
+        fi
     fi
 
-    touch $iocroot/jails/$uuid/fstab
+    if [ "${2}" = "-e" ] ; then
+        # Look to see if the jail type is our default, otherwise let the type
+        # be whatever the user wants, it does not matter for an empty jail.
+        if [ "${type}" = "basejail" ] ; then
+            type=emptyjail
+        fi
+    fi
+
+    _zfsconfig="$(__configure_jail generate)"
+    eval "zfs create -p ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
+    zfs create -p ${pool}/iocage/jails/${uuid}/root
+    _configured="1"
+
+    # Create all the r/w directories needed
+    for _bdir in ${basedirs} ; do
+        mkdir -p ${iocroot}/jails/${uuid}/root/${_bdir}
+    done
+
+    for _bdir in ${_basedir_list} ; do
+        mkdir -p ${iocroot}/jails/${uuid}/root/${_bdir}
+    done
+
+    # We need the base's /etc and /root
+    cd ${iocroot}/releases/${release}/root/etc && find . | \
+        cpio -dp --quiet ${iocroot}/jails/${uuid}/root/etc
+    cd ${iocroot}/releases/${release}/root/root && find . | \
+        cpio -dp --quiet ${iocroot}/jails/${uuid}/root/root
+
+    if [ -e "/etc/localtime" ] ; then
+        cp /etc/localtime ${iocroot}/jails/${uuid}/root/etc/
+    fi
+
+    # create tag link
+    __link_tag ${pool}/iocage/jails/${uuid}
 
     # remove any residual clone snapshots carried over from the RELEASE datasets
-    __snapremove ${uuid}@ALL
+    __snapremove ${uuid}@ALL ${pool}/iocage/jails/${uuid}
 
-    # at create time set the default rc.conf
-    if [ "${2}" != "-e" ] ; then
-        echo "hostname=\"${hostname}\"" > $iocroot/jails/${uuid}/root/etc/rc.conf
-        __jail_rc_conf >> \
-        $iocroot/jails/${uuid}/root/etc/rc.conf
-        __resolv_conf ${uuid} > $iocroot/jails/${uuid}/root/etc/resolv.conf
-    elif [ "${2}" = "-e" ] ; then
-        echo $uuid
+    touch ${iocroot}/jails/${uuid}/fstab
+
+    # Make sure the jail isn't a empty jail
+    if [ "${2}" = "-e" ] ; then
+        echo ${uuid}
+        return 0
     fi
 
-    zfs create -o compression=lz4 ${pool}/$jail_zfs_dataset
-    zfs set mountpoint=none ${pool}/$jail_zfs_dataset
-    zfs set jailed=on ${pool}/$jail_zfs_dataset
+    # at create time set the default rc.conf
+    if [ -e "${iocroot}/jails/${uuid}/root/etc/rc.conf" ] ; then
+        sed -i '' "1s/hostname=.*/hostname=\"${host_hostname}\"/" \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    else
+        echo "hostname=\"${host_hostname}\"" > \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+        __jail_rc_conf >> \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    fi
+
+    if [ ! -e "${iocroot}/jails/${uuid}/root/etc/resolv.conf" ] ; then
+        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+    fi
+
+    for _prop in "$@" ; do
+        _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
+        # Look to see if the user wants a jailed dataset,
+        # if they do then create it
+        if [ "${_pname}" = "jail_zfs" ] ; then
+            if [ ! -z "${iocset_jail_zfs_mountpoint}" ] ; then
+                _jail_zfs_mountpoint="${iocset_jail_zfs_mountpoint}"
+            else
+                _jail_zfs_mountpoint="${jail_zfs_mountpoint}"
+            fi
+
+            if [ ! -z "${iocset_jail_zfs_dataset}" ] ; then
+                export jail_zfs_dataset="${iocset_jail_zfs_dataset}"
+            else
+                # Hack to get around different UUID during creation
+                export jail_zfs_dataset="iocage/jails/${uuid}/data"
+            fi
+
+            eval "zfs create -u -o compression=lz4 \
+                 -o mountpoint=${_jail_zfs_mountpoint} \
+                 -o jailed=on ${_inherit_props} \"${pool}/${jail_zfs_dataset}\""
+            __set_jail_prop jail_zfs_dataset="${jail_zfs_dataset}" \
+                ${uuid} ${pool}/iocage/jails/${uuid} # Another hack for this
+        # Do they want bpf exposed?
+        elif [ "${_pname}" = "bpf" ] ; then
+            if [ "${_devfs_string}" != "0" ] ; then
+                __bpf_devfs >> /etc/devfs.rules
+                service devfs restart > /dev/null 2>&1
+            fi
+
+            # Set the right devfs ruleset for DHCP/BPF.
+            zfs set org.freebsd.iocage:devfs_ruleset=5 \
+                ${pool}/iocage/jails/${uuid}
+        fi
+    done
 
     # configure the jail mountpoint
-    __hack88_mount ${uuid}
+    __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid}
 
     # Install extra packages
     # this requires working resolv.conf in jail
-    if [ "$pkglist" != "none" ] ; then
-        __pkg_install "$iocroot/jails/${uuid}/root"
+    if [ "${pkglist}" != "none" ] ; then
+        # Mount all the filesytems needed to properly install pkg's
+        # in a basejail
+        mount -t tmpfs tmpfs ${iocroot}/jails/${uuid}/root/tmp
+        mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
+        __mount_basejail "${uuid}" "${release}"
+        __pkg_install "${iocroot}/jails/${uuid}/root"
+    fi
+
+    # Make sure the etcupdate we need for upgrades exists
+    if [ ! -e "${iocroot}/releases/${release}/root/etcupdate" ] ; then
+        mount -t devfs devfs ${iocroot}/releases/${release}/root/dev
+        mkdir ${iocroot}/releases/${release}/root/etcupdate
+        chroot ${iocroot}/releases/${release}/root \
+            etcupdate build /etcupdate/etcupdate-${release}.tbz
+        umount ${iocroot}/releases/${release}/root/dev
+    fi
+    mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
+    __mount_basejail "${uuid}" "${release}"
+    mkdir -p ${iocroot}/jails/${uuid}/root/var/db/etcupdate
+    chroot ${iocroot}/jails/${uuid}/root etcupdate \
+        extract -t /etcupdate/etcupdate-${release}.tbz
+    umount ${iocroot}/jails/${uuid}/root/dev
+    umount ${iocroot}/jails/${uuid}/root/tmp
+    __umount_basejail "${uuid}" > /dev/null 2>&1
+
+    echo "  Successfully created: ${uuid} (${tag})"
+
+    if [ ! -z "${start}" ] ; then
+        __start_jail "${uuid}" "${pool}/iocage/jails/${uuid}"
     fi
 }
 
 # Cloning jails ----------------------------------------------------------
 __clone_jail () {
-    local name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-    local snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-    local _zfsconfig
+    local  _name _snapshot _dataset _fs _fs_list _zfsconfig  _cfs _pname _prop \
+           _isprop _inherit_props
 
-    if [ -z $name ] ; then
-        echo "  ERROR: missing UUID!"
+    _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+    _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    _isprop="$(echo ${1} | awk 'BEGIN { FS = "=" } ; { print $2 }')"
+
+    if [ ! -z "${_name}" -a ! -z "${_isprop}" ] ; then
+        __die "please specify UUID or TAG before any properties"
+    fi
+
+    if [ -z "${_name}" ] ; then
+        __die "missing UUID or TAG!"
+    fi
+
+    _fulluuid="$(__check_name ${_name})"
+    _dataset="$(__find_jail ${_name})" || exit $?
+
+    if [ -z ${_dataset} ] ; then
         exit 1
     fi
 
-    local dataset="$(__find_jail $name)"
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $name not found."
-        exit 1
-    fi
-
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
-    fi
-
-    local fs_list="$(zfs list -rH -o name $dataset)"
+    _fs_list="$(zfs list -rH -o name ${_dataset})"
     _zfsconfig="$(__configure_jail generate)"
 
-    if [ -z "$snapshot" ] ; then
-        zfs snapshot -r ${dataset}@${uuid}
-        for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
-            if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
-                zfs clone -o mountpoint=none -o jailed=on $fs@$uuid $cfs
-            else
-                eval "zfs clone ${_zfsconfig} \"$fs@$uuid\" \"$cfs\""
+    # Snapshot if they don't have one and then clone the target jail
+    if [ -z "${_snapshot}" ] ; then
+        zfs snapshot -r ${_dataset}@${uuid}
+        for _fs in ${_fs_list} ; do
+            _cfs="$(echo ${_fs} | \
+                 sed s#${_dataset}#${pool}/iocage/jails/${uuid}#g)"
+            eval "zfs clone -p ${_zfsconfig} \"${_fs}@${uuid}\" \"${_cfs}\""
+            # See if they had a jailed dataset before
+            if [ $(echo ${_cfs} | grep data$ | wc -l) -eq 1 ] ; then
+                zfs clone -o mountpoint=none -o jailed=on ${_fs}@${uuid} ${_cfs}
             fi
         done
     else
-        for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
-            if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
-                zfs clone -o mountpoint=none -o jailed=on $fs@$snapshot $cfs
-            else
-                eval "zfs clone ${_zfsconfig} \"$fs@$snapshot\" \"$cfs\""
+        for _fs in ${_fs_list} ; do
+            _cfs="$(echo ${_fs} | \
+                 sed s#${_dataset}#${pool}/iocage/jails/${uuid}#g)"
+
+            if [ "${_cfs}" = "${pool}/iocage/jails/${uuid}/root" ] ; then
+                eval "zfs clone ${_inherit_props} \
+                    \"${_fs}@${uuid}\" \"${_cfs}\""
+            elif [ "${_cfs}" = "${pool}/iocage/jails/${uuid}" ] ; then
+                eval "zfs create ${_zfsconfig} \"${pool}/iocage/jails/${uuid}\""
+                _inherit_props="$(__unset_inherited ${uuid})"
+            fi
+
+            # See if they had a jailed dataset before
+            if [ $(echo ${_cfs} | grep data$ | wc -l) -eq 1 ] ; then
+                zfs clone -o mountpoint=none -o jailed=on ${_fs}@${_snapshot} \
+                    ${_cfs}
             fi
         done
     fi
 
-    #__configure_jail $pool/iocage/jails/$uuid
-    mv $iocroot/jails/$uuid/fstab $iocroot/jails/$uuid/fstab.$name
-    touch $iocroot/jails/$uuid/fstab
+    __link_tag ${pool}/iocage/jails/${uuid}
 
-    cat $iocroot/jails/${uuid}/root/etc/rc.conf | \
-    sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
-    > $iocroot/jails/${uuid}/rc.conf
+    # Check if fstab already exists otherwise create it
+    if [ -e ${iocroot}/jails/${uuid}/fstab ] ; then
+        mv ${iocroot}/jails/${uuid}/fstab \
+           ${iocroot}/jails/${uuid}/fstab.${_name}
+        touch ${iocroot}/jails/${uuid}/fstab
+    else
+        touch ${iocroot}/jails/${uuid}/fstab
+    fi
 
-    mv $iocroot/jails/${uuid}/rc.conf \
-    $iocroot/jails/${uuid}/root/etc/rc.conf
+    # Check if rc.conf already exists otherwise create it
+    if [ -e ${iocroot}/jails/${uuid}/root/etc/rc.conf ] ; then
+        cat ${iocroot}/jails/${uuid}/root/etc/rc.conf | \
+        sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/${uuid}/g" \
+            > ${iocroot}/jails/${uuid}/rc.conf
+        mv ${iocroot}/jails/${uuid}/rc.conf \
+           ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    else
+        echo "hostname=\"${host_hostname}\"" > \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+        __jail_rc_conf >> \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    fi
+
+    # Check if localtime already exists otherwise create it
+    if [ -e "/etc/localtime" -a ! -e "${iocroot}/jails/${uuid}/root/etc/localtime" ] ; then
+        cp /etc/localtime ${iocroot}/jails/${uuid}/root/etc/
+    fi
+
+    # Check if resolv.conf already exists otherwise create it
+    if [ ! -e ${iocroot}/jails/${uuid}/root/etc/resolv.conf ] ; then
+        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+    fi
+
+    # configure the jail mountpoint
+    __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid}
+    __set_jail_prop type=clonejail ${uuid} ${pool}/iocage/jails/${uuid}
+    echo "  Successfully created: ${uuid} (${tag})"
+
+    if [ ! -z "${start}" ] ; then
+        __start_jail "${uuid}" "${pool}/iocage/jails/${uuid}"
+    fi
 }
 
 # Destroy jails --------------------------------------------------------------
 __destroy_jail () {
-    local _name _answer _uuid_list _force
+    local _name _answer _uuid_list _force _dataset _origin \
+          _fulluuid _jail_path _state
 
     if [ -z "$1" ] ; then
-        echo "  ERROR: missing UUID!"
-        exit 1
+        __die "missing UUID!"
     fi
 
-    if [ "$1" == '-f' ] ; then
-        _force="1"
-        _name="$2"
-    else
-        _force="0"
-        _name="$1"
+    _name="$1"
+
+    if [ "${_name}" = "ALL" ] ; then
+        __die "please use iocage clean -j instead."
     fi
 
-    local dataset="$(__find_jail $_name)"
+    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
 
-    if [ -z $dataset ] ; then
-        echo "  ERROR: $_name not found."
-        exit 1
+    set ${_fulluuid_dataset}
+    _fulluuid="$1"
+    _dataset="$2"
+
+    if [ -z ${_dataset} ] ; then
+        __die "${_name} not found!"
     fi
 
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: Multiple matching UUIDs!"
-        exit 1
-    fi
+    __check_children ${_dataset}
 
-    local origin="$(zfs get -H -o value origin $dataset)"
-    local fulluuid="$(__check_name $_name)"
-    local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
-    local state="$(jls | grep ${jail_path} | wc -l)"
-    local jail_type="$(__get_jail_prop type $fulluuid)"
-    local jail_release="$(__get_jail_prop release $fulluuid)"
+    _origin="$(zfs get -H -o value origin ${_dataset})"
+    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _state="$(__is_running ${_fulluuid})"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
 
-    if [ "$_force" -ne "1" ] ; then
+    __check_children ${_fulluuid} ${_dataset}
+
+    if [ "${_force}" -ne "1" ] ; then
             echo " "
-            echo "  WARNING: this will destroy jail $fulluuid"
-            echo "  Dataset: $dataset"
+            echo "  WARNING: this will destroy jail ${_fulluuid}"
+            echo "  Dataset: ${_dataset}"
             echo " "
             echo -n "  Are you sure ? y[N]: "
             read _answer
 
-        if [ "$_answer" == "Y" ] || [ "$_answer" == "y" ] ; then
-            __destroy_func
+        if [ "${_answer}" = "Y" -o "${_answer}" = "y" ] ; then
+            if [ ! -z ${_state} ] ; then
+                __die "cannot destroy ${_name} - jail is running!"
+            fi
+
+            __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type} ${_jail_path}
         else
             echo "  Command not confirmed.  No action taken."
-            exit 1
         fi
     else
-        __destroy_func
+        if [ ! -z ${_state} ] ; then
+            __stop_jail ${_fulluuid} ${_dataset}
+        fi
+        __destroy_func ${_fulluuid} ${_dataset} ${_origin} ${_jail_type} ${_jail_path}
     fi
 }
 
 __destroy_func () {
-    if [ "$state" -lt "1" ] ; then
-        echo "  Destroying: $fulluuid"
-        __unlink_tag $dataset
+    local _fulluuid _dataset _origin _jail_type _base_inuse _jail_path
 
-        zfs destroy -fr $dataset
+    _fulluuid="$1"
+    _dataset="$2"
+    _origin="$3"
+    _jail_type="$4"
+    _jail_path="$5"
+    _base_inuse="$(zfs get -r -H -o value origin ${pool} | \
+                 grep ${pool}/iocage/base > \
+                 /dev/null 2>&1 ; echo $?)"
 
-        if [ "$origin" != "-" ] ; then
-            echo "  Destroying clone origin: $origin"
-            zfs destroy -r $origin
+    echo "  Destroying: ${_fulluuid}"
+
+    __unlink_tag ${_dataset}
+
+    zfs destroy -fr ${_dataset}
+
+    if [ "${_origin}" != "-" ] ; then
+        echo "  Destroying clone origin: ${_origin}"
+        zfs destroy -r ${_origin}
+
+        if [ -d "${_jail_path}" ] ; then
+            rm -rf ${_jail_path}
         fi
 
-        if [ $jail_type == "basejail" ] ; then
-            zfs destroy -fr $pool/iocage/base@$fulluuid
-        fi
+    fi
 
-    elif [ "$state" -eq "1" ] ; then
-        echo "  ERROR: Jail is up and running. Exiting."
-        exit 1
+    if [ ${_jail_type} = "basejail" ] ; then
+        if [ "${_base_inuse}" = "0" ] ; then
+            zfs destroy -fr ${pool}/iocage/base@${_fulluuid} > /dev/null 2>&1
+
+            if [ -d "${_jail_path}" ] ; then
+                rm -rf ${_jail_path}
+            fi
+
+        fi
     fi
 }
 
 # check if our datasets exist, if not create them
 # fixes https://github.com/iocage/iocage/issues/80
 __check_filesystems () {
+    local _altroot _filesystems _missing
 
-    local _filesystems _missing
     _missing=0
+    _altroot="$(zpool get -H altroot ${pool} | awk '{print $3}')"
+    # Prepend iocage/ so we can properly set a mount on the root 'iocage'
+    # dataset.
+    _filesystems="iocage
+                  iocage/.defaults
+                  iocage/download
+                  iocage/jails
+                  iocage/releases
+                  iocage/templates"
 
-    _filesystems="${iocroot}
-                  ${iocroot}/jails
-                  ${iocroot}/.defaults
-                  ${iocroot}/download
-                  ${iocroot}/releases"
+    # Check for /etc/devfs.rules, this avoids an annoying error from grep later
+    if [ ! -e "/etc/devfs.rules" ] ; then
+        touch /etc/devfs.rules
+    fi
 
     # Loop through and make sure the filesystems exist. Make sure you are root
     for _fs in $(echo ${_filesystems}) ; do
-        zfs get -H creation ${pool}${_fs} > /dev/null 2>&1
+        zfs get -H creation ${pool}/${_fs} > /dev/null 2>&1
         if [ $? -ne 0 ] ; then
             _missing=1
             if [ "$(whoami)" != "root" ] ; then
-                echo "  ERROR: Please run as root to create missing datasets."
-                exit 1
+                __die "Please run as root to create missing datasets."
             else
-                echo "  INFO: Creating ${pool}${_fs}"
-                zfs create -p ${pool}${_fs}
-                zfs set mountpoint=${_fs} ${pool}${_fs}
-            if [ ${_fs} == "${iocroot}/.defaults" ] ; then
-                __reset_jail_props default > /dev/null 2>&1
+                __info "creating ${pool}/${_fs}"
+                zfs create -p ${pool}/${_fs}
+                zfs set mountpoint=/${_fs} ${pool}/${_fs}
+                if [ ${_fs} == "iocage/.defaults" ] ; then
+                    __configure_jail ${pool}/iocage/.defaults > /dev/null 2>&1
+                    if [ $_altroot != "-" ] ; then
+                        sed -i '' s#.*iocroot.*#iocroot="${_altroot}/iocage"# \
+                            "${LIB}/ioc-globals"
+                        export iocroot="${_altroot}/iocage"
+                    elif [ $_altroot == "-" ] ; then
+                        sed -i '' s#.*iocroot.*#iocroot="/iocage"# \
+                            "${LIB}/ioc-globals"
+                        export iocroot="/iocage"
+                    fi
+                fi
             fi
-          fi
         fi
     done
 
     if [ ${_missing} -gt 0 ] ; then
         zfs mount -a
     fi
+
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+                          | grep -Ev "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
+
+    # Checks to see if the user changed the altroot and modify ioc-globals
+    # If the user decided to unset their altroot, they need to run again as
+    # root to set it back to the default location
+    if [ ${_altroot} != "-" -a "$(whoami)" == "root" ] ; then
+        sed -i '' s#.*iocroot.*#iocroot="${_altroot}/iocage"# \
+            "${LIB}/ioc-globals"
+        export iocroot="${_altroot}/iocage"
+    elif [ ${_altroot} != "-" -a "$(whoami)" != "root" -a ${iocroot} != "${_altroot}/iocage" ] ; then
+        __error "You changed the altroot of ${pool}"
+        echo "  Please run as root to fix." >&2
+        exit 1
+    elif [ ${_altroot} == "-" -a "$(whoami)" == "root" ] ; then
+        sed -i '' s#.*iocroot.*#iocroot="/iocage"# \
+            "${LIB}/ioc-globals"
+        export iocroot="/iocage"
+    elif [ ${_altroot} == "-" -a "$(whoami)" != "root" -a ${iocroot} != "/iocage" ] ; then
+        __error "You changed the altroot of ${pool}"
+        echo "  Please run as root to fix." >&2
+        exit 1
+    fi
+}
+
+__check_children () {
+    local _dataset _jail_datasets _fs _origin _tag _fulluuid \
+          _uuid
+
+    _fulluuid="$1"
+    _dataset="$2"
+    _jail_datasets=$(__find_jail ALL | \
+        awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
+
+    for _fs in $_jail_datasets ; do
+        _origin="$(zfs get -H -o value origin $_fs | cut -f1 -d@)"
+        _tag="$(zfs get -H -o value org.freebsd.iocage:tag $_fs)"
+        _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_fs)"
+
+        if [ $_origin == "$_dataset" ] ; then
+            __die "jail has dependent clone, uuid: $_uuid ($_tag)"
+        fi
+    done
+}
+
+# Accepts two arguments. Which is used as the UUID for the mount operations and
+# which base to use.
+__mount_basejail () {
+    local _fulluuid _release
+    _fulluuid="$1"
+    _release="$2"
+
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/root/var/ports" ] ; then
+        mkdir ${iocroot}/jails/${_fulluuid}/root/var/ports
+        mkdir ${iocroot}/jails/${_fulluuid}/root/var/ports/distfiles
+        mkdir ${iocroot}/jails/${_fulluuid}/root/var/ports/packages
+    fi
+
+    # Make sure the /compat directory exists
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/root/compat" ] ; then
+        mkdir ${iocroot}/jails/${_fulluuid}/root/compat
+    fi
+
+    # Make sure the /usr/obj directory exists
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/root/usr/obj" ] ; then
+        mkdir ${iocroot}/jails/${_fulluuid}/root/usr/obj
+    fi
+
+    for _bdir in ${basedirs} ; do
+        # Mount the nullfs needed for basejails
+        mount -t nullfs -o ro \
+            ${iocroot}/releases/${_release}/root/${_bdir} \
+            ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
+
+    # Mount tmpfs
+    mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
+}
+
+# Accepts one argument. Which is used as the UUID for the umount operations
+__umount_basejail () {
+    local _fulluuid="$1"
+
+  # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
+  umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+
+  for _bdir in ${basedirs} ; do
+      umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+  done
+}
+
+# Accepts one argument. Which is used as the name for the mount operations
+__mount_template () {
+    local _tag="$1"
+
+    for _bdir in ${basedirs} ; do
+        # Mount the nullfs needed for basejails
+        mount -t nullfs -o ro \
+            ${iocroot}/releases/${_release}/root/${_bdir} \
+            ${iocroot}/templates/${_tag}/root/${_bdir}
+    done
+
+    # Mount tmpfs
+    mount -t tmpfs tmpfs ${iocroot}/templates/${_tag}/root/tmp
+}
+
+# Accepts one argument. Which is used as the name for the umount operations
+__umount_template () {
+    local _tag="$1"
+
+  # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
+  umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+
+  for _bdir in ${basedirs} ; do
+      umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+  done
+}
+
+# Accepts one argument. It uses that argument as the name/UUID.
+__unset_inherited () {
+    local _name _inherit
+
+    _name="${1}"
+    _inherit="$(zfs get -Hs "local" all ${pool}/iocage/jails/${_name} | \
+              grep "org.freebsd.iocage" | \
+              awk '{ print $2}')"
+    for _p in ${_inherit} ; do
+        echo -n "-o ${_p}=\"-\" "
+    done
 }

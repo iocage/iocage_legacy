@@ -2,25 +2,35 @@
 
 # truncate mountpoint to work around 88 char mount limit on FreeBSD
 __hack88_mount () {
-    local _fulluuid _shortuuid _mountpoint _mount_len _hack88
+    local _altroot _fulluuid _shortuuid _mountpoint _mount_len \
+          _hack88 _dataset _template _jail_zfs_dataset
 
+    _altroot="$(zpool get -H altroot ${pool} | awk '{print $3}')"
     _fulluuid="$1"
-    _shortuuid="$(echo $_fulluuid|cut -f1 -d\-)"
-    _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
-    _mount_len="$(echo ${_mountpoint} | cut -f4 -d\/|wc -c | awk '{print $1}')"
-    _hack88="$(__get_jail_prop hack88 $_fulluuid)"
+    _dataset="$2"
+    _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
+    _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _template="$(__get_jail_prop istemplate ${_fulluuid} ${_dataset})"
+    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
+    _jail_zfs_dataset="$(__get_jail_prop jail_zfs_mountpoint \
+        ${_fulluuid} ${_dataset})"
+    _mount_len="$(echo ${_mountpoint} | sed  s#.*jails.#''# | wc -c)"
 
-    if [ "$_hack88" == "1" ] && [ "$_mount_len" -eq "37" ] ; then
+    if [ "${_hack88}" = "1" ] && [ "${_mount_len}" -eq "37" ] && [ "${_template}" = "no" ]; then
+        __unlink_tag $_dataset
         echo "  INFO: truncating jail mountpoint"
-        zfs umount -f ${iocroot}/jails/${_fulluuid}
-        __set_jail_prop mountpoint=${iocroot}/jails/${_shortuuid} ${_fulluuid}
-        zfs list -rH -o name ${pool}${iocroot}/jails/${_fulluuid} | \
-        grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
-    elif [ "$_hack88" != "1" ] && [ "$_mount_len" -lt "37" ] ; then
+        zfs umount -f "${iocroot}/jails/${_fulluuid}"
+        zfs set mountpoint="${iocroot}/jails/${_shortuuid}" "${_dataset}"
+        zfs list -rH -o name "${pool}/iocage/jails/${_fulluuid}" | \
+            grep -v "${_jail_zfs_dataset}" | xargs -L 1 zfs mount
+        __link_tag "${_dataset}"
+    elif [ "${_hack88}" != "1" ] && [ "${_mount_len}" -lt "37" ] && [ "${_template}" = "no" ] ; then
+        __unlink_tag "${_dataset}"
         echo "  INFO: restoring jail mountpoint"
-        zfs umount -f ${iocroot}/jails/${_shortuuid}
-        __set_jail_prop mountpoint=${iocroot}/jails/${_fulluuid} ${_fulluuid}
-        zfs list -rH -o name ${pool}${iocroot}/jails/${_fulluuid} | \
-        grep -v "${_fulluuid}/root/data" | xargs -L 1 zfs mount
+        zfs umount -f "${iocroot}/jails/${_shortuuid}"
+        zfs set mountpoint="${iocroot}/jails/${_fulluuid}" "${_fulluuid}"
+        zfs list -rH -o name "${pool}/iocage/jails/${_fulluuid}" | \
+            grep -v "${_jail_zfs_dataset}" | xargs -L 1 zfs mount
+        __link_tag "${_dataset}"
     fi
 }

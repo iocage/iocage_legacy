@@ -21,6 +21,8 @@ ${SCRIPTS}:
 install:: all
 	$(MKDIR) -p $(BINDIR)
 	$(MKDIR) -p $(FILESDIR)
+	$(MKDIR) -p $(RCDIR)
+	$(MKDIR) -p $(MANDIR)
 	$(INSTALL) -c -m $(BINMODE) ${.OBJDIR}/$(SCRIPTS) $(BINDIR)/
 	$(INSTALL) -c ${.OBJDIR}/lib/* $(FILESDIR)/
 	$(INSTALL) -c ${.OBJDIR}/rc.d/* $(RCDIR)/

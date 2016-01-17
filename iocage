@@ -30,19 +30,19 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage 1.7.3 (2015/08/13)"
+    echo "iocage DEVELOP (2016-01-14)"
     exit 0
 fi
 
 # Check if the system has ZFS available. That is required for iocage to work properly.
 # Exit if it doesn't.
 if [ "$(zpool list)" = 'no pools available' ] ; then
-    echo "  ERROR: ZFS is required for iocage to work and I can't find any pools available."
+    echo "  ERROR: ZFS is required for iocage to work and I can't find any pools available." >&2
     exit 1
 fi
 
 if [ "$(uname -K)" -lt "903000" ]; then
-    echo "  ERROR: Unsupported RELEASE found. Please upgrade to 9.3-RELEASE or later."
+    echo "  ERROR: Unsupported RELEASE found. Please upgrade to 9.3-RELEASE or later." >&2
     exit 1
 fi
 
@@ -52,7 +52,7 @@ if [ -e "./lib/ioc-common" ] ; then
 elif [ -e "/usr/local/lib/iocage" ] ; then
     LIB="/usr/local/lib/iocage"
 else
-    echo "ERROR: missing libraries"
+    echo "ERROR: missing libraries" >&2
     exit 1
 fi
 
@@ -80,24 +80,25 @@ if [ -z "$1" ] ; then
     exit 0
 fi
 
-if [ "$1" == "help" ] ; then
+if [ "$1" = "-v" ] ; then
+    set -x
+    shift
+fi
+
+if [ "$1" = "help" -o "$1" = "--help" -o "$1" = "-h" ] ; then
     __help
     exit 0
 fi
 
-if ! __readonly_cmd $1 && [ "$(whoami)" != "root" ] ; then
-    echo "* The $1 command needs root credentials!"
+if [ $(__readonly_cmd "$1") != "0" -a "$(whoami)" != "root" ] ; then
+    echo "* The $1 command needs root credentials!" >&2
     exit 1
 fi
-# Did not work when included as an OR below, workaround for that
-if [ "$1" == "deactivate" ] ; then
-    shift
-    __deactivate "$1"
-fi
 
-# work around zpool activation chicken-egg problem
+# Work around zpool activation chicken-egg problem
 # (when activating a pool don't look for an existing one)
-if [ "$1" != "activate" ] ; then
+# Also look for an altroot and if it exists change lib/ioc-globals to that value
+if [ "$1" != "activate" -a "$1" != "deactivate" ] ; then
     __find_mypool
     __check_filesystems
 fi
