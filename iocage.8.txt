@@ -16,7 +16,7 @@ SYNOPSIS
   iocage [-v] export UUID|TAG
   iocage [-v] fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
                     ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
-                    [ ftplocaldir=/dir/ ]
+                    [ ftplocaldir=/dir/ ] [ compression=ALGO ]
   iocage [-v] get [-r] property|all UUID|TAG
   iocage [-v] help
   iocage [-v] import UUID [property=value]
@@ -180,7 +180,7 @@ SUBCOMMANDS
 
   fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
         ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
-        [ ftplocaldir=/dir/ ]
+        [ ftplocaldir=/dir/ ] [ compression=ALGO ]
 
     Used for downloading and updating/patching releases.
 
@@ -199,10 +199,13 @@ SUBCOMMANDS
 
     This example will apply latest patches to 10.1-RELEASE base.
     Newly created jails or basejails will automatically have the latest
-    latest updates applied.
+    updates applied.
 
     Specifying -P,-p or --ports to fetch will have it also fetch a ports tree
     that all basejails will share with that base.
+
+    compression: Compression is lz4 by default; see zfs(8) for the list of
+    compression algorithms available.
 
     ftplocaldir: Specifying ftplocaldir=/dev/ will fetch release tar files from a
     local system directory. This is useful when a user wants to use a custom build

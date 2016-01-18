@@ -491,7 +491,7 @@ __create_jail () {
                 export jail_zfs_dataset="iocage/jails/${uuid}/data"
             fi
 
-            eval "zfs create -u -o compression=lz4 \
+            eval "zfs create -u -o compression=${compression} \
                  -o mountpoint=${_jail_zfs_mountpoint} \
                  -o jailed=on ${_inherit_props} \"${pool}/${jail_zfs_dataset}\""
             __set_jail_prop jail_zfs_dataset="${jail_zfs_dataset}" \

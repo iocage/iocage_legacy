@@ -72,7 +72,7 @@ __set_jail_prop () {
                 ${_jailed_dataset} > \
                 /dev/null 2>&1 ; echo $?)"
             if [ "${_jailed_dataset_check}" != "0" ] ; then
-                zfs create -o compression=lz4 \
+                zfs create -o compression=${compression} \
                     -o mountpoint="${jail_zfs_mountpoint}" \
                     -o jailed=on \
                     ${pool}/${_jailed_dataset}
@@ -440,8 +440,8 @@ __fetch_release () {
     _rel_exist=$(zfs list -H | grep -w ^${pool}/iocage/releases/${_release})
 
     if [ -z "${_rel_exist}" ] ; then
-        zfs create -o compression=lz4 -p ${pool}/iocage/releases/${_release}/root
-        zfs create -o compression=lz4 -p ${pool}/iocage/download/${_release}
+        zfs create -o compression=${compression} -p ${pool}/iocage/releases/${_release}/root
+        zfs create -o compression=${compression} -p ${pool}/iocage/download/${_release}
     fi
 
     if [ -z "${ftpdir}" ] ; then
