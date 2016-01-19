@@ -473,7 +473,7 @@ __check_basejail () {
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
           _pname _prop _isprop _jail_zfs_mountpoint _basedir_list _uuid \
-          _template
+          _template _zfs_dataset
 
     _installed=$(zfs list -rH ${pool}/iocage/releases | grep ${release})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
@@ -647,9 +647,10 @@ __create_jail () {
                 export jail_zfs_dataset="iocage/jails/${uuid}/data"
             fi
 
-            eval "zfs create -u -o compression=${compression} \
-                 -o mountpoint=${_jail_zfs_mountpoint} \
-                 -o jailed=on \"${pool}/${jail_zfs_dataset}\""
+            __setup_jail_zfs_datasets \
+                "${uuid}" "${pool}/iocage/jails/${uuid}" \
+                "${jail_zfs_dataset}" "${jail_zfs_mountpoint}" \
+                -u
             __set_jail_prop jail_zfs_dataset="${jail_zfs_dataset}" \
                 "${uuid}" "${pool}/iocage/jails/${uuid}" # Another hack for this
         # Do they want bpf exposed?
@@ -1532,5 +1533,74 @@ __dump_config () {
         fi
 
         eval __ucl_set "${_mountpoint}" "${_prop}" "${_value}" "1"
+    done
+}
+
+# Add the poolname to ZFS datasets that live under iocage/jails --------------
+__zfs_dataset_add_poolname () {
+    local _dataset _dataset_olen _dataset_nlen
+
+    _dataset="$1"
+    _dataset_olen="${#_dataset}"
+    _dataset="${_dataset#iocage/jails}"
+    _dataset_nlen="${#_dataset}"
+    if [ "${_dataset_olen}" -ne "${_dataset_nlen}" ] ; then
+        echo "${pool}/iocage/jails${_dataset}"
+    else
+        echo "${_dataset}"
+    fi
+}
+
+# Set up ZFS datasets owned by the jail --------------------------------------
+__setup_jail_zfs_datasets () {
+    local _uuid _dataset _jail_zfs_datasets _jail_zfs_mountpoint _create_args
+
+    _uuid="$1"
+    _dataset="$2"
+    _jail_zfs_datasets="$3"
+    _jail_zfs_mountpoint="$4"
+    _create_args="$5"
+
+    if [ -z "${_jail_zfs_datasets}" ] ; then
+        _jail_zfs_datasets="$(__get_jail_prop jail_zfs_dataset \
+            "${_uuid}" "${_dataset}")"
+    fi
+    if [ -z "${_jail_zfs_mountpoint}" ] ; then
+        _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
+            "${_uuid}" "${_dataset}")"
+    fi
+
+    # Check to make sure that jail_zfs_mountpoint is "none" if there are
+    # multiple datasets assigned to the jail
+    if [ "${_jail_zfs_mountpoint}" != "none" ] ; then
+        if [ "$(echo "${_jail_zfs_datasets}" | grep "[ 	]")" ] ; then
+            __info "With multiple ZFS datasets per jail," \
+                "jail_zfs_mountpoint must be set to 'none'."
+
+            # Note that this will not modify any currently set mountpoint
+            # properties for the current jail_zfs_datasets.
+            __set_jail_prop "jail_zfs_mountpoint=none" "${_uuid}" \
+                "${_dataset}"
+
+            _jail_zfs_mountpoint="none"
+        fi
+    fi
+
+    for _zfs_dataset in ${_jail_zfs_datasets} ; do
+
+        _zfs_dataset="$(__zfs_dataset_add_poolname "${_zfs_dataset}")"
+        _zfs_dataset_check="$(zfs get -H creation "${_zfs_dataset}" \
+            > /dev/null 2>&1 ; echo $?)"
+        if [ "${_zfs_dataset_check}" != "0" ] ; then
+            # Only try to create datasets that aren't pre-existing
+            eval "zfs create -o jailed=on -o compression=${compression} \
+                -o \"mountpoint=${_jail_zfs_mountpoint}\" ${_create_args} \
+                \"${_zfs_dataset}\""
+        else
+            # Otherwise, just mark it as jailed and assume that all
+            # other props are set correctly
+            zfs set jailed=on "${_zfs_dataset}"
+        fi
+
     done
 }
