@@ -50,8 +50,8 @@ __set_jail_prop () {
 
     _fulluuid="$(__check_name ${_name})"
 
-    _pname="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    _pval="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _pname=$(__get_prop_name "${_property}")
+    _pval=$(__get_prop_value "${_property}")
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
 
     if [ -z "${_pname}" -o -z "${_pval}" ] ; then
@@ -689,4 +689,14 @@ __get_default_iface() {
     else
         netstat -f inet -nrW | grep '^default' | awk '{ print $6 }'
     fi
+}
+
+# Split a property as specified on the command line into name or value
+__get_prop_name () {
+    echo "${1}" | cut -f1 -d'=' -s
+}
+
+__get_prop_value () {
+    # Preserve '=' in property values
+    echo "${1}" | sed -e 's/^[^=]*=//'
 }
