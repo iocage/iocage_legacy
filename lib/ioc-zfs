@@ -35,7 +35,7 @@ __clean () {
     # Check for any combination of a clean argument + force
     while getopts :arjtf _opt "$@" ; do
         case "${_opt}" in
-            f|--force)
+            f)
                 _force=1
             ;;
         esac
@@ -48,6 +48,8 @@ __clean () {
     # will be set properly by now.
     while getopts :arjtf _opt "$@" ; do
         case "${_opt}" in
+            f) # Needed to avoid not a switch below
+            ;;
             a)
                 __clean_all
             ;;
@@ -65,7 +67,7 @@ __clean () {
         esac
     done
 
-    # Cleanup our commands
+    # Cleanup
     shift $(expr $OPTIND - 1)
 }
 
@@ -199,7 +201,7 @@ __clean_templates () {
 __clean_snapshots () {
     local _snapshots
 
-    _snapshots="$(zfs list -Hrt snapshot -o name ${pool}/iocage)"
+    _snapshots="$(zfs list -Hrt snapshot -o name ${pool}/iocage | grep ioc-)"
     for _snap in $(echo ${_snapshots}) ; do
         zfs destroy -rR ${_snap} > /dev/null 2>&1
     done
