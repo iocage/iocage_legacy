@@ -60,6 +60,8 @@ __clean () {
             t)
                 __clean_templates
             ;;
+            ?)
+                __die "-${OPTARG} is not a valid switch!"
         esac
     done
 
@@ -174,7 +176,7 @@ __clean_templates () {
                         org.freebsd.iocage:host_hostuuid ${_jail_fs})"
 
                 if [ "${_origin}" != "-" ] ; then
-                    echo "  WARNING: ${_uuid} (${_tag}) is a clone."
+                    echo "  WARNING: ${_uuid} (${_tag}) is a clone." >&2
                     _count=$(expr $_count + 1)
                 fi
             done
@@ -840,7 +842,7 @@ __check_children () {
         _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_fs)"
 
         if [ $_origin == "$_dataset" ] ; then
-            __die "jail has dependent clone, uuid: $_uuid ($_tag)"
+            __die "jail has dependent clone, uuid: $_uuid ($_tag)" >&2
         fi
     done
 }
@@ -849,6 +851,7 @@ __check_children () {
 # which base to use.
 __mount_basejail () {
     local _fulluuid _release
+
     _fulluuid="$1"
     _release="$2"
 
@@ -883,12 +886,12 @@ __mount_basejail () {
 __umount_basejail () {
     local _fulluuid="$1"
 
-  # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
-  umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+    # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
+    umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
 
-  for _bdir in ${basedirs} ; do
-      umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
-  done
+    for _bdir in ${basedirs} ; do
+        umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
 }
 
 # Accepts one argument. Which is used as the name for the mount operations
@@ -910,12 +913,12 @@ __mount_template () {
 __umount_template () {
     local _tag="$1"
 
-  # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
-  umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+    # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
+    umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
 
-  for _bdir in ${basedirs} ; do
-      umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
-  done
+    for _bdir in ${basedirs} ; do
+        umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
 }
 
 # Accepts one argument. It uses that argument as the name/UUID.

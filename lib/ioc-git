@@ -188,8 +188,8 @@ __fetch_plugin () {
 
     # Check if user has a custom git location set
     if [ "${_repocheck}" = "iocage" -o "${_repocheck}" = "pbi-cages" ] ; then
-        echo "  WARNING: Pushing will be disabled, please set a custom repo."
-        echo "  You can do this by issuing: iocage set gitlocation=URL default"
+        echo "  WARNING: Pushing will be disabled, please set a custom repo." >&2
+        echo "  You can do this by issuing: iocage set gitlocation=URL default" >&2
         git branch --unset-upstream > /dev/null 2>&1
     fi
 }
@@ -259,8 +259,8 @@ __fetch_plugin_thick () {
         touch ${_jail_path}/fstab
     else
     # Check if user has a custom git location set
-        echo "  WARNING: Pushing will be disabled, please set a custom repo."
-        echo "  You can do this by issuing: iocage set gitlocation=URL default"
+        echo "  WARNING: Pushing will be disabled, please set a custom repo." >&2
+        echo "  You can do this by issuing: iocage set gitlocation=URL default" >&2
         git branch --unset-upstream 1> /dev/null
         touch ${_jail_path}/fstab
     fi
