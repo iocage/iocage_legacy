@@ -206,6 +206,10 @@ __parse_cmd () {
             runtime)    __runtime "$2"
                         exit
                 ;;
+            send)       shift
+                        __send "$@"
+                        exit
+                ;;
             set)        __export_props "$@"
                         shift
                         # Big thanks to john@ix for his huge help with this
