@@ -319,6 +319,9 @@ SUBCOMMANDS
 
     Example: iocage send -i oldpool/iocage@snap1 -i oldpool/iocage@snap2 newpool
 
+    The received pool is not mounted if done locally, but is mounted if done
+    remotely.
+
   set property=value [property=value] UUID|TAG
 
     Set one or more properties to the supplied value.

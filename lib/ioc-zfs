@@ -938,8 +938,8 @@ __unset_inherited () {
 
 __send () {
     local _clean _count _date _dest _exists _exit _incremental _Incremental \
-          _move _opt _pool _remote _remotehost _remoteuser _snapshot _sshtest \
-          _state _switch
+          _mbuffertest _move _opt _pool _remote _remotehost _remoteuser \
+          _snapshot _sshtest _state _switch _zfstest
 
     _date=$(date "+%F")
 
@@ -1072,8 +1072,16 @@ __send () {
     if [ "${_remote}" -eq 1 -a ! -z "${_remotehost}" -a ! -z "${_remoteuser}" ] ; then
         _sshtest="$(ssh -o PreferredAuthentications=publickey \
             ${_remoteuser}@${_remotehost} 'exit' > /dev/null 2>&1 ; echo $?)"
+
         if [ "${_sshtest}" -ne 0 ] ; then
             __die "please set up publickey authentication for ${_remoteuser}@${_remotehost}"
+        fi
+
+        _zfstest="$(ssh ${_remoteuser}@${_remotehost} '/usr/bin/which -s zfs' \
+            ; echo $?)"
+
+        if [ "${_zfstest}" -ne 0 ] ; then
+            __die "zfs is needed on the receiving (${_remotehost} side!)"
         fi
     fi
 
@@ -1123,6 +1131,16 @@ __send () {
         which -s mbuffer # Kudos to @dlangille for mbuffer idea
 
         if [ $? -eq 0 ] ; then
+            _mbuffertest="$(ssh ${_remoteuser}@${_remotehost} \
+                '/usr/bin/which -s mbuffer' \
+                ; echo $?)"
+
+            if [ "${_mbuffertest}" -ne 0 ] ; then
+                printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
+                    ; echo "  ERROR: mbuffer also needed on receiving ${_remotehost} side!" >&2
+                exit 1
+            fi
+
             if [ "${_incremental}" -eq 1 -o "${_Incremental}" -eq 1 ] ; then
                 if [ "${_count}" -lt 2 ] ; then
                     printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
