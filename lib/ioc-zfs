@@ -13,7 +13,7 @@ __activate () {
         echo "pool: ${pool}"
     fi
 
-    exit 0
+    return
 }
 
 __deactivate () {
@@ -24,7 +24,7 @@ __deactivate () {
         zpool set comment=inherit ${_pool}
     fi
 
-    exit 0
+    return
 }
 
 __clean () {
@@ -35,7 +35,7 @@ __clean () {
     # Check for any combination of a clean argument + force
     while getopts :arjtf _opt "$@" ; do
         case "${_opt}" in
-            f|--force)
+            f)
                 _force=1
             ;;
         esac
@@ -48,6 +48,8 @@ __clean () {
     # will be set properly by now.
     while getopts :arjtf _opt "$@" ; do
         case "${_opt}" in
+            f) # Needed to avoid not a switch below
+            ;;
             a)
                 __clean_all
             ;;
@@ -60,10 +62,12 @@ __clean () {
             t)
                 __clean_templates
             ;;
+            ?)
+                __die "-${OPTARG} is not a valid switch!"
         esac
     done
 
-    # Cleanup our commands
+    # Cleanup
     shift $(expr $OPTIND - 1)
 }
 
@@ -174,7 +178,7 @@ __clean_templates () {
                         org.freebsd.iocage:host_hostuuid ${_jail_fs})"
 
                 if [ "${_origin}" != "-" ] ; then
-                    echo "  WARNING: ${_uuid} (${_tag}) is a clone."
+                    echo "  WARNING: ${_uuid} (${_tag}) is a clone." >&2
                     _count=$(expr $_count + 1)
                 fi
             done
@@ -197,7 +201,7 @@ __clean_templates () {
 __clean_snapshots () {
     local _snapshots
 
-    _snapshots="$(zfs list -Hrt snapshot -o name ${pool}/iocage)"
+    _snapshots="$(zfs list -Hrt snapshot -o name ${pool}/iocage | grep ioc-)"
     for _snap in $(echo ${_snapshots}) ; do
         zfs destroy -rR ${_snap} > /dev/null 2>&1
     done
@@ -840,7 +844,7 @@ __check_children () {
         _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_fs)"
 
         if [ $_origin == "$_dataset" ] ; then
-            __die "jail has dependent clone, uuid: $_uuid ($_tag)"
+            __die "jail has dependent clone, uuid: $_uuid ($_tag)" >&2
         fi
     done
 }
@@ -849,6 +853,7 @@ __check_children () {
 # which base to use.
 __mount_basejail () {
     local _fulluuid _release
+
     _fulluuid="$1"
     _release="$2"
 
@@ -883,12 +888,12 @@ __mount_basejail () {
 __umount_basejail () {
     local _fulluuid="$1"
 
-  # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
-  umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+    # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
+    umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
 
-  for _bdir in ${basedirs} ; do
-      umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
-  done
+    for _bdir in ${basedirs} ; do
+        umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
 }
 
 # Accepts one argument. Which is used as the name for the mount operations
@@ -910,12 +915,12 @@ __mount_template () {
 __umount_template () {
     local _tag="$1"
 
-  # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
-  umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+    # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
+    umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
 
-  for _bdir in ${basedirs} ; do
-      umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
-  done
+    for _bdir in ${basedirs} ; do
+        umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
 }
 
 # Accepts one argument. It uses that argument as the name/UUID.
@@ -929,4 +934,285 @@ __unset_inherited () {
     for _p in ${_inherit} ; do
         echo -n "-o ${_p}=\"-\" "
     done
+}
+
+__send () {
+    local _clean _count _date _dest _exists _exit _incremental _Incremental \
+          _mbuffertest _move _opt _pool _remote _remotehost _remoteuser \
+          _snapshot _sshtest _state _switch _zfstest
+
+    _date=$(date "+%F")
+
+    # Hack to be able to see the last argument
+    for _last ; do
+        true
+    done
+
+    _exists="$(zfs get -H -o value creation ${_last} > /dev/null 2>&1 \
+        ; echo $?)"
+
+    if [ "${_exists}" -eq 1 ] ; then
+        __die "please specify a valid pool!" >&2
+    else
+        _dest="${_last}"
+    fi
+
+    # Set up our variables
+    _clean=0
+    _incremental=0
+    _Incremental=0
+    _remote=0
+    _move=0
+    _count=0
+    _state="$(jls -h | grep ioc-)"
+
+    # Check for any combination of a send argument + remote
+    while getopts :ci:I:rmh:u: _opt "$@" ; do
+        case "${_opt}" in
+            r)
+                _remote=1
+            ;;
+        esac
+    done
+
+    # Reset so we can check again
+    OPTIND=1
+
+    # Look for any switches we want
+    while getopts :ci:I:rmh:u: _opt "$@" ; do
+        case "${_opt}" in
+            r) # Needed to avoid not a switch below
+            ;;
+            c)
+                _clean=1
+            ;;
+            i)
+                # We don't want any nasty surprises, warn the user now.
+                if [ "$(echo $OPTARG | grep -q "^-" ; echo $?)" -eq 1 ] ; then
+                    if [ "${_Incremental}" -eq 1 ] ; then
+                        __die "please use either -i or -I, not both!" >&2
+                    fi
+
+                    _incremental=1
+
+                    if [ "${_count}" -gt 0 ] ; then
+                        _snapshot="${_snapshot} ${OPTARG}"
+                    else
+                        _snapshot="i ${OPTARG}"
+                    fi
+
+                    _count=$((_count + 1))
+                else
+                    __die "please specify a snapshot!"
+                fi
+            ;;
+            I)
+                # We don't want any nasty surprises, warn the user now.
+                if [ "$(echo $OPTARG | grep -q "^-" ; echo $?)" -eq 1 ] ; then
+                    if [ "${_incremental}" -eq 1 ] ; then
+                        __die "please use either -i or -I, not both!" >&2
+                    fi
+
+                    _Incremental=1
+
+                    if [ "${_count}" -gt 0 ] ; then
+                        _snapshot="${_snapshot} ${OPTARG}"
+                    else
+                        _snapshot="I ${OPTARG}"
+                    fi
+
+                    _count=$((_count + 1))
+                else
+                    __die "please specify a snapshot!"
+                fi
+            ;;
+            h)
+                # We don't want any nasty surprises, warn the user now.
+                if [ "$(echo $OPTARG | grep -q "^-" ; echo $?)" -eq 1 ] ; then
+                    _remotehost="${OPTARG}"
+                else
+                    __die "please specify a host!"
+                fi
+            ;;
+            u)
+                # We don't want any nasty surprises, warn the user now.
+                if [ "$(echo $OPTARG | grep -q "^-" ; echo $?)" -eq 1 ] ; then
+                    _remoteuser="${OPTARG}"
+                else
+                    __die "please specify a user!"
+                fi
+            ;;
+            m)
+                _move=1
+            ;;
+            ?)
+                __die "-${OPTARG} is not a valid switch!" >&2
+            ;;
+        esac
+    done
+
+    if [ "${_move}" -eq 1 ] ; then
+        if [ ! -z "${_state}" ] ; then
+            __die "please stop all jails before using move!"
+        fi
+    fi
+
+    if [ "${_move}" -eq 1 ] ; then
+        if [ "${_remote}" -eq 1 ] ; then
+            __die "move is only for local operations!"
+        fi
+    fi
+
+    if [ ! -z "${_remotehost}" -o ! -z "${_remoteuser}" ] ; then
+        if [ "${_remote}" -ne 1 ] ; then
+            __die "-r is required to specify a user and host!"
+        fi
+    fi
+
+    if [ "${_remote}" -eq 1 -a ! -z "${_remotehost}" -a ! -z "${_remoteuser}" ] ; then
+        _sshtest="$(ssh -o PreferredAuthentications=publickey \
+            ${_remoteuser}@${_remotehost} 'exit' > /dev/null 2>&1 ; echo $?)"
+
+        if [ "${_sshtest}" -ne 0 ] ; then
+            __die "please set up publickey authentication for ${_remoteuser}@${_remotehost}"
+        fi
+
+        _zfstest="$(ssh ${_remoteuser}@${_remotehost} '/usr/bin/which -s zfs' \
+            ; echo $?)"
+
+        if [ "${_zfstest}" -ne 0 ] ; then
+            __die "zfs is needed on the receiving (${_remotehost} side!)"
+        fi
+    fi
+
+    # Cleanup
+    shift $(expr $OPTIND - 1)
+
+    # __spinner needs to be recreated here as we want one dialog
+    _spinner='/-\|'
+
+    printf "  INFO: sending ${pool}/iocage to ${_dest}/iocage:  "
+
+    while true; do
+        printf '\b%.1s' "${_spinner}"
+        _spinner=${_spinner#?}${_spinner%???}
+        sleep .1
+    done &
+
+    trap "kill $!" 2 3
+    # Clean all snapshots before send
+    if [ "${_clean}" -eq 1 ] ; then
+        if [ "${_incremental}" -eq 1 -o "${_Incremental}" -eq 1 ] ; then
+            printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
+                ; echo "  ERROR: cannot use clean with incrementals!" >&2
+            exit 1
+        fi
+
+        __clean_snapshots > /dev/null 2>&1
+        _pool="${pool}"
+        # Change the global pool variable to the destination
+        # so it can be cleaned of snapshots as well
+        export pool="${_dest}"
+        __clean_snapshots > /dev/null 2>&1
+        export pool="${_pool}"
+    fi
+
+    if [ "${_remote}" -eq 1 ] ; then
+        if [ -z "${_remoteuser}" ] ; then
+            printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
+              ; echo "  ERROR: please specify -u and a user" >&2
+            exit 1
+        elif [ -z "${_remotehost}" ] ; then
+            printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
+                ; echo "  ERROR: please specify -h and a host" >&2
+            exit 1
+        fi
+
+        which -s mbuffer # Kudos to @dlangille for mbuffer idea
+
+        if [ $? -eq 0 ] ; then
+            _mbuffertest="$(ssh ${_remoteuser}@${_remotehost} \
+                '/usr/bin/which -s mbuffer' \
+                ; echo $?)"
+
+            if [ "${_mbuffertest}" -ne 0 ] ; then
+                printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
+                    ; echo "  ERROR: mbuffer also needed on receiving ${_remotehost} side!" >&2
+                exit 1
+            fi
+
+            if [ "${_incremental}" -eq 1 -o "${_Incremental}" -eq 1 ] ; then
+                if [ "${_count}" -lt 2 ] ; then
+                    printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
+                        ; echo "  ERROR: please supply a minimium of 2 snapshots!" >&2
+                    exit 1
+                fi
+
+                zfs send -R${_snapshot} | \
+                    mbuffer -s 128k -m 1G 2> /dev/null | \
+                    ssh ${_remoteuser}@${_remotehost} "mbuffer -s 128k -m 1G | \
+                    zfs receive -F ${_dest}/iocage"
+                _exit="$?"
+            else
+                zfs snapshot -r ${pool}/iocage@ioc-send-${_date} > /dev/null 2>&1
+                zfs send -R ${pool}/iocage@ioc-send-${_date} | \
+                    mbuffer -s 128k -m 1G 2> /dev/null | \
+                    ssh ${_remoteuser}@${_remotehost} "mbuffer -s 128k -m 1G | \
+                    zfs receive -F ${_dest}/iocage"
+                _exit="$?"
+            fi
+        else
+            if [ "${_incremental}" -eq 1 -o "${_Incremental}" -eq 1 ] ; then
+                zfs send -R${_snapshot} | \
+                    ssh ${_remoteuser}@${_remotehost} \
+                    "zfs receive -F ${_dest}/iocage"
+                _exit="$?"
+            else
+                zfs snapshot -r ${pool}/iocage@ioc-send-${_date} > /dev/null 2>&1
+                zfs send -R ${pool}/iocage@ioc-send-${_date} | \
+                    ssh ${_remoteuser}@${_remotehost} \
+                    "zfs receive -F ${_dest}/iocage"
+                _exit="$?"
+            fi
+        fi
+    else
+        if [ "${_incremental}" -eq 1 -o "${_Incremental}" -eq 1 ] ; then
+            if [ "${_count}" -lt 2 ] ; then
+                printf "\b%1s\n" "error!" ; kill $! && trap " " 2 3 \
+                    ; echo "  ERROR: please supply a minimum of 2 snapshots!" >&2
+                exit 1
+            fi
+
+            zfs send -R${_snapshot} | \
+                zfs receive -Fu ${_dest}/iocage
+            _exit="$?"
+        else
+            zfs snapshot -r ${pool}/iocage@ioc-send-${_date} > /dev/null 2>&1
+            zfs send -R ${pool}/iocage@ioc-send-${_date} | \
+                zfs receive -Fu ${_dest}/iocage
+            _exit="$?"
+        fi
+    fi
+
+    # Clean snapshots after send
+    if [ "${_clean}" -eq 1 ] ; then
+        __clean_snapshots > /dev/null 2>&1
+        # Change the global pool variable to the destination
+        # so it can be cleaned of snapshots as well
+        export pool="${_dest}"
+        __clean_snapshots > /dev/null 2>&1
+        export pool="${_pool}"
+    fi
+
+    if [ "${_move}" -eq 1 ] ; then
+        if [ "${_exit}" -eq 0 ] ; then
+            __deactivate "${pool}"
+            __activate "${_dest}"
+            zfs destroy -rf "${pool}/iocage"
+            export pool="${_dest}"
+            zfs mount -a
+        fi
+    fi
+
+    printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
 }

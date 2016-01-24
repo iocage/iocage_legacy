@@ -15,8 +15,8 @@ __export_props () {
 
     if [ "$tag" == 'default' ] && ([ "$1" != 'set' ] || [ "$1" != 'get' ]); then
         tag=$(date "+%F@%T")
-        echo "  WARNING: tag value \"default\" is a reserved keyword"
-        echo "           tag was changed to: $tag"
+        echo "  WARNING: tag value \"default\" is a reserved keyword" >&2
+        echo "           tag was changed to: $tag" >&2
     fi
 }
 
@@ -602,8 +602,8 @@ __link_tag () {
                 ln -s $_mountpoint $iocroot/tags/$_tag
             elif [ -e $iocroot/tags/$_tag ] && [ "$_readlink_mount" != "$_mountpoint" ] ; then
                 echo " "
-                echo "  WARNING: Replacing tag $_tag!"
-                echo "  Renaming $_readlink_tag's tag to $_tag_date."
+                echo "  WARNING: Replacing tag $_tag!" >&2
+                echo "  Renaming $_readlink_tag's tag to $_tag_date." >&2
                 echo " "
                 # Link new tag to jail, and relink old jail to new tag.
                 __set_jail_prop "tag=$_tag_date" "$_readlink_tag"
@@ -639,7 +639,7 @@ __die () {
 
 # Log info to stdout
 __info () {
-    echo "  INFO: $@"
+    echo "  INFO: $@" >&2
 }
 
 # Takes two arguments one is which text gets displayed and the other

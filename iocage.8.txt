@@ -32,6 +32,7 @@ SYNOPSIS
   iocage [-v] restart UUID|TAG
   iocage [-v] rollback UUID|TAG@snapshotname
   iocage [-v] runtime UUID|TAG
+  iocage [-v] send [-c|-i|-I|-h|-u|-m] POOL
   iocage [-v] set property=value [property=value] UUID|TAG
   iocage [-v] snaplist UUID|TAG
   iocage [-v] snapremove UUID|TAG@snapshotname|ALL
@@ -302,6 +303,20 @@ SUBCOMMANDS
   runtime UUID|TAG
 
     Show runtime configuration of a jail. Useful for debugging.
+
+  send [-c|-i|-I|-h|-u|-m] POOL
+
+    Will take a recursive snapshot of the POOL/iocage dataset and send it to
+    the specified pool. Supports remote, incremental and movement operations.
+    Moving (-m) is only available for local operations. Remote (-r) requires a
+    user (-u) and a host (-h) to be specified. It also requires publickey
+    authentication. If using incremental (-i) or Incremental (-I) be sure to
+    supply the flag for each snapshot.
+
+    Example: iocage send -i oldpool/iocage@snap1 -i oldpool/iocage@snap2 newpool
+
+    The received pool is not mounted if done locally, but is mounted if done
+    remotely.
 
   set property=value [property=value] UUID|TAG
 
