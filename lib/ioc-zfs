@@ -424,6 +424,12 @@ __create_jail () {
     zfs create -p ${pool}/iocage/jails/${uuid}/root
     _configured="1"
 
+    # Make sure the jail isn't a empty jail
+    if [ "${2}" = "-e" ] ; then
+        echo ${uuid}
+        return 0
+    fi
+
     # Create all the r/w directories needed
     for _bdir in ${basedirs} ; do
         mkdir -p ${iocroot}/jails/${uuid}/root/${_bdir}
@@ -450,12 +456,6 @@ __create_jail () {
     __snapremove ${uuid}@ALL ${pool}/iocage/jails/${uuid}
 
     touch ${iocroot}/jails/${uuid}/fstab
-
-    # Make sure the jail isn't a empty jail
-    if [ "${2}" = "-e" ] ; then
-        echo ${uuid}
-        return 0
-    fi
 
     # at create time set the default rc.conf
     if [ -e "${iocroot}/jails/${uuid}/root/etc/rc.conf" ] ; then
