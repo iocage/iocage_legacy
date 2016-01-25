@@ -424,6 +424,8 @@ __create_jail () {
     zfs create -p ${pool}/iocage/jails/${uuid}/root
     _configured="1"
 
+    touch ${iocroot}/jails/${uuid}/fstab
+
     # Make sure the jail isn't a empty jail
     if [ "${2}" = "-e" ] ; then
         echo ${uuid}
@@ -454,8 +456,6 @@ __create_jail () {
 
     # remove any residual clone snapshots carried over from the RELEASE datasets
     __snapremove ${uuid}@ALL ${pool}/iocage/jails/${uuid}
-
-    touch ${iocroot}/jails/${uuid}/fstab
 
     # at create time set the default rc.conf
     if [ -e "${iocroot}/jails/${uuid}/root/etc/rc.conf" ] ; then
