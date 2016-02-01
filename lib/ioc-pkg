@@ -5,7 +5,7 @@ __pkg_wrapper () {
 	shift
 	_command="$*"
 
-	_jid=$(jls -h jid host.hostname | grep -w browser | cut -w -f 1)
+	_jid=$(jls -h jid host.hostname | grep -w $_name | cut -w -f 1)
 	if [ -z "$_jid" ]; then
 		echo "  ERROR: $_name not found."
 		exit 1
