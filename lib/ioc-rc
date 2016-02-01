@@ -236,11 +236,7 @@ __start_jail () {
 
     if [ "${_jail_zfs}" = "on" ] ; then
         zfs jail "ioc-${_fulluuid}" "${_jail_zfs_dataset}"
-        zfs set readonly=off "${_dataset}/root"
         jexec ioc-${_fulluuid} zfs mount -a
-        if [ "${_jail_type}" = "basejail" ] ; then
-            zfs set readonly=on "${_dataset}/root"
-        fi
     fi
 
     __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf
