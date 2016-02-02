@@ -303,6 +303,9 @@ __parse_cmd () {
                         __upgrade "$@"
                         exit
                 ;;
+            pkg)        __pkg_wrapper "$@"
+                        exit
+                ;;
             *)          __usage
                         exit
                 ;;
