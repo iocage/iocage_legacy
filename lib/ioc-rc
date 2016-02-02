@@ -19,7 +19,8 @@ __start_jail () {
     _fulluuid="$1"
     _dataset="$2"
 
-    __hack88_mount ${_fulluuid} ${_dataset}
+    # Prepare the mounts and export _fulluuid
+    __hack88_mount ${_fulluuid} ${_dataset} _fulluuid
 
     _exec_start="$(__get_jail_prop exec_start ${_fulluuid} ${_dataset})"
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
@@ -476,9 +477,9 @@ __reboot_jail () {
 __stop_jail () {
     local _fulluuid _dataset _fulluuid_dataset _jail_path _tag \
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
-          _ip4 _jail_type _hack88 _shortuuid _jail_zfs _jail_zfs_dataset \
-          _jail_zfs_dataset_olen _jail_zfs_dataset_nlen _jail_zfs_mountpoint \
-          _jail_zfs_dataset_subsets _jail_zfs_dataset_subset
+          _ip4 _jail_type _jail_zfs _jail_zfs_dataset _jail_zfs_dataset_olen \
+          _jail_zfs_dataset_nlen _jail_zfs_mountpoint \
+          _jail_zfs_dataset_subsets _jail_zfs_dataset_subset _nfulluuid
 
     if [ "$1" = "ALL" ] ; then
         __stop_jail_all
@@ -491,6 +492,9 @@ __stop_jail () {
 
     _fulluuid="$1"
     _dataset="$2"
+
+    # Prepare the mounts and export _nfulluuid
+    __hack88_mount ${_fulluuid} ${_dataset} _nfulluuid
 
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
     _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
@@ -506,8 +510,6 @@ __stop_jail () {
     _vnet="$(__get_jail_prop vnet ${_fulluuid} ${_dataset})"
     _state="$(__is_running ${_fulluuid})"
     _ip4="$(__get_jail_prop ip4 ${_fulluuid} ${_dataset})"
-    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
-    _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
 
     if [ -z "${_state}" ] ; then
         __info "${_fulluuid} (${_tag}) is already down" >&2
@@ -591,17 +593,13 @@ __stop_jail () {
     umount "${_jail_path}/root/compat/linux/proc"   > /dev/null 2>&1
 
     if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-        if [ "${_hack88}" = "1" ] ; then
-            __umount_basejail "${_shortuuid}"
-        else
-            __umount_basejail "${_fulluuid}"
-        fi
+        __umount_basejail "${_nfulluuid}"
     elif [ "${_jail_type}" = "template" ] ; then
         __umount_template "${_tag}"
     fi
 
-    if [ -d "${iocroot}/jails/${_fulluuid}/recorded" ] ; then
-        umount -ft unionfs "${iocroot}/jails/${_fulluuid}/root" > /dev/null 2>&1
+    if [ -d "${iocroot}/jails/${_nfulluuid}/recorded" ] ; then
+        umount -ft unionfs "${iocroot}/jails/${_nfulluuid}/root" > /dev/null 2>&1
     fi
     if [ ! -z $(sysctl -qn kern.features.rctl) ] ; then
         if [ "$(sysctl -qn kern.racct.enable)" = "1" ] ; then

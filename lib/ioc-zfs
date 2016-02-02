@@ -346,7 +346,7 @@ __check_basejail () {
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
           _pname _prop _isprop _inherit_props _jail_zfs_mountpoint \
-          _basedir_list
+          _basedir_list _uuid
 
     _installed=$(zfs list -rH ${pool}/iocage/releases | grep ${release})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
@@ -510,7 +510,8 @@ __create_jail () {
     done
 
     # configure the jail mountpoint
-    __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid}
+    # Supplying _uuid again so since we need to use that for mounting/unmounting
+    __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid} _uuid
 
     # Install extra packages
     # this requires working resolv.conf in jail
@@ -531,14 +532,16 @@ __create_jail () {
             etcupdate build /etcupdate/etcupdate-${release}.tbz
         umount ${iocroot}/releases/${release}/root/dev
     fi
-    mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
-    __mount_basejail "${uuid}" "${release}"
-    mkdir -p ${iocroot}/jails/${uuid}/root/var/db/etcupdate
-    chroot ${iocroot}/jails/${uuid}/root etcupdate \
+
+    # Goop to get basejails and the etcupdate ready to go
+    mount -t devfs devfs ${iocroot}/jails/${_uuid}/root/dev
+    __mount_basejail "${_uuid}" "${release}"
+    mkdir -p ${iocroot}/jails/${_uuid}/root/var/db/etcupdate
+    chroot ${iocroot}/jails/${_uuid}/root etcupdate \
         extract -t /etcupdate/etcupdate-${release}.tbz
-    umount ${iocroot}/jails/${uuid}/root/dev
-    umount ${iocroot}/jails/${uuid}/root/tmp
-    __umount_basejail "${uuid}" > /dev/null 2>&1
+    umount ${iocroot}/jails/${_uuid}/root/dev
+    umount ${iocroot}/jails/${_uuid}/root/tmp
+    __umount_basejail "${_uuid}" > /dev/null 2>&1
 
     echo "  Successfully created: ${uuid} (${tag})"
 

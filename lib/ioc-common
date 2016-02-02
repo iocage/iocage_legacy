@@ -229,6 +229,12 @@ __set_jail_prop () {
                 __die "please set istemplate=no instead."
             fi
             ;;
+        hack88)
+            _state="$(__is_running ${_fulluuid})"
+
+            if [ ! -z "${_state}" ] ; then
+                __die " jail is running! please stop it before changing hack88."
+            fi
         esac
 
     if [ "${_type}" = "custom" ] ; then
