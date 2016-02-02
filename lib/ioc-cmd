@@ -247,8 +247,8 @@ __parse_cmd () {
                             while [ "${_j}" -lt "${_nprops}" ] ; do
                                 _var=\$$(printf "_prop_${_j}")
                                 _prop=$(eval "echo ${_var}")
-                                _pname=$(echo "${_prop}" | cut -f1 -d'=' -s)
-                                _pval=$(echo "${_prop}" | cut -f2 -d'=' -s)
+                                _pname=$(__get_prop_name "${_prop}")
+                                _pval=$(__get_prop_value "${_prop}")
 
                                 __set_jail_prop "${_pname}=${_pval}" \
                                     "${_fulluuid}"
