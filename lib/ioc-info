@@ -97,7 +97,7 @@ __find_jail () {
 
 __list_jails () {
     local _jails _switch _all_jids _ioc_jids _non_ioc_jids _releases \
-          _temp_loop_var _state
+          _temp_loop_var _state _ip4 _ioc_jailbody _sortby
     _switch=$1
     _all_jids=$(jls -N -h jid | grep -v -x jid )
 
@@ -116,7 +116,7 @@ __list_jails () {
         exit 0
     fi
 
-    if [ ! -z "${_switch}" -a "${_switch}" != "-t" ] ; then
+    if [ ! -z "${_switch}" -a "${_switch}" != "-t" -a "${_switch}" != "-s" ] ; then
         __die "invalid switch ${_switch}"
     fi
 
@@ -131,50 +131,104 @@ __list_jails () {
             awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
     fi
 
+    _sortby=""
+    # if the -s switch is given then grab what column to sort on
+    if [ "${_switch}" = "-s" ]; then
+        # convert sortby to lowercase
+        _sortby=$(echo $2 | tr '[:upper:]' '[:lower:]')
+
+        # if the user specified the -s switch and nothing to sort on,
+        # then default to jid
+        if [ -z "${_sortby}" ]; then
+            _sortby="jid"
+        fi
+    fi
+
+    # initialise the jailbody variable as blank
+    _ioc_jailbody=''
+
+    # For every jail we need to get the property
+    for _jail in ${_jails} ; do
+        _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
+              ${_jail} 2> /dev/null)
+        _boot=$(zfs get -H -o value org.freebsd.iocage:boot \
+              ${_jail} 2> /dev/null)
+        _tag=$(zfs get -H -o value org.freebsd.iocage:tag \
+             ${_jail} 2> /dev/null)
+        _template=$(zfs get -H -o value org.freebsd.iocage:istemplate \
+                  ${_jail} 2> /dev/null)
+        _type="$(zfs get -H -o value org.freebsd.iocage:type \
+              ${_jail} 2> /dev/null)"
+        # get jid for iocage jails
+        _jid=$(jls -j ioc-${_uuid} jid 2> /dev/null)
+
+        if [ -z "${_jid}" ] ; then
+            _jid="-"
+            _ip4="-"
+        else 
+            # get the ipv4 address for this jid
+            _ip4=$(jls -j ${_jid} -h ip4.addr | grep -v -x "ip4.addr")
+        fi
+
+        if [ -z "${_uuid}" ] ; then
+            break
+        fi
+
+        _ioc_jids=${_ioc_jids}" "${_jid}
+
+        if [ "${_jid}" == '-' ] ; then
+            _state=down
+        else
+            _state=up
+        fi
+
+        if [ -z "${_switch}" ] ; then
+            _switch=zero
+        fi
+
+        # echo the lines together
+        _ioc_jailbody=$( echo "${_ioc_jailbody}" ; 
+                      printf "%s^%s^%s^%s^%s^%s^%s\n" \
+                      "${_jid}" "${_uuid}" "${_boot}" "${_state}" "${_tag}" \
+                      "${_type}" "${_ip4}" )
+    done
+
+    # if the user wanted to sort, then sort on the relevant column
+    case "${_sortby}" in
+        jid) 
+            _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -n -k 1 )
+        ;;
+        uuid) 
+            _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 2 )
+        ;;
+        boot) 
+            _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 3 )
+        ;;
+        state) 
+            _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 4 )
+        ;;
+        tag) 
+            _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 5 )
+        ;;
+        type) 
+            _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 6 )
+        ;;
+        ip4) 
+            _ioc_jailbody=$( echo "${_ioc_jailbody}" | \
+                          awk -F "^" '{print $7 " % " $0}' | \
+                          sort -t. -n -k1,1 -k2,2 -k3,3 -k4,4 | sed 's/[^%]*% //' )
+        ;;
+    esac
+
     # Setup the column names, this is all piped to column to deal with long TAGs
     # nicely. Kudos to @freqlabs for the idea
     {
-        printf "%s^%s^%s^%s^%s^%s\n" \
-            "JID" "UUID" "BOOT" "STATE" "TAG" "TYPE"
-
-        # For every jail we need to get the property
-        for _jail in ${_jails} ; do
-            _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
-                  ${_jail} 2> /dev/null)
-            _boot=$(zfs get -H -o value org.freebsd.iocage:boot \
-                  ${_jail} 2> /dev/null)
-            _tag=$(zfs get -H -o value org.freebsd.iocage:tag \
-                  ${_jail} 2> /dev/null)
-            _template=$(zfs get -H -o value org.freebsd.iocage:istemplate \
-                      ${_jail} 2> /dev/null)
-            _type="$(zfs get -H -o value org.freebsd.iocage:type \
-                   ${_jail} 2> /dev/null)"
-            # get jid for iocage jails
-            _jid=$(jls -j ioc-${_uuid} jid 2> /dev/null)
-
-            if [ -z "${_jid}" ] ; then
-                _jid="-"
-            fi
-
-            if [ -z "${_uuid}" ] ; then
-                break
-            fi
-
-            _ioc_jids=${_ioc_jids}" "${_jid}
-
-            if [ "${_jid}" == '-' ] ; then
-                _state=down
-            else
-                _state=up
-            fi
-
-            if [ -z "${_switch}" ] ; then
-                _switch=zero
-            fi
-
-            printf "%s^%s^%s^%s^%s^%s\n" "${_jid}" \
-                   "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
-        done
+        # print out the ioc jails head
+        printf "%s^%s^%s^%s^%s^%s^%s\n" \
+               "JID" "UUID" "BOOT" "STATE" "TAG" "TYPE" "IP4" 
+        # and full ioc jails body, already sorted if requested
+        echo "${_ioc_jailbody}"
+        
         # create list of active jids not registered in iocage
         for _all_jail in ${_all_jids} ; do
             for _ioc_jail in ${_ioc_jids} ; do

@@ -23,7 +23,7 @@ SYNOPSIS
   iocage [-v] init-host IP ZPOOL
   iocage [-v] inuse UUID|TAG
   iocage [-v] limits [UUID|TAG]
-  iocage [-v] list [-t|-r]
+  iocage [-v] list [-t|-r|-s jid|uuid|boot|state|tag|type|ip4]
   iocage [-v] promote UUID|TAG
   iocage [-v] rcboot
   iocage [-v] reboot UUID|TAG
