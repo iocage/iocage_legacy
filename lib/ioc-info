@@ -449,6 +449,10 @@ __get_jail_prop () {
             _value="$(zfs get -H -o value $prop $_dataset)"
             echo "$_value"
             break
+        elif [ $_property == "all" ] ; then
+            _found=1
+            _value="$(zfs get -H -o value $prop $_dataset)"
+            echo "$prop:$_value"
         fi
     done
 
