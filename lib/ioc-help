@@ -26,6 +26,7 @@ SYNOPSIS
   iocage [-v] import UUID [property=value]
   iocage [-v] init-host IP ZPOOL
   iocage [-v] inuse UUID|TAG
+  iocage [-v] pkg TAG pkg_cmd
   iocage [-v] limits [UUID|TAG]
   iocage [-v] list [-t|-r|-s jid|uuid|boot|state|tag|type|ip4]
   iocage [-v] promote UUID|TAG
@@ -249,6 +250,11 @@ SUBCOMMANDS
 
     Display consumed resources for a jail. Without UUID or TAG dump all
     resources for all running jails in a comma delimited form.
+
+  pkg TAG pkg_cmd
+
+    A convinience wrapper for pkg to manage your jails. Converts the given tag
+    to the JID of a running jail and executes `pkg -j JID pkg_cmd`.
 
   limits [UUID|TAG]
 
