@@ -30,7 +30,7 @@ unset LANG
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
 if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage DEVELOP (2016-02-02)"
+    echo "iocage DEVELOP (2016-02-03)"
     exit 0
 fi
 
@@ -74,7 +74,6 @@ fi
 . "${LIB}/ioc-configure"
 . "${LIB}/ioc-hacks"
 . "${LIB}/ioc-git"
-. "${LIB}/ioc-pkg"
 
 if [ -z "$1" ] ; then
     __usage
