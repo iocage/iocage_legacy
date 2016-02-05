@@ -40,8 +40,10 @@ SYNOPSIS
   iocage [-v] send [-c|-i|-I|-h|-u|-m] POOL
   iocage [-v] set property=value [property=value] UUID|TAG
   iocage [-v] snaplist UUID|TAG
+  iocage [-v] snapmount UUID|TAG@snapshotname DESTINATION
   iocage [-v] snapremove UUID|TAG@snapshotname|ALL
   iocage [-v] snapshot|snap [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
+  iocage [-v] snapumount UUID|TAG@snapshotname
   iocage [-v] start [-f] UUID|TAG
   iocage [-v] stop UUID|TAG|ALL
   iocage [-v] uncap UUID|TAG
@@ -348,6 +350,10 @@ SUBCOMMANDS
         RSIZE   - referenced size
         USED    - used space
 
+  snapmount UUID|TAG@snapshotname DESTINATION
+
+    This will mount the specified jail's snapshot on the location given.
+
   snapremove UUID|TAG@snapshotname|ALL
 
     Destroy specified jail snapshot. If the keyword ALL is specified all
@@ -365,6 +371,10 @@ SUBCOMMANDS
     other flag like -r.
 
     Example: iocage snapshot -f -r JAIL
+
+  snapumount UUID|TAG@snapshotname
+
+    Will unmount the specified jail's snapshot.
 
   start [-f] UUID|TAG
 

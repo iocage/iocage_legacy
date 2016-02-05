@@ -262,6 +262,9 @@ __parse_cmd () {
             snaplist)   __snaplist "$2"
                         exit
                 ;;
+            snapmount)  __mount_snapshot "$2" "$3"
+                        exit
+                ;;
             snapremove) __snapremove "$2"
                         exit
                 ;;
@@ -271,6 +274,9 @@ __parse_cmd () {
                         fi
 
                         __snapshot "$2" "$3"
+                        exit
+                ;;
+            snapumount) __umount_snapshot "$2"
                         exit
                 ;;
             start)      if [ "$2" = "-f" ] ; then

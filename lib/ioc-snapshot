@@ -196,3 +196,76 @@ __promote () {
         fi
     done
 }
+
+__mount_snapshot () {
+    local _name _snapshot _destination _fulluuid_dataset _fulluuid \
+          _dataset _snapcheck
+
+    _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+    _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    _destination="$2"
+    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
+    set ${_fulluuid_dataset}
+    _fulluuid="$1"
+    _dataset="$2"
+
+    if [ -z "${_snapshot}" ] ; then
+        __die "missing snapshot!"
+    elif [ -z "${_destination}" ] ; then
+        __die "missing destination!"
+    elif [ ! -d "${_destination}" ] ; then
+        __die "destination does not exist!"
+    fi
+
+    # Quick way for us to see if we should use UUID or UUID/root.
+    _snapcheck="$(zfs list -Hrt snapshot -d2 ${_dataset})"
+
+    for _snap in $_snapcheck ; do
+        if [ "$(echo ${_snap} | grep -w ${_dataset}@${_snapshot})" ] ; then
+            mount -t zfs ${_dataset}@${_snapshot} ${_destination}
+            mount -t zfs ${_dataset}/root@${_snapshot} ${_destination}/root
+            break
+        elif [ "$(echo ${_snap} | grep -w ${_dataset}/root@${_snapshot})" ] ; then
+            mount -t zfs ${_dataset}/root@${_snapshot} ${_destination}
+            break
+        fi
+    done
+}
+
+# This has an annoying quirk of not handling a shared mount. It will work
+# If you umount in the reverse order you mounted, otherwise it's all random.
+# TODO : Improve some day.
+__umount_snapshot () {
+    local _name _snapshot _fulluuid_dataset _fulluuid _dataset _mountcheck \
+          _fullsnap
+
+    _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+    _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
+    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
+    set ${_fulluuid_dataset}
+    _fulluuid="$1"
+    _dataset="$2"
+    _fullsnap="${_dataset}@${_snapshot}"
+
+    if [ -z "${_snapshot}" ] ; then
+        __die "missing snapshot!"
+    fi
+
+    # Quick way for us to see if we should use UUID or UUID/root.
+    _mountcheck=$(mount -t zfs | \
+        awk -v awk_snap="${_fullsnap}" '$1==awk_snap {print $3}')
+
+    if [ ! -z "${_mountcheck}" ] ; then
+        umount -ft zfs "${_mountcheck}/root" > /dev/null 2>&1
+        umount -ft zfs "${_mountcheck}" > /dev/null 2>&1
+    elif [ -z "${_mountcheck}" ] ; then
+        _fullsnap="${_dataset}/root@${_snapshot}"
+        _mountcheck=$(mount -t zfs | \
+            awk -v awk_snap="${_fullsnap}" '$1==awk_snap {print $3}')
+        umount -ft zfs "${_mountcheck}" > /dev/null 2>&1
+    fi
+
+    if [ -z "${_mountcheck}" ] ; then
+        __die "that snapshot isn't mounted!"
+    fi
+}
