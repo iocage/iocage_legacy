@@ -74,10 +74,10 @@ Start the jail:
 ```
   iocage [-v] activate ZPOOL
   iocage [-v] cap UUID|TAG
-  iocage [-v] clean [-a|-b|-j]
+  iocage [-v] clean [-f] [-a|-r|-j|-t]
   iocage [-v] clone UUID|TAG [UUID|TAG@snapshot] [property=value]
-  iocage [-v] console UUID|TAG
-  iocage [-v] create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value] [count=value]
+  iocage [-v] console [-f] UUID|TAG
+  iocage [-v] create [-e] [release=[RELEASE|NAME]] [pkglist=file] [property=value] [count=value]
   iocage [-v] deactivate ZPOOL
   iocage [-v] defaults
   iocage [-v] destroy [-f] UUID|TAG
@@ -86,13 +86,15 @@ Start the jail:
   iocage [-v] export UUID|TAG
   iocage [-v] fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
                     ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
+                    [ ftplocaldir=/dir/ ] [ compression=ALGO ]
   iocage [-v] get [-r] property|all UUID|TAG
   iocage [-v] help
   iocage [-v] import UUID [property=value]
   iocage [-v] init-host IP ZPOOL
   iocage [-v] inuse UUID|TAG
+  iocage [-v] pkg TAG pkg_cmd
   iocage [-v] limits [UUID|TAG]
-  iocage [-v] list [-b|-t|-r]
+  iocage [-v] list [-t|-r|-s jid|uuid|boot|state|tag|type|ip4]
   iocage [-v] promote UUID|TAG
   iocage [-v] rcboot
   iocage [-v] reboot UUID|TAG
@@ -101,11 +103,12 @@ Start the jail:
   iocage [-v] restart UUID|TAG
   iocage [-v] rollback UUID|TAG@snapshotname
   iocage [-v] runtime UUID|TAG
+  iocage [-v] send [-c|-i|-I|-h|-u|-m] POOL
   iocage [-v] set property=value [property=value] UUID|TAG
   iocage [-v] snaplist UUID|TAG
   iocage [-v] snapremove UUID|TAG@snapshotname|ALL
-  iocage [-v] snapshot [-r] UUID|TAG [UUID|TAG@snapshotname]
-  iocage [-v] start UUID|TAG
+  iocage [-v] snapshot|snap [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
+  iocage [-v] start [-f] UUID|TAG
   iocage [-v] stop UUID|TAG|ALL
   iocage [-v] uncap UUID|TAG
   iocage [-v] update UUID|TAG

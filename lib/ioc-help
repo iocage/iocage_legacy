@@ -11,7 +11,7 @@ SYNOPSIS
   iocage [-v] clean [-f] [-a|-r|-j|-t]
   iocage [-v] clone UUID|TAG [UUID|TAG@snapshot] [property=value]
   iocage [-v] console [-f] UUID|TAG
-  iocage [-v] create [-e] [base=[RELEASE|NAME]] [pkglist=file] [property=value] [count=value]
+  iocage [-v] create [-e] [release=[RELEASE|NAME]] [pkglist=file] [property=value] [count=value]
   iocage [-v] deactivate ZPOOL
   iocage [-v] defaults
   iocage [-v] destroy [-f] UUID|TAG
