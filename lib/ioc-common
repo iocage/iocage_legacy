@@ -130,7 +130,7 @@ __set_jail_prop () {
                     | awk '/root/ && !/releases/')"
 
                 if [ ! -z "${_state}" ] ; then
-                    __die "cannot make ${_name} a template - jail is running!"
+                    __die "cannot make ${_tag} a template - jail is running!"
                 fi
 
                 __unlink_tag "${_dataset}"
@@ -139,6 +139,7 @@ __set_jail_prop () {
                     ${_dataset})"
 
                 zfs set org.freebsd.iocage:type="template" "${_dataset}"
+
                 if [ -d "${iocroot}/jails/${_fulluuid}" ] ; then
                     # __spinner needs to be recreated here as we use
                     # multiple commands
@@ -159,13 +160,13 @@ __set_jail_prop () {
                         _dataset="${pool}/iocage/templates/${_tag}"
                         printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
                 else
-                    __die "${_name} is already a template"
+                    __die "${_tag} is already a template"
                 fi
             elif [ "${_pval}" = "no" ] ; then
                 _template_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
                 _release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
                 _jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage | \
-                                awk '/root/ && !/releases/')"
+                    awk '/root/ && !/releases/')"
 
                 for _fs in ${_jail_datasets} ; do
                     _jail_fs="$(echo ${_fs} | sed -e 's#/root##g')"
@@ -188,22 +189,40 @@ __set_jail_prop () {
                 fi
 
                 zfs set org.freebsd.iocage:type="basejail" "${_dataset}"
-                # Have to manually specify this for later, as it will still be
-                # the old /iocage/templates location
-                _dataset="${pool}/iocage/jails/${_fulluuid}"
 
                 if [ -d "${iocroot}/templates/${_template_tag}" ] ; then
-                    # Move jail back to the jails dataset
-                    zfs rename -f "${pool}/iocage/templates/${_template_tag}" \
-                                  "${pool}/iocage/jails/${_fulluuid}"
-                    # Updating the jail tag
-                    __link_tag "${_dataset}"
-                    # Throw jail through the checking process and unmount
-                    # what remains.
-                    __check_basejail "${_fulluuid}" "${_dataset}" > /dev/null 2>&1
-                    __umount_basejail "${_fulluuid}" "${_dataset}" > /dev/null 2>&1
+                    # __spinner needs to be recreated here as we use
+                    # multiple commands
+                    _spinner='/-\|'
+                    printf "  INFO: converting ${_template_tag} to a jail:  "
+
+                    while true; do
+                        printf '\b%.1s' "${_spinner}"
+                        _spinner=${_spinner#?}${_spinner%???}
+                        sleep .1
+                        done &
+
+                        trap "kill $!" 2 3
+
+                        # Have to manually specify this for later, as it will still be
+                        # the old /iocage/templates location
+                        _dataset="${pool}/iocage/jails/${_fulluuid}"
+
+                        # Move jail back to the jails dataset
+                        zfs rename -f "${pool}/iocage/templates/${_template_tag}" \
+                            "${pool}/iocage/jails/${_fulluuid}"
+                        # Updating the jail tag
+                        __link_tag "${_dataset}"
+                        # Throw jail through the checking process and unmount
+                        # what remains.
+                        __check_basejail "${_fulluuid}" "${_dataset}" \
+                            > /dev/null 2>&1
+                        __umount_basejail "${_fulluuid}" "${_dataset}" \
+                            > /dev/null 2>&1
+
+                        printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
                 else
-                    __die "${_template_tag} is not a template"
+                    __die "${_template_tag} is already a jail"
                 fi
             fi
             ;;
