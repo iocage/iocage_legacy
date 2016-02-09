@@ -948,10 +948,11 @@ PROPERTIES
     Default: date@time
     Source: local
 
-  template=yes | no
+  istemplate=yes | no
 
     This property controls whether the jail is a template. Templates are not
-    started by iocage. Set to yes if you intend to convert jail into template.
+    started by iocage. Set to yes if you wish to convert the jail into
+    a template.
     (See EXAMPLES section)
 
     Default: no

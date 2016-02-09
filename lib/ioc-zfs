@@ -439,6 +439,10 @@ __create_jail () {
 
     for _bdir in ${_basedir_list} ; do
         mkdir -p ${iocroot}/jails/${uuid}/root/${_bdir}
+
+        if [ "${_bdir}" = "tmp" ] ; then
+            chmod 1777 ${iocroot}/jails/${uuid}/root/tmp
+        fi
     done
 
     # We need the base's /etc and /root
