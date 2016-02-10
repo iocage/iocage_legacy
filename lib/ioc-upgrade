@@ -201,8 +201,8 @@ __update () {
 }
 
 __upgrade () {
-    local _name _release _fulluuid _jail_type _mountpoint _date _oldrelease \
-          _resolv _origin _date _etcsuccess
+    local _name _release _fulluuid _jails _jail_type _mountpoint _date \
+          _oldrelease _resolv _origin _date _etcsuccess
 
     _name="$1"
     _release="$(uname -r|cut -f 1,2 -d'-'|sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
@@ -238,7 +238,7 @@ __upgrade () {
         _jails=$(__find_jail ALL | \
             awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
         # Check to see if the jail has a stale upgrade snapshot.
-        for _fs in ${_jail_datasets} ; do
+        for _fs in ${_jails} ; do
             _snapcheck="$(zfs list -Ht snap | \
                      grep -E "${_fulluuid}.*ioc-upgrade" | \
                      awk '{print $1}')"
@@ -251,11 +251,12 @@ __upgrade () {
         done
 
         zfs set org.freebsd.iocage:release="${_release}" ${_dataset}
-        __check_basejail ${_fulluuid}
+        __check_basejail ${_fulluuid} > /dev/null 2>&1
         cp -Rp ${_mountpoint}/root/etc \
                ${_mountpoint}/etc.old
         zfs snapshot ${_dataset}/root@ioc-upgrade_${_date}
         chroot ${_mountpoint}/root etcupdate -F
+        chroot ${_mountpoint}/root etcupdate resolve
         _etcsuccess="$?"
 
         if [ -d ${_mountpoint}/root/var/spool/mqueue ] ; then

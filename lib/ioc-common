@@ -422,11 +422,12 @@ __cleanup_release_dir () {
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
     local _rel_exist _release _host_release _non_interactive _dist _ports \
-          _ports_string
+          _ports_string _grepmatch
 
     _release=$(uname -r|cut -f 1,2 -d'-')
     # Needed to check for PC-BSD import
     _host_release=$(uname -r|cut -f 1,2 -d'-')
+    _grepmatch='STABLE$|PRERELEASE$|CURRENT$|BETA$'
 
     for _args in "$@" ; do
         case "${_args}" in
@@ -462,6 +463,7 @@ __fetch_release () {
     fi
 
 
+
     _rel_exist=$(zfs list -H | grep -w ^${pool}/iocage/releases/${_release})
 
     if [ -z "${_rel_exist}" ] ; then
@@ -470,7 +472,12 @@ __fetch_release () {
     fi
 
     if [ -z "${ftpdir}" ] ; then
-        ftpdir="/pub/FreeBSD/releases/amd64/${_release}"
+        # Everything but RELEASE is stored here
+        if [ "$(echo ${_release} | grep -E ${_grepmatch})" ] ; then
+            ftpdir="/pub/FreeBSD/snapshots/amd64/${_release}"
+        else
+            ftpdir="/pub/FreeBSD/releases/amd64/${_release}"
+        fi
     fi
 
     if [ -e "/usr/local/tmp/iocage-dist" -a "${_release}" = "${_host_release}" ] ; then

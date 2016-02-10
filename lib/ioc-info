@@ -2,12 +2,15 @@
 
 # Print supported releases----------------------------------
 __print_release () {
-    supported="10.2-RELEASE
-                9.3-RELEASE"
+    supported="11.0-CURRENT
+               10.3-PRERELEASE
+               10.2-RELEASE
+               9.3-RELEASE"
 
     echo "Supported releases are: "
     for rel in $(echo $supported) ; do
-        printf "%15s\n" "$rel"
+        # hack to get printf to both left adjust and have spaces.
+        printf "%1s %-s \n" "" "$rel"
     done
 }
 
@@ -97,11 +100,12 @@ __find_jail () {
 
 __list_jails () {
     local _jails _switch _all_jids _ioc_jids _non_ioc_jids _releases \
-          _temp_loop_var _state _ip4 _ioc_jailbody _sortby
+          _temp_loop_var _state _ip4 _ioc_jailbody _sortby _grepmatch
     _switch=$1
     _all_jids=$(jls -N -h jid | grep -v -x jid )
+    _grepmatch='RELEASE$|STABLE$|PRERELEASE$|CURRENT$|BETA$'
 
-    if [ ! -z "${_switch}" -a "${_switch}" == "--warden" ] ; then
+    if [ ! -z "${_switch}" -a "${_switch}" = "--warden" ] ; then
         __list_jails_warden
         exit 0
     fi
@@ -109,9 +113,10 @@ __list_jails () {
     if [ ! -z "${_switch}" -a "${_switch}" = "-r" ] ; then
         echo "Downloaded releases:"
         _releases="$(zfs list -o name -Hr ${pool}/iocage/releases \
-                   | grep RELEASE$ | cut -d \/ -f 4)"
+                   | grep -E ${_grepmatch} | cut -d \/ -f 4)"
         for _rel in $(echo ${_releases}) ; do
-            printf "%15s\n" "${_rel}"
+            # hack to get printf to both left adjust and have spaces.
+            printf "%1s %-s \n" "" "${_rel}"
         done
         exit 0
     fi
@@ -165,7 +170,7 @@ __list_jails () {
         if [ -z "${_jid}" ] ; then
             _jid="-"
             _ip4="-"
-        else 
+        else
             # get the ipv4 address for this jid
             _ip4=$(jls -j ${_jid} -h ip4.addr | grep -v -x "ip4.addr")
         fi
@@ -187,7 +192,7 @@ __list_jails () {
         fi
 
         # echo the lines together
-        _ioc_jailbody=$( echo "${_ioc_jailbody}" ; 
+        _ioc_jailbody=$( echo "${_ioc_jailbody}" ;
                       printf "%s^%s^%s^%s^%s^%s^%s\n" \
                       "${_jid}" "${_uuid}" "${_boot}" "${_state}" "${_tag}" \
                       "${_type}" "${_ip4}" )
@@ -195,25 +200,25 @@ __list_jails () {
 
     # if the user wanted to sort, then sort on the relevant column
     case "${_sortby}" in
-        jid) 
+        jid)
             _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -n -k 1 )
         ;;
-        uuid) 
+        uuid)
             _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 2 )
         ;;
-        boot) 
+        boot)
             _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 3 )
         ;;
-        state) 
+        state)
             _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 4 )
         ;;
-        tag) 
+        tag)
             _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 5 )
         ;;
-        type) 
+        type)
             _ioc_jailbody=$( echo "${_ioc_jailbody}" | sort -t^ -k 6 )
         ;;
-        ip4) 
+        ip4)
             _ioc_jailbody=$( echo "${_ioc_jailbody}" | \
                           awk -F "^" '{print $7 " % " $0}' | \
                           sort -t. -n -k1,1 -k2,2 -k3,3 -k4,4 | sed 's/[^%]*% //' )
@@ -225,10 +230,10 @@ __list_jails () {
     {
         # print out the ioc jails head
         printf "%s^%s^%s^%s^%s^%s^%s\n" \
-               "JID" "UUID" "BOOT" "STATE" "TAG" "TYPE" "IP4" 
+               "JID" "UUID" "BOOT" "STATE" "TAG" "TYPE" "IP4"
         # and full ioc jails body, already sorted if requested
         echo "${_ioc_jailbody}"
-        
+
         # create list of active jids not registered in iocage
         for _all_jail in ${_all_jids} ; do
             for _ioc_jail in ${_ioc_jids} ; do
