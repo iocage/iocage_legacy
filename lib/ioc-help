@@ -1449,10 +1449,6 @@ __help () {
 __usage () {
     echo 'usage:'
     __help_text | awk '/SYNOPSIS/{copy=1;next};/DESCRIPTION/{exit;};copy'
-    echo '  Hint:  you can use shortened UUIDs or TAGs interchangeably!'
-    echo
-    echo '  e.g. for  adae47cb-01a8-11e4-aa78-3c970ea3222f'
-    echo '       use  adae47cb or just adae'
 }
 
 __show () {
