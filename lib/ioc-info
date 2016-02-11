@@ -62,6 +62,9 @@ __find_jail () {
     local _name _jlist _jail _tag _found
     _name="$1"
 
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
+        | grep -Ev "jails$|releases|templates$|download|${pool}/iocage$|*./root")"
+
     if [ "${_name}" = "ALL" ] ; then
         for _jail in ${jail_datasets} ; do
             echo ${_jail}
