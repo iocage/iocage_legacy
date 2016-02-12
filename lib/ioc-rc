@@ -485,7 +485,8 @@ __stop_jail () {
           _exec_prestop _exec_stop _exec_poststop _vnet _state \
           _ip4 _jail_type _jail_zfs _jail_zfs_dataset _jail_zfs_dataset_olen \
           _jail_zfs_dataset_nlen _jail_zfs_mountpoint \
-          _jail_zfs_dataset_subsets _jail_zfs_dataset_subset _nfulluuid
+          _jail_zfs_dataset_subsets _jail_zfs_dataset_subset _nfulluuid \
+          _template
 
     if [ "$1" = "ALL" ] ; then
         __stop_jail_all
@@ -516,6 +517,7 @@ __stop_jail () {
     _vnet="$(__get_jail_prop vnet ${_fulluuid} ${_dataset})"
     _state="$(__is_running ${_fulluuid})"
     _ip4="$(__get_jail_prop ip4 ${_fulluuid} ${_dataset})"
+    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
 
     if [ -z "${_state}" ] ; then
         __info "${_fulluuid} (${_tag}) is already down" >&2

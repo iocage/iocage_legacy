@@ -2,7 +2,7 @@
 
 __update () {
   local _name _dataset _fulluuid _mountpoint _date _jail_type _non_interactive \
-        _resolv _jail_release
+        _resolv _jail_release _template
 
   _name=$2
   _resolv="0"
@@ -74,6 +74,7 @@ __update () {
             _date=$(date "+%F_%T")
             _jail_type="$(__get_jail_prop type $_fulluuid)"
             _jail_release="$(__get_jail_prop release $_fulluuid)"
+            _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
 
             # Check all jail types and do the right thing
             case $_jail_type in
@@ -202,7 +203,7 @@ __update () {
 
 __upgrade () {
     local _name _release _fulluuid _jails _jail_type _mountpoint _date \
-          _oldrelease _resolv _origin _date _etcsuccess
+          _oldrelease _resolv _origin _date _etcsuccess _template
 
     _name="$1"
     _release="$(uname -r|cut -f 1,2 -d'-'|sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
@@ -213,6 +214,7 @@ __upgrade () {
     _oldrelease="$(zfs get -H -o value org.freebsd.iocage:release ${_dataset})"
     _date=$(date "+%F")
     _resolv="0"
+    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
 
     if [ -z ${_name} ] ; then
         __die "missing UUID!"
@@ -285,7 +287,7 @@ __upgrade () {
             mv ${_mountpoint}/etc.old \
                ${_mountpoint}/root/etc
             __check_basejail "${_fulluuid}"
-            __umount_basejail "${_fulluuid}" "${_template}" 
+            __umount_basejail "${_fulluuid}" "${_template}"
             exit 1
         fi
     elif [ ${_jail_type} = "thickjail" ] ; then

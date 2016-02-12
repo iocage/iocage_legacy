@@ -25,7 +25,8 @@ __set_jail_prop () {
     local _name _property _dataset _pname _pval _found _CONF \
           _type _state _tag _release _inherit_props _jail_type \
           _jail_zfs_mountpoint _jail_zfs_dataset _jail_zfs_dataset_olen \
-          _jail_zfs_dataset_nlen _jail_datasets _parent _release_tag _jid
+          _jail_zfs_dataset_nlen _jail_datasets _parent _release_tag _jid \
+          _template
 
     _name="$2"
     _property="$1"
@@ -53,6 +54,7 @@ __set_jail_prop () {
     _pname="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $1 }')"
     _pval="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $2 }')"
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
 
     if [ -z "${_pname}" -o -z "${_pval}" ] ; then
         __die "set failed, incorrect property syntax!"

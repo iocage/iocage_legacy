@@ -182,7 +182,7 @@ __fetch_plugin () {
         chroot ${_jail_path}/root \
             /bin/sh /root/post-install.sh
         umount ${_jail_path}/root/dev
-        __umount_basejail "${uuid}" "${_template}"
+        __umount_basejail "${uuid}"
         rm ${_jail_path}/root/root/post-install.sh
     fi
 

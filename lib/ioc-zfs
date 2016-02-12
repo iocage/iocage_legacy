@@ -508,7 +508,7 @@ __create_jail () {
             extract -t /etcupdate/etcupdate-${release}.tbz
         umount ${iocroot}/jails/${_uuid}/root/dev
         umount ${iocroot}/jails/${_uuid}/root/tmp
-        __umount_basejail "${_uuid}" "${_template}" > /dev/null 2>&1
+        __umount_basejail "${_uuid}" > /dev/null 2>&1
     fi
 
     for _prop in "$@" ; do
@@ -925,7 +925,7 @@ __mount_basejail () {
 # Accepts two arguments. Which is used as the UUID for the umount operations,
 # and if the jail was a template.
 __umount_basejail () {
-    local _fulluuid _basedir_list
+    local _fulluuid _basedir_list _template
 
     _fulluuid="$1"
     _template="$2"
