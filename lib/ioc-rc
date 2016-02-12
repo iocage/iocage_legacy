@@ -2,9 +2,9 @@
 
 __start_jail () {
     local _fulluuid_dataset _dataset _fulluuid _jail_type \
-          _tag _jail_hostid _jail_path _jail_release _template _cpuset \
+          _tag _jail_hostid _jail_path _jail_release _istemplate _cpuset \
           _procfs _state _vnet _nics _jail_zfs_dataset _jail_zfs _clone_check \
-          _exec_fib _exec_start _bpf _dhcp _devfs_string _linprocfs
+          _exec_fib _exec_start _bpf _dhcp _devfs_string _linprocfs _template
 
     if [ "$1" = "ALL" ] ; then
         __start_jail_all
@@ -30,7 +30,8 @@ __start_jail () {
     _jail_hostid="$(__get_jail_prop hostid ${_fulluuid} ${_dataset})"
     _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
     _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
-    _template="$(__get_jail_prop istemplate ${_fulluuid} ${_dataset})"
+    _istemplate="$(__get_jail_prop istemplate ${_fulluuid} ${_dataset})"
+    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
     _cpuset="$(__get_jail_prop cpuset ${_fulluuid} ${_dataset})"
     _procfs="$(__get_jail_prop mount_procfs ${_fulluuid} ${_dataset})"
     _linprocfs="$(__get_jail_prop mount_linprocfs ${_fulluuid} ${_dataset})"
@@ -76,13 +77,13 @@ __start_jail () {
         fi
     done
 
-    if [ "${_template}" = "yes" ] ; then
+    if [ "${_istemplate}" = "yes" ] ; then
         if [ "${_force}" != "1" ] ; then
             echo "  INFO: ${_tag} is a template jail, ignoring start request."
             echo "        (disable template flag with: iocage set template=no ${_tag})"
             return
         else
-            __mount_template "${_tag}"
+            __mount_istemplate "${_tag}"
         fi
     fi
 
@@ -139,8 +140,13 @@ __start_jail () {
     fi
 
     if [ "${_jail_type}" = "basejail" ] ; then
-        # Check the required filesystems
-        __check_basejail "${_fulluuid}" "${_dataset}"
+        if [ "${_template}" != "none" ] ; then
+            # Check the required filesystems
+            __check_basejail "${_fulluuid}" "${_dataset}" "yes"
+        else
+            # Check the required filesystems
+            __check_basejail "${_fulluuid}" "${_dataset}"
+        fi
     fi
 
     if [ "${_jail_type}" = "clonejail" ] ; then
@@ -162,9 +168,9 @@ __start_jail () {
                 echo "  ! Start                FAILED" >&2
 
                 if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                    __umount_basejail "${_fulluuid}"
+                    __umount_basejail "${_fulluuid}" "${_template}" >&2
                 elif [ "${_jail_type}" = "template" ] ; then
-                    __umount_template "${_tag}"
+                    __umount_istemplate "${_tag}" >&2
                 fi
                 exit 1
             else
@@ -178,9 +184,9 @@ __start_jail () {
                 echo "         FAILED" >&2
 
                 if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                    __umount_basejail "${_fulluuid}"
+                    __umount_basejail "${_fulluuid}" "${_template}" >&2
                 elif [ "${_jail_type}" = "template" ] ; then
-                    __umount_template "${_tag}"
+                    __umount_istemplate "${_tag}" >&2
                 fi
                 exit 1
             else
@@ -192,9 +198,9 @@ __start_jail () {
             echo "  Turn vnet off for this jail or recompile kernel with VNET." >&2
 
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                __umount_basejail ${_fulluuid}
+                __umount_basejail "${_fulluuid}" "${_template}" >&2
             elif [ "${_jail_type}" = "template" ] ; then
-                __umount_template "${_tag}"
+                __umount_istemplate "${_tag}" >&2
             fi
             exit 1
         fi
@@ -204,9 +210,9 @@ __start_jail () {
         if [ $? -eq 1 ] ; then
             echo "  ! Start                FAILED" >&2
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                __umount_basejail ${_fulluuid}
+                __umount_basejail "${_fulluuid}" "${_template}" >&2
             elif [ "${_jail_type}" = "template" ] ; then
-                __umount_template "${_tag}"
+                __umount_istemplate "${_tag}" >&2
             fi
             exit 1
         else
@@ -225,9 +231,9 @@ __start_jail () {
         if [ $? -eq 1 ] ; then
             echo "    FAILED" >&2
             if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-                __umount_basejail "${_fulluuid}"
+                __umount_basejail "${_fulluuid}" "${_template}" >&2
             elif [ "${_jail_type}" = "template" ] ; then
-                __umount_template "${_tag}"
+                __umount_istemplate "${_tag}" >&2
             fi
             exit 1
         else
@@ -248,9 +254,9 @@ __start_jail () {
     if [ $? -eq 1 ] ; then
         echo "        FAILED" >&2
         if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-            __umount_basejail "${_fulluuid}"
+            __umount_basejail "${_fulluuid}" "${_template}" >&2
         elif [ "${_jail_type}" = "template" ] ; then
-            __umount_template "${_tag}"
+            __umount_istemplate "${_tag}" >&2
         fi
         exit 1
     else
@@ -593,9 +599,9 @@ __stop_jail () {
     umount "${_jail_path}/root/compat/linux/proc"   > /dev/null 2>&1
 
     if [ "${_jail_type}" = "basejail" -o "${_jail_type}" = "clonejail" ] ; then
-        __umount_basejail "${_nfulluuid}"
+        __umount_basejail "${_fulluuid}" "${_template}" >&2
     elif [ "${_jail_type}" = "template" ] ; then
-        __umount_template "${_tag}"
+        __umount_istemplate "${_tag}" >&2
     fi
 
     if [ -d "${iocroot}/jails/${_nfulluuid}/recorded" ] ; then

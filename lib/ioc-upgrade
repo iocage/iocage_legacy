@@ -124,7 +124,7 @@ __update () {
 
                     # Re-clone required filesystems
                     __check_basejail "${_fulluuid}" "${_dataset}"
-                    __umount_basejail "${_fulluuid}"
+                    __umount_basejail "${_fulluuid}" "${_template}"
                     echo "* ${_name} updated successfully"
                     ;;
                 gitjail)
@@ -273,7 +273,7 @@ __upgrade () {
             echo "    /etc backup: ${_mountpoint}/etc.old"
             echo "    snapshot: ${_dataset}/root@ioc-upgrade_${_date}"
             echo "* if everything is OK."
-            __umount_basejail "${_fulluuid}"
+            __umount_basejail "${_fulluuid}" "${_template}"
             exit 0
         else
             echo "" >&2
@@ -285,7 +285,7 @@ __upgrade () {
             mv ${_mountpoint}/etc.old \
                ${_mountpoint}/root/etc
             __check_basejail "${_fulluuid}"
-            __umount_basejail "${_fulluuid}"
+            __umount_basejail "${_fulluuid}" "${_template}" 
             exit 1
         fi
     elif [ ${_jail_type} = "thickjail" ] ; then

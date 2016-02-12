@@ -1362,7 +1362,7 @@ EXAMPLES
 
   Convert jail into template:
 
-    iocage set template=yes UUID
+    iocage set istemplate=yes UUID
 
   List templates:
 

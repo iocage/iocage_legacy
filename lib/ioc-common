@@ -215,9 +215,9 @@ __set_jail_prop () {
                         __link_tag "${_dataset}"
                         # Throw jail through the checking process and unmount
                         # what remains.
-                        __check_basejail "${_fulluuid}" "${_dataset}" \
+                        __check_basejail "${_fulluuid}" "${_template}" \
                             > /dev/null 2>&1
-                        __umount_basejail "${_fulluuid}" "${_dataset}" \
+                        __umount_basejail "${_fulluuid}" "${_template}" \
                             > /dev/null 2>&1
 
                         printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3

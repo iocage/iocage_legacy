@@ -294,11 +294,13 @@ __migrate_basejail () {
 
 __check_basejail () {
     local _fulluuid _dataset _jail_release _old_base_check _jailed_dataset \
-          _jailed_dataset_check _hack88 _shortuuid
+          _jailed_dataset_check _hack88 _shortuuid _template _jail_template
 
     _fulluuid="$1"
     _dataset="$2"
+    _template="$3"
     _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
+    _jail_template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
     _old_base_check="$(zfs list -Hr ${pool}/iocage/jails/${_fulluuid} | \
                      grep -v data | wc -l)"
     _jailed_dataset="${pool}/iocage/jails/${_fulluuid}/root/data"
@@ -320,25 +322,34 @@ __check_basejail () {
         __migrate_basejail "${_fulluuid}" "${_jail_release}"
     fi
 
-    # Make sure the etcupdate we need for upgrades exists
-    if [ ! -e "${iocroot}/releases/${_jail_release}/root/etcupdate" ] ; then
-        mount -t devfs devfs ${iocroot}/releases/${_jail_release}/root/dev
-        mkdir ${iocroot}/releases/${_jail_release}/root/etcupdate
-        chroot ${iocroot}/releases/${_jail_release}/root \
-            etcupdate build /etcupdate/etcupdate-${_jail_release}.tbz
-        # Extract the etcupdate since it did not exist
-        mount -t devfs devfs ${iocroot}/jails/${_fulluuid}/root/dev
-        chroot ${iocroot}/jails/${_fulluuid}/root etcupdate \
-            extract -t /etcupdate/etcupdate-${_jail_release}.tbz
-        umount ${iocroot}/releases/${_jail_release}/root/dev
-        umount ${iocroot}/jails/${_fulluuid}/root/dev
-    fi
-
-    # Look for hack88, if it exists, pass the short uuid
-    if [ "${_hack88}" = "1" ] ; then
-        __mount_basejail "${_shortuuid}" "${_jail_release}"
+    if [ "${_template}" = "yes" ] ; then
+        # Look for hack88, if it exists, pass the short uuid
+        if [ "${_hack88}" = "1" ] ; then
+            __mount_template "${_shortuuid}" "${_jail_template}"
+        else
+            __mount_template "${_fulluuid}" "${_jail_template}"
+        fi
     else
-        __mount_basejail "${_fulluuid}" "${_jail_release}"
+        # Make sure the etcupdate we need for upgrades exists
+        if [ ! -e "${iocroot}/releases/${_jail_release}/root/etcupdate" ] ; then
+            mount -t devfs devfs ${iocroot}/releases/${_jail_release}/root/dev
+            mkdir ${iocroot}/releases/${_jail_release}/root/etcupdate
+            chroot ${iocroot}/releases/${_jail_release}/root \
+                etcupdate build /etcupdate/etcupdate-${_jail_release}.tbz
+            # Extract the etcupdate since it did not exist
+            mount -t devfs devfs ${iocroot}/jails/${_fulluuid}/root/dev
+            chroot ${iocroot}/jails/${_fulluuid}/root etcupdate \
+                extract -t /etcupdate/etcupdate-${_jail_release}.tbz
+            umount ${iocroot}/releases/${_jail_release}/root/dev
+            umount ${iocroot}/jails/${_fulluuid}/root/dev
+        fi
+
+        # Look for hack88, if it exists, pass the short uuid
+        if [ "${_hack88}" = "1" ] ; then
+            __mount_basejail "${_shortuuid}" "${_jail_release}"
+        else
+            __mount_basejail "${_fulluuid}" "${_jail_release}"
+        fi
     fi
 }
 
@@ -346,7 +357,7 @@ __check_basejail () {
 __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
           _pname _prop _isprop _inherit_props _jail_zfs_mountpoint \
-          _basedir_list _uuid
+          _basedir_list _uuid _template
 
     _installed=$(zfs list -rH ${pool}/iocage/releases | grep ${release})
     _releases=$(__list_jails -r | grep -v "Downloaded releases:")
@@ -404,7 +415,7 @@ __create_jail () {
                     if [ "${_pname}" = "istemplate" ] ; then
                         __die "please set template after creation"
                     elif [ "${_pname}" = "template" ] ; then
-                        __die "use clone for templates"
+                        _template="1"
                     fi
                 fi
             done
@@ -445,36 +456,59 @@ __create_jail () {
         fi
     done
 
-    # We need the base's /etc and /root
-    cd ${iocroot}/releases/${release}/root/etc && find . | \
-        cpio -dp --quiet ${iocroot}/jails/${uuid}/root/etc
-    cd ${iocroot}/releases/${release}/root/root && find . | \
-        cpio -dp --quiet ${iocroot}/jails/${uuid}/root/root
+    # Template jails are essentially overlays and not true basejails.
+    if [ "${_template}" = "1" ] ; then
+        mkdir ${iocroot}/jails/${uuid}/_
+        for _bdir in ${_basedir_list} ; do
+            mkdir -p ${iocroot}/jails/${uuid}/_/${_bdir}
 
-    if [ -e "/etc/localtime" ] ; then
-        cp /etc/localtime ${iocroot}/jails/${uuid}/root/etc/
+            if [ "${_bdir}" = "tmp" ] ; then
+                chmod 1777 ${iocroot}/jails/${uuid}/_/tmp
+            fi
+        done
     fi
 
-    # create tag link
-    __link_tag ${pool}/iocage/jails/${uuid}
+    # configure the jail mountpoint
+    # Supplying _uuid again so since we need to use that for mounting/unmounting
+    __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid} _uuid
 
-    # remove any residual clone snapshots carried over from the RELEASE datasets
-    __snapremove ${uuid}@ALL ${pool}/iocage/jails/${uuid}
+    if [ "${_template}" != "1" ] ; then
+        # We need the base's /etc and /root
+        cd ${iocroot}/releases/${release}/root/etc && find . | \
+            cpio -dp --quiet ${iocroot}/jails/${uuid}/root/etc
+        cd ${iocroot}/releases/${release}/root/root && find . | \
+            cpio -dp --quiet ${iocroot}/jails/${uuid}/root/root
 
-    # at create time set the default rc.conf
-    if [ -e "${iocroot}/jails/${uuid}/root/etc/rc.conf" ] ; then
-        sed -i '' "1s/hostname=.*/hostname=\"${host_hostname}\"/" \
-            ${iocroot}/jails/${uuid}/root/etc/rc.conf
-    else
-        echo "hostname=\"${host_hostname}\"" > \
-            ${iocroot}/jails/${uuid}/root/etc/rc.conf
-        __jail_rc_conf >> \
-            ${iocroot}/jails/${uuid}/root/etc/rc.conf
-    fi
+        if [ -e "/etc/localtime" ] ; then
+            cp /etc/localtime ${iocroot}/jails/${uuid}/root/etc/
+        fi
 
-    if [ ! -e "${iocroot}/jails/${uuid}/root/etc/resolv.conf" ] ; then
-        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
-            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+        # remove any residual clone snapshots carried over from the RELEASE datasets
+        __snapremove ${uuid}@ALL ${pool}/iocage/jails/${uuid}
+
+        if [ ! -e "${iocroot}/jails/${uuid}/root/etc/resolv.conf" ] ; then
+            __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+                ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+        fi
+
+        # Make sure the etcupdate we need for upgrades exists
+        if [ ! -e "${iocroot}/releases/${release}/root/etcupdate" ] ; then
+            mount -t devfs devfs ${iocroot}/releases/${release}/root/dev
+            mkdir ${iocroot}/releases/${release}/root/etcupdate
+            chroot ${iocroot}/releases/${release}/root \
+                etcupdate build /etcupdate/etcupdate-${release}.tbz
+            umount ${iocroot}/releases/${release}/root/dev
+        fi
+
+        # Goop to get basejails and the etcupdate ready to go
+        mount -t devfs devfs ${iocroot}/jails/${_uuid}/root/dev
+        __mount_basejail "${_uuid}" "${release}"
+        mkdir -p ${iocroot}/jails/${_uuid}/root/var/db/etcupdate
+        chroot ${iocroot}/jails/${_uuid}/root etcupdate \
+            extract -t /etcupdate/etcupdate-${release}.tbz
+        umount ${iocroot}/jails/${_uuid}/root/dev
+        umount ${iocroot}/jails/${_uuid}/root/tmp
+        __umount_basejail "${_uuid}" "${_template}" > /dev/null 2>&1
     fi
 
     for _prop in "$@" ; do
@@ -513,9 +547,19 @@ __create_jail () {
         fi
     done
 
-    # configure the jail mountpoint
-    # Supplying _uuid again so since we need to use that for mounting/unmounting
-    __hack88_mount ${uuid} ${pool}/iocage/jails/${uuid} _uuid
+    # at create time set the default rc.conf
+    if [ -e "${iocroot}/jails/${uuid}/root/etc/rc.conf" ] ; then
+        sed -i '' "1s/hostname=.*/hostname=\"${host_hostname}\"/" \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    else
+        echo "hostname=\"${host_hostname}\"" > \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+        __jail_rc_conf >> \
+            ${iocroot}/jails/${uuid}/root/etc/rc.conf
+    fi
+
+    # create tag link
+    __link_tag ${pool}/iocage/jails/${uuid}
 
     # Install extra packages
     # this requires working resolv.conf in jail
@@ -524,28 +568,15 @@ __create_jail () {
         # in a basejail
         mount -t tmpfs tmpfs ${iocroot}/jails/${uuid}/root/tmp
         mount -t devfs devfs ${iocroot}/jails/${uuid}/root/dev
-        __mount_basejail "${uuid}" "${release}"
+
+        if [ "${_template}" != "1" ] ; then
+            __mount_basejail "${uuid}" "${template}"
+        else
+            __mount_basejail "${uuid}" "${release}"
+        fi
+
         __pkg_install "${iocroot}/jails/${uuid}/root"
     fi
-
-    # Make sure the etcupdate we need for upgrades exists
-    if [ ! -e "${iocroot}/releases/${release}/root/etcupdate" ] ; then
-        mount -t devfs devfs ${iocroot}/releases/${release}/root/dev
-        mkdir ${iocroot}/releases/${release}/root/etcupdate
-        chroot ${iocroot}/releases/${release}/root \
-            etcupdate build /etcupdate/etcupdate-${release}.tbz
-        umount ${iocroot}/releases/${release}/root/dev
-    fi
-
-    # Goop to get basejails and the etcupdate ready to go
-    mount -t devfs devfs ${iocroot}/jails/${_uuid}/root/dev
-    __mount_basejail "${_uuid}" "${release}"
-    mkdir -p ${iocroot}/jails/${_uuid}/root/var/db/etcupdate
-    chroot ${iocroot}/jails/${_uuid}/root etcupdate \
-        extract -t /etcupdate/etcupdate-${release}.tbz
-    umount ${iocroot}/jails/${_uuid}/root/dev
-    umount ${iocroot}/jails/${_uuid}/root/tmp
-    __umount_basejail "${_uuid}" > /dev/null 2>&1
 
     echo "  Successfully created: ${uuid} (${tag})"
 
@@ -891,9 +922,17 @@ __mount_basejail () {
     mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
 }
 
-# Accepts one argument. Which is used as the UUID for the umount operations
+# Accepts two arguments. Which is used as the UUID for the umount operations,
+# and if the jail was a template.
 __umount_basejail () {
-    local _fulluuid="$1"
+    local _fulluuid _basedir_list
+
+    _fulluuid="$1"
+    _template="$2"
+    _basedir_list="var
+                   etc
+                   root
+                   mnt"
 
     # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
     umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
@@ -901,10 +940,20 @@ __umount_basejail () {
     for _bdir in ${basedirs} ; do
         umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
     done
+
+    if [ "${_template}" != "none" ] ; then
+        for _i in $(seq 2) ; do
+            umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root
+
+            for _bdir in ${_basedir_list} ; do
+                umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+            done
+        done
+    fi
 }
 
 # Accepts one argument. Which is used as the name for the mount operations
-__mount_template () {
+__mount_istemplate () {
     local _tag="$1"
 
     for _bdir in ${basedirs} ; do
@@ -918,15 +967,67 @@ __mount_template () {
     mount -t tmpfs tmpfs ${iocroot}/templates/${_tag}/root/tmp
 }
 
-# Accepts one argument. Which is used as the name for the umount operations
-__umount_template () {
-    local _tag="$1"
+# Accepts two arguments. Which is used as the name for the mount operations,
+# and which template to mount.
+__mount_template () {
+    local _fulluuid _template _mountcheck _template_release _basedir_list
 
-    # Unmounts all the basejails overlays and tmpfs so the jail can be manipulated
-    umount ${iocroot}/jails/${_fulluuid}/root/tmp > /dev/null 2>&1
+    _fulluuid="$1"
+    _template="$2"
+    _template_release="$(__get_jail_prop release ${_template})"
+    _basedir_list="var
+                   etc
+                   root
+                   mnt"
+
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/root/var/ports" ] ; then
+        mkdir ${iocroot}/jails/${_fulluuid}/root/var/ports
+        mkdir ${iocroot}/jails/${_fulluuid}/root/var/ports/distfiles
+        mkdir ${iocroot}/jails/${_fulluuid}/root/var/ports/packages
+    fi
+
+    # Make sure the /compat directory exists
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/root/compat" ] ; then
+        mkdir ${iocroot}/jails/${_fulluuid}/root/compat
+    fi
+
+    # Make sure the /usr/obj directory exists
+    if [ ! -e "${iocroot}/jails/${_fulluuid}/root/usr/obj" ] ; then
+        mkdir ${iocroot}/jails/${_fulluuid}/root/usr/obj
+    fi
 
     for _bdir in ${basedirs} ; do
-        umount -ft nullfs ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+        # Mount the nullfs needed for basejails
+        mount -t nullfs -o ro \
+            ${iocroot}/releases/${_template_release}/root/${_bdir} \
+            ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
+
+    for _bdir in ${_basedir_list} ; do
+        mount -t nullfs -o ro \
+            ${iocroot}/templates/${_template}/root/${_bdir} \
+            ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
+
+    for _bdir in ${_basedir_list} ; do
+        mount -t nullfs -o union \
+            ${iocroot}/jails/${_fulluuid}/_/${_bdir} \
+            ${iocroot}/jails/${_fulluuid}/root/${_bdir}
+    done
+
+    # Mount tmpfs
+    mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
+}
+
+# Accepts one argument. Which is used as the name for the umount operations
+__umount_istemplate () {
+    local _tag="$1"
+
+    # Unmounts all the basejail mounts and tmpfs so the jail can be manipulated
+    umount ${iocroot}/templates/${_tag}/root/tmp > /dev/null 2>&1
+
+    for _bdir in ${basedirs} ; do
+        umount -ft nullfs ${iocroot}/templates/${_tag}/root/${_bdir}
     done
 }
 
