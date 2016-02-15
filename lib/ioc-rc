@@ -83,7 +83,7 @@ __start_jail () {
             echo "        (disable template flag with: iocage set template=no ${_tag})"
             return
         else
-            __mount_istemplate "${_tag}"
+            __mount_istemplate "${_tag}" "${_jail_release}"
         fi
     fi
 

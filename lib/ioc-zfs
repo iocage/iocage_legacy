@@ -952,9 +952,13 @@ __umount_basejail () {
     fi
 }
 
-# Accepts one argument. Which is used as the name for the mount operations
+# Accepts two arguments. One is used as the name for the mount operations, the
+# other is the RELEASE the template needs to mount.
 __mount_istemplate () {
-    local _tag="$1"
+    local _tag
+
+    _tag="$1"
+    _release="$2"
 
     for _bdir in ${basedirs} ; do
         # Mount the nullfs needed for basejails
