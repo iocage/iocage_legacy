@@ -134,7 +134,7 @@ __rctl_inuse_all () {
             _print_head=0
         fi
 
-        if [ ${_state} -gt 0 ] ; then
+        if [ ! -z ${_state} ] ; then
             echo "${_fulluuid},${_tag}${_line}"
         fi
 
