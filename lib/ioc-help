@@ -31,10 +31,9 @@ SYNOPSIS
   iocage [-v] list [-t|-r|-s jid|uuid|boot|state|tag|type|ip4]
   iocage [-v] promote UUID|TAG
   iocage [-v] rcboot
-  iocage [-v] reboot UUID|TAG
+  iocage [-v] reboot|restart [-s] UUID|TAG
   iocage [-v] rcshutdown
   iocage [-v] reset UUID|TAG|ALL
-  iocage [-v] restart UUID|TAG
   iocage [-v] rollback UUID|TAG@snapshotname
   iocage [-v] runtime UUID|TAG
   iocage [-v] send [-c|-i|-I|-h|-u|-m] POOL
@@ -283,7 +282,11 @@ SUBCOMMANDS
   reboot UUID|TAG
 
     Fully stops the jail with `iocage stop` and, upon success, restarts it with
-    `iocage start`.
+    `iocage start`. If `-s` is specified it will instead do a soft restart
+    on the jail. The soft method will restart the jail without destroying
+    the jail's networking or the jail process itself. All processes are
+    gracefully restarted inside the jail. This is useful for quick and graceful
+    restarts.
 
   rcshutdown
 

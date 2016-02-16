@@ -185,19 +185,21 @@ __parse_cmd () {
             rcshutdown) __rc_jails shutdown
                         exit
                 ;;
-            reboot)    shift
-                        for _j in $@ ; do
-                            __reboot_jail "${_j}"
-                        done
-                        exit
+            reboot|restart)    shift
+                               if [ $1 = "-s" ] ; then
+                                    shift
+                                    for _j in $@ ; do
+                                        __restart_jail "${_j}"
+                                    done
+                                    exit
+                               else
+                                    for _j in $@ ; do
+                                        __reboot_jail "${_j}"
+                                    done
+                                    exit
+                                fi
                 ;;
             reset)      __reset_jail_props "$2"
-                        exit
-                ;;
-            restart)    shift
-                        for _j in $@ ; do
-                            __restart_jail "${_j}"
-                        done
                         exit
                 ;;
             rollback)   __rollback "$2"

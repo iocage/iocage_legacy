@@ -614,7 +614,7 @@ __fetch_release () {
     fi
 
     rm -f ${iocroot}/releases/${_release}/root/etc/resolv.conf
-    mkdir ${iocroot}/releases/${_release}/root/etcupdate
+    mkdir ${iocroot}/releases/${_release}/root/etcupdate 2> /dev/null
     chroot ${iocroot}/releases/${_release}/root \
         etcupdate build /etcupdate/etcupdate-${_release}.tbz
     umount ${iocroot}/releases/${_release}/root/dev

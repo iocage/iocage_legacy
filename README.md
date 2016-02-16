@@ -97,10 +97,9 @@ Start the jail:
   iocage [-v] list [-t|-r|-s jid|uuid|boot|state|tag|type|ip4]
   iocage [-v] promote UUID|TAG
   iocage [-v] rcboot
-  iocage [-v] reboot UUID|TAG
+  iocage [-v] reboot|restart [-s] UUID|TAG
   iocage [-v] rcshutdown
   iocage [-v] reset UUID|TAG|ALL
-  iocage [-v] restart UUID|TAG
   iocage [-v] rollback UUID|TAG@snapshotname
   iocage [-v] runtime UUID|TAG
   iocage [-v] send [-c|-i|-I|-h|-u|-m] POOL
