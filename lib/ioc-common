@@ -726,16 +726,18 @@ __get_default_iface() {
 }
 
 __pkg_wrapper () {
-    local _name _command _jid
+    local _name _command _jid _fulluuid
     shift
     _name="$1"
     shift
     _command="$*"
+    _fulluuid="$(__check_name ${_name})"
+    _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
 
-    _jid=$(jls -h jid host.hostname | grep -w $_name | cut -w -f 1)
-    if [ -z "$_jid" ]; then
-        __die "$_name not found."
+
+    if [ -z "${_jid}" ]; then
+        __die "${_name} is not running."
     fi
 
-    pkg -j $_jid $_command
+    pkg -j ${_jid} ${_command}
 }
