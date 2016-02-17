@@ -433,7 +433,7 @@ __fetch_release () {
 
     for _args in "$@" ; do
         case "${_args}" in
-            -P|-p|--ports) _ports=1
+            -P|-p) _ports=1
                 ;;
         esac
     done

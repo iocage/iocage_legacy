@@ -84,7 +84,7 @@ Start the jail:
   iocage [-v] df
   iocage [-v] exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
   iocage [-v] export UUID|TAG
-  iocage [-v] fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
+  iocage [-v] fetch [-p|-P] [release=RELEASE | ftphost=ftp.hostname.org |
                     ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
                     [ ftplocaldir=/dir/ ] [ compression=ALGO ]
   iocage [-v] get [-r] property|all UUID|TAG
@@ -105,12 +105,14 @@ Start the jail:
   iocage [-v] send [-c|-i|-I|-h|-u|-m] POOL
   iocage [-v] set property=value [property=value] UUID|TAG
   iocage [-v] snaplist UUID|TAG
+  iocage [-v] snapmount UUID|TAG@snapshotname DESTINATION
   iocage [-v] snapremove UUID|TAG@snapshotname|ALL
   iocage [-v] snapshot|snap [-f|-r] UUID|TAG [UUID|TAG@snapshotname]
+  iocage [-v] snapumount UUID|TAG@snapshotname
   iocage [-v] start [-f] UUID|TAG
   iocage [-v] stop UUID|TAG|ALL
   iocage [-v] uncap UUID|TAG
-  iocage [-v] update UUID|TAG
+  iocage [-v] update [-p|-P] UUID|TAG|RELEASE
   iocage [-v] upgrade UUID|TAG [release=RELEASE]
   iocage [-v] version | --version
   ```

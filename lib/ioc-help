@@ -18,7 +18,7 @@ SYNOPSIS
   iocage [-v] df
   iocage [-v] exec [-u username | -U username] UUID|TAG|ALL command [arg ...]
   iocage [-v] export UUID|TAG
-  iocage [-v] fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
+  iocage [-v] fetch [-p|-P] [release=RELEASE | ftphost=ftp.hostname.org |
                     ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
                     [ ftplocaldir=/dir/ ] [ compression=ALGO ]
   iocage [-v] get [-r] property|all UUID|TAG
@@ -46,7 +46,7 @@ SYNOPSIS
   iocage [-v] start [-f] UUID|TAG
   iocage [-v] stop UUID|TAG|ALL
   iocage [-v] uncap UUID|TAG
-  iocage [-v] update UUID|TAG
+  iocage [-v] update [-p|-P] UUID|TAG|RELEASE
   iocage [-v] upgrade UUID|TAG [release=RELEASE]
   iocage [-v] version | --version
 
@@ -184,7 +184,7 @@ SUBCOMMANDS
     Export a complete jail. An archive file is created in /iocage/images with
     SHA256 checksum. Jail must be in stopped state before exporting.
 
-  fetch [-P|-p|--ports] [release=RELEASE | ftphost=ftp.hostname.org |
+  fetch [-p|-P] [release=RELEASE | ftphost=ftp.hostname.org |
         ftpdir=/dir/ | ftpfiles="base.txz doc.txz lib32.txz src.txz"]
         [ ftplocaldir=/dir/ ] [ compression=ALGO ]
 
@@ -207,7 +207,7 @@ SUBCOMMANDS
     Newly created jails or basejails will automatically have the latest
     updates applied.
 
-    Specifying -P,-p or --ports to fetch will have it also fetch a ports tree
+    Specifying -p or -P to fetch will have it also fetch a ports tree
     that all basejails will share with that base.
 
     compression: Compression is lz4 by default; see zfs(8) for the list of
@@ -396,11 +396,14 @@ SUBCOMMANDS
 
     Release all resource limits, disable limits on the fly.
 
-  update UUID|TAG
+  update [-p|-P] UUID|TAG|RELEASE
 
     Will reclone the jail if it is a basejail, otherwise it updates the jail
     to the latest patch level. A back-out snapshot is created to allow
     safe update/rollback.
+
+    If -p or -P along with a RELEASE are specified instead of a jail, it will
+    update that RELEASEs shared ports tree.
 
   upgrade UUID|TAG [release=RELEASE]
 

@@ -25,7 +25,7 @@ __update () {
                     ;;
             esac
             ;;
-        -P|-p|--ports)
+        -P|-p)
             if [ ! -e "${iocroot}/releases/${_name}/root" ] ; then
                 __die "${_name} does not exist!"
             fi
