@@ -1,0 +1,4 @@
+- [ ] Supply `iocage version`
+- [ ] Supply the commands used, along with any steps to recreate it.
+- [ ] Provide the output from `iocage`
+- [ ] Supply what you expected the result or output to be
