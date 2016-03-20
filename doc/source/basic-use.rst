@@ -19,11 +19,11 @@ If a specific RELEASE is required run:
 
 ``iocage fetch release=9.3-RELEASE``
 
-In case a specific download mirror is required simply run:
+In case a specific download mirror (FTP or HTTP) is required simply run:
 
 ``iocage fetch ftphost=ftp.hostname.org``
 
-You can also specify a ftp directory to fetch the base files from:
+You can also specify a directory to fetch the base files from:
 
 ``iocage fetch ftpdir=/dir/``
 
