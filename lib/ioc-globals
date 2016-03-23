@@ -98,6 +98,7 @@ shmsize="off"
 wallclock="off"
 
 # Custom properties
+pool="none"
 iocroot=/iocage
 tag=$(date "+%F@%T")
 istemplate="no"
@@ -110,7 +111,7 @@ priority="99"
 last_started="none"
 type="basejail"
 release=$(uname -r|cut -f 1,2 -d'-')
-template=""
+template="none"
 hostid=$(cat /etc/hostid)
 jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/data"
@@ -264,7 +265,8 @@ CONF_CUSTOM="tag
              release
              hack88
              start
-             count"
+             count
+             pool"
 
 # Native ZFS properties
 CONF_ZFS="compression

@@ -6,7 +6,7 @@ __export_props () {
 
     for i in "$@" ; do
         if [ "$(echo $i | grep -e ".*=.*")" ] ; then
-            _pname="$(echo $i|awk 'BEGIN { FS = "=" } ; { print $1 }')"
+            _pname="$(echo $i | awk 'BEGIN { FS = "=" } ; { print $1 }')"
             __validate_pname $_pname
             export "$i"
             export "iocset_${i}"
@@ -23,10 +23,10 @@ __export_props () {
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
     local _name _property _dataset _pname _pval _found _CONF \
-          _type _state _tag _release _inherit_props _jail_type \
-          _jail_zfs_mountpoint _jail_zfs_dataset _jail_zfs_dataset_olen \
-          _jail_zfs_dataset_nlen _jail_datasets _parent _release_tag _jid \
-          _template
+          _type _state _tag _release _jail_type _jail_zfs_mountpoint \
+          _jail_zfs_dataset _jail_zfs_dataset_olen _jail_zfs_dataset_nlen \
+          _parent _release_tag _jid _jailed_dataset _jailed_dataset_check \
+          _jail_datasets
 
     _name="$2"
     _property="$1"
@@ -37,7 +37,8 @@ __set_jail_prop () {
 
     # Avoid having a stale list when called.
     export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
-        | grep -Ev "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
+        | egrep -v \
+        "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
 
     if [ "$3" ] ; then
         _dataset="$3"
@@ -45,16 +46,11 @@ __set_jail_prop () {
         _dataset="$(__find_jail ${_name})" || exit $?
     fi
 
-    if [ -z "${_dataset}" ] ; then
-        __die "${_name} not found!"
-    fi
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
 
-    _fulluuid="$(__check_name ${_name})"
-
-    _pname="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    _pval="$(echo ${_property}|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _pname="$(echo ${_property} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
+    _pval="$(echo ${_property} | awk 'BEGIN { FS = "=" } ; { print $2 }')"
     _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
-    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
 
     if [ -z "${_pname}" -o -z "${_pval}" ] ; then
         __die "set failed, incorrect property syntax!"
@@ -65,7 +61,7 @@ __set_jail_prop () {
     case "${_pname}" in
         tag)
             __unlink_tag ${_dataset}
-            __link_tag ${_dataset}
+            __link_tag ${_dataset} "${_pval}"
             ;;
         jail_zfs)
             _jailed_dataset="$(__get_jail_prop jail_zfs_dataset \
@@ -89,8 +85,7 @@ __set_jail_prop () {
             ;;
         notes)
             # Needed for notes="aaa=bbb" issue #243
-            zfs set org.freebsd.iocage:${_pname}="${notes}" "${_dataset}"
-            return
+            _pval="$(echo ${notes})"
             ;;
         jail_zfs_mountpoint)
             _state="$(__is_running ${_fulluuid})"
@@ -103,8 +98,8 @@ __set_jail_prop () {
             _jail_zfs_dataset_nlen="${#_jail_zfs_dataset}"
 
             if [ -z "${_state}" ] ; then
-                zfs set org.freebsd.iocage:${_pname}="${jail_zfs_mountpoint}" \
-                    "${_dataset}"
+                __set_jail_prop ${_pname}="${jail_zfs_mountpoint}" \
+                    "${_fulluuid}" "${_dataset}"
                 _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
                     ${_fulluuid} ${_dataset})"
                 if [ "${_jail_zfs_dataset_olen}" -ne "${_jail_zfs_dataset_nlen}" ] ; then
@@ -116,7 +111,8 @@ __set_jail_prop () {
                     "${_jail_zfs_dataset}"
                 zfs set jailed=on "${_jail_zfs_dataset}"
             else
-                __die " jail is running! please stop it before changing the mountpoint."
+                __die " jail is running! please stop it before" \
+                    "changing the mountpoint."
             fi
             ;;
         istemplate)
@@ -125,22 +121,42 @@ __set_jail_prop () {
             fi
 
             if [ "${_pval}" = "yes" ] ; then
-                _release_tag="$(__get_jail_prop tag ${_fulluuid} \
-                    ${_dataset})"
+                _release_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
                 _state="$(__is_running ${_fulluuid})"
-                _jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
-                    | awk '/root/ && !/releases/')"
 
                 if [ ! -z "${_state}" ] ; then
-                    __die "cannot make ${_tag} a template - jail is running!"
+                    __die "cannot make ${_release_tag} a template" \
+                        "- jail is running!"
+                fi
+
+                _jailed_dataset=$(__get_jail_prop jail_zfs_dataset \
+                    "${_fulluuid}" "${_dataset}")
+                _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
+                                       /dev/null 2>&1 ; echo $?)"
+
+                # Check to see if the user has the old style of jailed datasets
+                if [ "${_jailed_dataset_check}" = "0" ] ; then
+                    zfs set jailed=off "${_jailed_dataset}"
+                fi
+
+                __check_children "${_fulluuid}" "${_dataset}"
+
+                if [ "$?" -eq 1 ] ; then
+                    #shellcheck disable=SC2154
+                    if [ "${migrate}" = "yes" ] ; then
+                        return 1
+                    fi
+
+                    #shellcheck disable=SC2154
+                    echo "${error}"
+                    return 1
                 fi
 
                 __unlink_tag "${_dataset}"
                 _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
-                _release="$(__get_jail_prop release ${_fulluuid} \
-                    ${_dataset})"
+                _release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
 
-                zfs set org.freebsd.iocage:type="template" "${_dataset}"
+                __set_jail_prop type="template" "${_fulluuid}" "${_dataset}"
 
                 if [ -d "${iocroot}/jails/${_fulluuid}" ] ; then
                     # __spinner needs to be recreated here as we use
@@ -160,6 +176,11 @@ __set_jail_prop () {
                             "${pool}/iocage/jails/${_fulluuid}" \
                             "${pool}/iocage/templates/${_tag}"
                         _dataset="${pool}/iocage/templates/${_tag}"
+                        _jailed_dataset="${pool}/iocage/templates/${_tag}/data"
+                        # Check to see if the user has the old style of jailed datasets
+                        if [ "${_jailed_dataset_check}" = "0" ] ; then
+                            zfs set jailed=on "${_jailed_dataset}"
+                        fi
                         printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
                 else
                     __die "${_tag} is already a template"
@@ -167,30 +188,41 @@ __set_jail_prop () {
             elif [ "${_pval}" = "no" ] ; then
                 _template_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
                 _release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
-                _jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage | \
-                    awk '/root/ && !/releases/')"
+                _jailed_dataset="${pool}/iocage/templates/${_template_tag}/data"
+                _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
+                                       /dev/null 2>&1 ; echo $?)"
+
+                # We need to ignore a few more datasets here.
+                _jail_datasets="$(zfs list -d3 -rH -o name \
+                    ${pool}/iocage | egrep -v \
+                    "jails$|base|releases|templates$|download|${pool}/iocage$|*./root")"
 
                 for _fs in ${_jail_datasets} ; do
-                    _jail_fs="$(echo ${_fs} | sed -e 's#/root##g')"
-                    _origin="$(zfs get -H -o value origin ${_fs} | \
+                    # _jail_fs is actually a dataset, so fulluuid needs to
+                    # be faked.
+                    _uuid=$(__check_name "name" ${_fs} 2> /dev/null)
+                    _origin="$(__get_jail_prop origin ${_uuid} ${_fs} | \
                         cut -f1 -d@)"
-                    _tag="$(zfs get -H -o value org.freebsd.iocage:tag \
-                        ${_jail_fs})"
-                    _uuid="$(zfs get -H -o value \
-                        org.freebsd.iocage:host_hostuuid \
-                        ${_jail_fs})"
+                    _tag="$(__get_jail_prop tag ${_uuid} ${_jail_fs})"
 
                     if [ "${_origin}" = "${_dataset}/root" ] ; then
-                        __info "${_template_tag} has dependent clone, uuid: ${_uuid} (${_tag})"
+                        __info "${_template_tag} has dependent clone," \
+                            "uuid: ${_uuid} (${_tag})"
                         _parent=1
                     fi
                 done
 
                 if [ "${_parent}" = "1" ] ; then
-                    __die "please destroy before converting ${_template_tag} back to a jail"
+                    __die "please destroy before converting ${_template_tag}" \
+                        "back to a jail"
                 fi
 
-                zfs set org.freebsd.iocage:type="basejail" "${_dataset}"
+                # Check to see if the user has the old style of jailed datasets
+                if [ "${_jailed_dataset_check}" = "0" ] ; then
+                    zfs set jailed=off "${_jailed_dataset}"
+                fi
+
+                __set_jail_prop type="basejail" "${_fulluuid}" "${_dataset}"
 
                 if [ -d "${iocroot}/templates/${_template_tag}" ] ; then
                     # __spinner needs to be recreated here as we use
@@ -206,22 +238,27 @@ __set_jail_prop () {
 
                         trap "kill $!" 2 3
 
-                        # Have to manually specify this for later, as it will still be
-                        # the old /iocage/templates location
+                        # Have to manually specify this for later, as it will
+                        # still be the old /iocage/templates location
                         _dataset="${pool}/iocage/jails/${_fulluuid}"
 
                         # Move jail back to the jails dataset
-                        zfs rename -f "${pool}/iocage/templates/${_template_tag}" \
+                        zfs rename -f \
+                            "${pool}/iocage/templates/${_template_tag}" \
                             "${pool}/iocage/jails/${_fulluuid}"
                         # Updating the jail tag
-                        __link_tag "${_dataset}"
+                        __link_tag "${_dataset}" "${_template_tag}"
                         # Throw jail through the checking process and unmount
                         # what remains.
-                        __check_basejail "${_fulluuid}" "${_template}" \
-                            > /dev/null 2>&1
-                        __umount_basejail "${_fulluuid}" "${_template}" \
+                        __check_basejail "${_fulluuid}" > /dev/null 2>&1
+                        __umount_basejail "${_fulluuid}" "${_dataset}" \
                             > /dev/null 2>&1
 
+                        _jailed_dataset="${_dataset}/data"
+                        # Check to see if the user has the old style of jailed datasets
+                        if [ "${_jailed_dataset_check}" = "0" ] ; then
+                            zfs set jailed=on "${_jailed_dataset}"
+                        fi
                         printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
                 else
                     __die "${_template_tag} is already a jail"
@@ -256,10 +293,26 @@ __set_jail_prop () {
             if [ ! -z "${_state}" ] ; then
                 __die " jail is running! please stop it before changing hack88."
             fi
-        esac
+            ;;
+        host_hostname)
+            _state="$(__is_running ${_fulluuid})"
+
+            if [ ! -z "${_state}" ] ; then
+                __info " jail is running! you may need to restart the jail"\
+                "to see the changes."
+            fi
+
+            cat ${iocroot}/jails/${_fulluuid}/root/etc/rc.conf | \
+                sed -E "s/hostname.*/hostname=\"${host_hostname}\"/g" \
+                > ${iocroot}/jails/${_fulluuid}/rc.conf
+            mv ${iocroot}/jails/${_fulluuid}/rc.conf \
+               ${iocroot}/jails/${_fulluuid}/root/etc/rc.conf
+            ;;
+    esac
 
     if [ "${_type}" = "custom" ] ; then
-        zfs set org.freebsd.iocage:${_pname}="${_pval}" ${_dataset}
+        _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+        __ucl_set "${_mountpoint}" "${_pname}" "${_pval}"
     elif [ "${_type}" = "native" ] ; then
         zfs set ${_pname}="${_pval}" ${_dataset}
     fi
@@ -280,28 +333,28 @@ __validate_pname () {
            $CONF_FTP
            $CONF_GIT"
 
-    for _prop in $_CONF ; do
-        if [ "$_prop" == "$_pname" ] ; then
+    for _prop in ${_CONF} ; do
+        if [ "${_prop}" = "${_pname}" ] ; then
             _found=1
-            if [ $_type ] ; then
+            if [ "${_type}" ] ; then
                 echo "custom"
             fi
             break
         fi
     done
 
-    for _prop in $CONF_ZFS ; do
-        if [ "$_prop" == "$_pname" ] ; then
+    for _prop in ${CONF_ZFS} ; do
+        if [ "${_prop}" = "${_pname}" ] ; then
             _found=1
-            if [ $_type ] ; then
+            if [ "${_type}" ] ; then
                 echo "native"
             fi
             break
         fi
     done
 
-    if [ $_found -ne "1" ] ; then
-        __die "unsupported property: $_pname!"
+    if [ ${_found} -ne "1" ] ; then
+        __die "unsupported property: ${_pname}!"
     fi
 }
 
@@ -311,33 +364,33 @@ __console () {
 
     _name=$1
 
-    if [ -z $_name ] ; then
+    if [ -z ${_name} ] ; then
         __die "missing UUID!"
     fi
 
-    _dataset=$(__find_jail $_name) || exit $?
+    _dataset=$(__find_jail ${_name}) || exit $?
 
-    if [ -z $_dataset ] ; then
-        __die "$_name not found!"
+    if [ -z ${_dataset} ] ; then
+        __die "${_name} not found!"
     fi
 
-    _fulluuid="$(__check_name $_name)"
-    _state=$(__is_running $_fulluuid)
-    _login_flags=$(__get_jail_prop login_flags ${_name})
-    _exec_fib=$(__get_jail_prop exec_fib ${_name})
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
+    _state=$(__is_running ${_fulluuid})
+    _login_flags=$(__get_jail_prop login_flags ${_fulluuid} ${_dataset})
+    _exec_fib=$(__get_jail_prop exec_fib ${_fulluuid} ${_dataset})
     _jexec="jexec"
 
-    if [ $_exec_fib -ne "0" ] ; then
-        _jexec="setfib $_exec_fib jexec"
+    if [ ${_exec_fib} -ne "0" ] ; then
+        _jexec="setfib ${_exec_fib} jexec"
     fi
 
-    if [ "$_state" ] ; then
-        $_jexec ioc-${_fulluuid} login $_login_flags
+    if [ "${_state}" ] ; then
+        ${_jexec} ioc-${_fulluuid} login ${_login_flags}
     elif [ "${_force}" = "1" ] ; then
-        __start_jail "${_jail}" "${_dataset}"
-       $_jexec ioc-${_fulluuid} login $_login_flags
+        __start_jail "${_jail}"
+       ${_jexec} ioc-${_fulluuid} login ${_login_flags}
     else
-        __die "jail: $_name is not running!"
+        __die "jail: ${_name} is not running!"
     fi
 }
 
@@ -347,48 +400,45 @@ __exec () {
 
     # check for -U or -u to pass to jexec
     while getopts u:U: opt "$@"; do
-        case "$opt" in
-            [uU]) _jexecopts="$_jexecopts -$opt $OPTARG";;
-            ?)    __die "invalid exec option: $opt"
+        case "${opt}" in
+            [uU]) _jexecopts="${_jexecopts} -${opt} ${OPTARG}";;
+            ?)    __die "invalid exec option: ${opt}"
                   ;;
         esac
     done
-    shift $(expr $OPTIND - 1)
+    shift $(expr ${OPTIND} - 1)
 
     _name=$1
     shift
 
-    if [ -z $_name ] ; then
+    if [ -z "${_name}" ] ; then
         __die "missing UUID!"
-    elif [ $_name == ALL ]; then
+    elif [ "${_name}" = "ALL" ]; then
         local _jails _fulluuid
-        _jails="$(__find_jail ALL)"
+        _jails="$(__find_jail ALL | \
+                awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')"
 
-        for jail in $_jails ; do
-            _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
-            jexec $_jexecopts ioc-${_fulluuid} "$@"
+        for _jail in ${_jails} ; do
+            # _jail is actually a dataset, so fulluuid needs to be faked.
+            _fulluuid=$(__check_name "name" ${_jail} 2> /dev/null)
+            jexec ${_jexecopts} ioc-${_fulluuid} "$@"
         done
 
         exit 0
     fi
 
-    _dataset=$(__find_jail $_name) || exit $?
+    _dataset=$(__find_jail ${_name}) || exit $?
 
-    if [ -z $_dataset ] ; then
-        __die "$_name not found!"
-    fi
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
 
-    _fulluuid="$(__check_name $_name)"
-
-    _exec_fib=$(zfs get -H -o value org.freebsd.iocage:exec_fib \
-                  $pool/iocage/jails/$_fulluuid)
+    _exec_fib=$(__get_jail_prop exec_fib ${_fulluuid} ${_dataset})
 
     _jexec="jexec"
-    if [ $_exec_fib -ne "0" ] ; then
-        _jexec="setfib $_exec_fib jexec"
+    if [ "${_exec_fib}" -ne "0" ] ; then
+        _jexec="setfib ${_exec_fib} jexec"
     fi
 
-    $_jexec $_jexecopts ioc-${_fulluuid} "$@"
+    ${_jexec} ${_jexecopts} ioc-${_fulluuid} "$@"
 }
 
 # Cleanup release directories
@@ -398,25 +448,28 @@ __cleanup_release_dir () {
     if [ -n "$1" ] ; then
         _rel_name="$1"
     else
-        __die "Failed cleanup of release directories. No release name defined" >&2
+        __die "Failed cleanup of RELEASE directories. No RELEASE name defined" >&2
     fi
 
     _rel_exist=$(zfs get -H -o value name ${pool}/iocage/releases/${_rel_name})
-    _dwn_rel_exist=$(zfs get -H -o value name ${pool}${iocroot}/download/${_rel_name})
+    _dwn_rel_exist=$(zfs get -H -o value name \
+        ${pool}/iocage/download/${_rel_name})
 
-    if [ -n "$_rel_exist" ] ; then
-        _rel_dir_exist=$(zfs get -H -o value mountpoint ${pool}/iocage/releases/${_rel_name})
-        zfs destroy -fr ${pool}/iocage/releases/${_rel_name}
-        if [ -d "$_rel_dir_exist" ]; then
-            rm -rf $_rel_dir_exist
+    if [ -n "${_rel_exist}" ] ; then
+        _rel_dir_exist=$(zfs get -H -o value mountpoint \
+            ${pool}/iocage/releases/${_rel_name})
+        zfs destroy -fr -- ${pool}/iocage/releases/${_rel_name}
+        if [ -d "${_rel_dir_exist}" ]; then
+            rm -rf -- ${_rel_dir_exist}
         fi
     fi
 
-    if [ -n "$_dwn_rel_exist" ] ; then
-        _dwn_dir_exist=$(zfs get -H -o value mountpoint ${pool}${iocroot}/download/${_rel_name})
-        zfs destroy -fr ${pool}${iocroot}/download/${_rel_name}
-        if [ -d "$_dwn_dir_exist" ]; then
-            rm -rf $_dwn_dir_exist
+    if [ -n "${_dwn_rel_exist}" ] ; then
+        _dwn_dir_exist=$(zfs get -H -o value mountpoint \
+            ${pool}/iocage/download/${_rel_name})
+        zfs destroy -fr -- ${pool}${iocroot}/download/${_rel_name}
+        if [ -d "${_dwn_dir_exist}" ]; then
+            rm -rf -- ${_dwn_dir_exist}
         fi
     fi
 }
@@ -475,7 +528,7 @@ __fetch_release () {
 
     if [ -z "${ftpdir}" ] ; then
         # Everything but RELEASE is stored here
-        if [ "$(echo ${_release} | grep -E ${_grepmatch})" ] ; then
+        if [ "$(echo ${_release} | egrep ${_grepmatch})" ] ; then
             ftpdir="/pub/FreeBSD/snapshots/amd64/${_release}"
         else
             ftpdir="/pub/FreeBSD/releases/amd64/${_release}"
@@ -596,7 +649,7 @@ __fetch_release () {
         mkdir ${iocroot}/releases/${_release}/root/var/ports/packages \
             > /dev/null 2>&1
         if [ -e "${iocroot}/releases/${_release}/root/etc/make.conf" ] ; then
-            _ports_string="$(grep -Fxq \
+            _ports_string="$(fgrep -xq \
                           "## IOCAGE -- Allow a read-only /usr/ports" \
                           ${iocroot}/releases/${_release}/root/etc/make.conf \
                           ; echo $?)"
@@ -621,32 +674,38 @@ __fetch_release () {
 }
 
 # reads tag property from given jail dataset
-# creates symlink from $iocroot/tags/<tag> to $iocroot/jails/<uuid>
+# creates symlink from $iocroot/jails/<uuid> to $iocroot/tags/<tag>
 __link_tag () {
     local _dataset _mountpoint _tag _readlink_tag _readlink_mount _tag_date
     _dataset=$1
+    _tag="$2"
 
-    if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
-        if _tag=$(zfs get -H -o value org.freebsd.iocage:tag $_dataset); then
-            _readlink_mount="$(readlink $iocroot/tags/$_tag)"
-            _readlink_tag="$(readlink $iocroot/tags/$_tag | cut -d \/ -f 4)"
-            _tag_date=$(date "+%F@%T")
-            mkdir -p $iocroot/tags
-            if [ ! -e $iocroot/tags/$_tag ] ; then
-                ln -s $_mountpoint $iocroot/tags/$_tag
-            elif [ -e $iocroot/tags/$_tag ] && [ "$_readlink_mount" != "$_mountpoint" ] ; then
-                echo " "
-                echo "  WARNING: Replacing tag $_tag!" >&2
-                echo "  Renaming $_readlink_tag's tag to $_tag_date." >&2
-                echo " "
-                # Link new tag to jail, and relink old jail to new tag.
-                __set_jail_prop "tag=$_tag_date" "$_readlink_tag"
-                ln -shf $_mountpoint $iocroot/tags/$_tag
-                ln -s $_readlink_mount $iocroot/tags/$_tag_date
-            fi
+    # If creation wants to set a tag.
+    if [ ! -z "${tag}" -a -z "${_tag}" ] ; then
+        _tag="${tag}"
+    fi
+
+    if _mountpoint=$(zfs get -H -o value mountpoint ${_dataset}) ; then
+        _readlink_mount="$(readlink ${iocroot}/tags/${_tag})"
+        _readlink_tag="$(readlink ${iocroot}/tags/${_tag} | cut -d \/ -f 4)"
+        _tag_date=$(date "+%F@%T")
+        mkdir -p ${iocroot}/tags
+        if [ ! -e ${iocroot}/tags/${_tag} ] ; then
+            ln -s ${_mountpoint} ${iocroot}/tags/${_tag}
+        elif [ -e ${iocroot}/tags/${_tag} ] && [ "${_readlink_mount}" != "${_mountpoint}" ] ; then
+            echo " "
+            echo "  WARNING: Replacing tag ${_tag}!" >&2
+            echo "  Renaming ${_readlink_tag}'s tag to ${_tag_date}." >&2
+            echo " "
+
+
+            # Link new tag to jail, and relink old jail to new tag.
+            ln -shf ${_mountpoint} ${iocroot}/tags/${_tag}
+            ln -s ${_readlink_mount} ${iocroot}/tags/${_tag_date}
+            __ucl_set "${_readlink_mount}" "tag" "${_tag_date}"
         fi
     else
-        __die "no such dataset: $_dataset!"
+        __die "no such dataset: ${_dataset}!"
     fi
 }
 
@@ -655,8 +714,9 @@ __unlink_tag () {
     local _dataset _mountpoint
     _dataset=$1
 
-    if _mountpoint=$(zfs get -H -o value mountpoint $_dataset) ; then
-        find $iocroot/tags -type l -lname "${_mountpoint}*" -exec rm -f \{\} \; > /dev/null 2>&1
+    if _mountpoint=$(zfs get -H -o value mountpoint ${_dataset}) ; then
+        find ${iocroot}/tags -type l -lname "${_mountpoint}*" \
+            -exec rm -f \{\} \; > /dev/null 2>&1
     fi
 }
 
@@ -726,12 +786,13 @@ __get_default_iface() {
 }
 
 __pkg_wrapper () {
-    local _name _command _jid _fulluuid
+    local _name _command _jid _fulluuid _dataset
     shift
     _name="$1"
     shift
     _command="$*"
-    _fulluuid="$(__check_name ${_name})"
+    _dataset="$(__find_jail ${_name})"
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
     _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
 
 
@@ -740,4 +801,29 @@ __pkg_wrapper () {
     fi
 
     pkg -j ${_jid} ${_command}
+}
+
+# Requires three arguments. The mountpoint of the jail, the property to be set,
+# and the value of that property.
+__ucl_set () {
+    local _mountpoint _property _value _create
+
+    _mountpoint="$1"
+    _property="$2"
+    _value="$3"
+    _create="$4"
+
+    #If creating a jail this will not exist.
+    if [ "${_create}" != "1" ] ; then
+        uclcmd set -u -f ${_mountpoint}/config -o ${_mountpoint}/config.new \
+            -t string -- "${_property}" "${_value}"
+
+        if [ $? -eq 0 ] ; then
+            mv ${_mountpoint}/config ${_mountpoint}/config.old
+            mv ${_mountpoint}/config.new ${_mountpoint}/config
+        fi
+    else
+        uclcmd set -u -f ${_mountpoint}/config -t string -- "${_property}" \
+            "${_value}"
+    fi
 }

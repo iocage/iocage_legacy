@@ -42,7 +42,8 @@ __validate_mac () {
     _mac_epair_b="$(__get_next_mac ${_mac_base} ${_mac_offset}+1)"
 
     if [ ${_mac} = "none" ] ; then
-        __set_jail_prop ${_nic}_mac="${_mac_epair_a},${_mac_epair_b}" ${_uuid} $_dataset
+        __set_jail_prop ${_nic}_mac="${_mac_epair_a},${_mac_epair_b}" \
+            "${_uuid}" "${_dataset}"
     fi
 
     if [ ${_epair_leg} = "a" ] ; then
@@ -78,7 +79,7 @@ __networking () {
     local default_iface="$(__get_default_iface)"
     local cur_ip4_iface=$(echo "$ip4_addr" | cut -d '|' -f 1)
     local cur_ip6_iface=$(echo "$ip6_addr" | cut -d '|' -f 1)
-    _bridge_ifaces="$(netstat -iWn | grep -E 'bridge0|bridge1' | \
+    _bridge_ifaces="$(netstat -iWn | egrep 'bridge0|bridge1' | \
                     awk '{ print $1 }')"
 
     # Change the DEFAULT tag to correct iface
@@ -172,17 +173,19 @@ __networking () {
             __get_autoip4 $_dataset
 
             if [ -z "$cur_ip4_iface" -o "$cur_ip4_iface" == "DEFAULT" ] ; then
-               new_iface="$default_iface"
-               __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}" $_uuid $_dataset
+                new_iface="$default_iface"
+                __set_jail_prop "ip4_addr=DEFAULT|${auto_ip4}" "${_uuid}" \
+                    "${_dataset}"
             else
                 new_iface="$cur_ip4_iface"
-               __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" $_uuid $_dataset
+                __set_jail_prop "ip4_addr=$new_iface|${auto_ip4}" "${_uuid}" \
+                    "${_dataset}"
             fi
             jexec ioc-${2} ifconfig $new_iface ${auto_ip} up
         fi
 
         if [ "${_dhcp}" != "off" ] ; then
-            _dhcp_string="$(grep -Fxq \
+            _dhcp_string="$(fgrep -xq \
                          "ifconfig_vnet0=\"DHCP\"" \
                          ${iocroot}/jails/${_uuid}/root/etc/rc.conf \
                          ; echo $?)"
@@ -216,7 +219,8 @@ __networking () {
 }
 
 __get_autoip4 () {
-    local _autobase _autostart _autoend _autoip _freeip _dataset _jails
+    local _autobase _autostart _autoend _autoip _freeip _dataset _jails _juuid \
+          _jip4
 
     _dataset="$2"
     unset _auto_ip4
@@ -226,7 +230,7 @@ __get_autoip4 () {
     _autoend=$(__get_jail_prop ip4_autoend default)
     _autosubnet=$(__get_jail_prop ip4_autosubnet default)
     _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+           egrep -v "${pool}/iocage/releases/[0-9].?\>")
 
     # Do some basic sanity checking
     if [ -z "$_autostart" ] ; then
@@ -247,35 +251,35 @@ __get_autoip4 () {
         _freeip="YES"
         _nextaddr="${_autobase}.${_autoip}"
         # Is this address in use?
-        for jail in $_jails ; do
-            local juuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid\
-                        $jail)
-            local jip4="$(__get_jail_prop ip4_addr ${juuid} $_dataset)"
-            jip4=$(echo $jip4 | cut -d '|' -f 2 | cut -d '/' -f 1)
-            if [ "$jip4" = "$_nextaddr" ] ; then
+        for _jail in ${_jails} ; do
+            # _jail is actually a dataset, so fulluuid needs to be faked.
+            _juuid="$(__check_name "name" ${_jail} 2> /dev/null)"
+            _jip4="$(__get_jail_prop ip4_addr ${_juuid} ${_dataset})"
+            _jip4=$(echo ${_jip4} | cut -d '|' -f 2 | cut -d '/' -f 1)
+            if [ "${_jip4}" = "${_nextaddr}" ] ; then
                 _freeip="NO"
                 break
             fi
         done
 
         # On to the next entry to try
-        if [ "$_freeip" = "NO" ] ; then
-            _autoip=$(expr $_autoip + 1)
+        if [ "${_freeip}" = "NO" ] ; then
+            _autoip=$(expr ${_autoip} + 1)
             continue
         fi
 
         # Sanity check
-        if [ $_autoip -gt $_autoend ] ; then
+        if [ ${_autoip} -gt ${_autoend} ] ; then
             __die "IP4 Automatic Address exhaustion"
         fi
-        if [ $_autoip -gt 254 ] ; then
+        if [ ${_autoip} -gt 254 ] ; then
             __die" IP4 Address outside of bounds"
         fi
         break
     done
 
     # Set our new ip address
-    auto_ip4="$_nextaddr/$_autosubnet"
+    auto_ip4="${_nextaddr}/${_autosubnet}"
 }
 
 __stop_legacy_networking () {

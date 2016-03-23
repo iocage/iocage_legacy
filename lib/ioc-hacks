@@ -3,7 +3,7 @@
 # truncate mountpoint to work around 88 char mount limit on FreeBSD
 __hack88_mount () {
     local _altroot _exportvar _fulluuid _shortuuid _mountpoint _mount_len \
-          _hack88 _dataset _template _jail_zfs_dataset _set
+          _hack88 _dataset _template _jail_zfs_dataset _set _tag
 
     _altroot="$(zpool get -H altroot ${pool} | awk '{print $3}')"
     _fulluuid="$1"
@@ -13,6 +13,7 @@ __hack88_mount () {
     _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
     _template="$(__get_jail_prop istemplate ${_fulluuid} ${_dataset})"
     _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
+    _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _jail_zfs_dataset="$(__get_jail_prop jail_zfs_mountpoint \
         ${_fulluuid} ${_dataset})"
     _mount_len="$(echo ${_mountpoint} | sed  s#.*jails.#''# | wc -c)"
@@ -25,7 +26,7 @@ __hack88_mount () {
         zfs set mountpoint="${iocroot}/jails/${_shortuuid}" "${_dataset}"
         zfs list -rH -o name "${pool}/iocage/jails/${_fulluuid}" | \
             grep -v "${_jail_zfs_dataset}" | xargs -L 1 zfs mount
-        __link_tag "${_dataset}"
+        __link_tag "${_dataset}" "${_tag}"
 
         if [ ! -z "${_exportvar}" ] ; then
             export ${_exportvar}=${_shortuuid}
@@ -38,7 +39,7 @@ __hack88_mount () {
         zfs set mountpoint="${iocroot}/jails/${_fulluuid}" "${_dataset}"
         zfs list -rH -o name "${pool}/iocage/jails/${_fulluuid}" | \
             grep -v "${_jail_zfs_dataset}" | xargs -L 1 zfs mount
-        __link_tag "${_dataset}"
+        __link_tag "${_dataset}" "${_tag}"
 
         if [ ! -z "${_exportvar}" ] ; then
             export ${_exportvar}=${_fulluuid}

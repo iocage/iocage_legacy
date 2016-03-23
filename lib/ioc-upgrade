@@ -2,7 +2,7 @@
 
 __update () {
   local _name _dataset _fulluuid _mountpoint _date _jail_type _non_interactive \
-        _resolv _jail_release _template
+        _resolv _jail_release
 
   _name=$2
   _resolv="0"
@@ -11,17 +11,17 @@ __update () {
     # then proceed with the normal update procedure
     case "$1" in
         -n)
-            _dataset=$(__find_jail $_name)
-            _fulluuid="$(__check_name $_name)"
-            _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
-            _jail_type="$(__get_jail_prop type $_fulluuid)"
+            _dataset=$(__find_jail ${_name}) || exit $?
+            _fulluuid="$(__check_name ${_name} ${_dataset})"
+            _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+            _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
 
             # If a git jail is found, update the remote and show the user the
             # status output
-            case $_jail_type in
+            case ${_jail_type} in
                 gitjail)
-                    git -C $_mountpoint/_ remote update
-                    git -C $_mountpoint/_ status -uno
+                    git -C ${_mountpoint}/_ remote update
+                    git -C ${_mountpoint}/_ status -uno
                     ;;
             esac
             ;;
@@ -30,7 +30,7 @@ __update () {
                 __die "${_name} does not exist!"
             fi
 
-            _jail_release="$(__get_jail_prop release $_name)"
+            _jail_release="$(__get_jail_prop release ${_name} ${_dataset})"
 
             # The user might be supplying a RELEASE instead of a jail
             if [ "${_jail_release}" = "none" ] ; then
@@ -68,18 +68,17 @@ __update () {
         *)
             shift 3
             _name=$1
-            _dataset=$(__find_jail $_name)
-            _fulluuid="$(__check_name $_name)"
-            _mountpoint="$(__get_jail_prop mountpoint $_fulluuid)"
+            _dataset=$(__find_jail ${_name}) || exit $?
+            _fulluuid="$(__check_name ${_name} ${_dataset})"
+            _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
             _date=$(date "+%F_%T")
-            _jail_type="$(__get_jail_prop type $_fulluuid)"
-            _jail_release="$(__get_jail_prop release $_fulluuid)"
-            _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
+            _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+            _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
 
             # Check all jail types and do the right thing
-            case $_jail_type in
+            case ${_jail_type} in
                 basejail)
-                    if [ -e ${iocroot}/releases/${_jail_release}/root/etc/freebsd-update.conf ] ; then
+                    if [ -e "${iocroot}/releases/${_jail_release}/root/etc/freebsd-update.conf" ] ; then
                         if [ ! -e ${iocroot}/releases/${_jail_release}/root/etc/resolv.conf ] ; then
                             export _resolv="1"
                             cat /etc/resolv.conf > \
@@ -125,12 +124,12 @@ __update () {
 
                     # Re-clone required filesystems
                     __check_basejail "${_fulluuid}" "${_dataset}"
-                    __umount_basejail "${_fulluuid}" "${_template}"
+                    __umount_basejail "${_fulluuid}" "${_dataset}"
                     echo "* ${_name} updated successfully"
                     ;;
                 gitjail)
                     # Update the local git repo to the latest remote
-                    git -C $_mountpoint/root pull
+                    git -C ${_mountpoint}/root pull
                     ;;
                 *)
                     echo "* Creating back-out update snapshot."
@@ -140,8 +139,8 @@ __update () {
                     # set the pager to cat so that it isn't interactive
                     echo "* Updating jail.."
 
-                    if [ -e ${iocroot}/releases/${_jail_release}/root/etc/freebsd-update.conf ] ; then
-                        if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
+                    if [ -e "${iocroot}/releases/${_jail_release}/root/etc/freebsd-update.conf" ] ; then
+                        if [ ! -e "${_mountpoint}/root/etc/resolv.conf" ] ; then
                             export _resolv="1"
                             cat /etc/resolv.conf > \
                             ${_mountpoint}/root/etc/resolv.conf
@@ -190,12 +189,12 @@ __update () {
                     ;;
             esac
 
-            if [ -z $_name ] ; then
+            if [ -z "${_name}" ] ; then
                 __die "missing UUID!"
             fi
 
-            if [ -z $_dataset ] ; then
-                __die "$_name not found!"
+            if [ -z "${_dataset}" ] ; then
+                __die "${_name} not found!"
             fi
             ;;
       esac
@@ -203,24 +202,23 @@ __update () {
 
 __upgrade () {
     local _name _release _fulluuid _jails _jail_type _mountpoint _date \
-          _oldrelease _resolv _origin _date _etcsuccess _template
+          _oldrelease _resolv _origin _date _etcsuccess
 
     _name="$1"
     _release="$(uname -r|cut -f 1,2 -d'-'|sed -E 's/CURRENT.*|STABLE.*/RELEASE/')"
     _dataset="$(__find_jail ${_name})" || exit $?
-    _fulluuid="$(__check_name ${_name})"
-    _jail_type="$(__get_jail_prop type ${_fulluuid})"
-    _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid})"
-    _oldrelease="$(zfs get -H -o value org.freebsd.iocage:release ${_dataset})"
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+    _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _oldrelease="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
     _date=$(date "+%F")
     _resolv="0"
-    _template="$(__get_jail_prop template ${_fulluuid} ${_dataset})"
 
-    if [ -z ${_name} ] ; then
+    if [ -z "${_name}" ] ; then
         __die "missing UUID!"
     fi
 
-    if [ -z ${_dataset} ] ; then
+    if [ -z "${_dataset}" ] ; then
         __die "${_name} not found!"
     fi
 
@@ -228,7 +226,7 @@ __upgrade () {
         _release="${iocset_release}"
     fi
 
-    if [ ! -d ${iocroot}/releases/${_release} ] ; then
+    if [ ! -d "${iocroot}/releases/${_release}" ] ; then
         __error "${_release} not found!"
         echo "  Please run iocage fetch first." >&2
         exit 1
@@ -236,13 +234,13 @@ __upgrade () {
 
     # If jail is a basejail then set the new release and check the datasets
     # back up /etc just in case the merge fails
-    if [ ${_jail_type} = "basejail" ] ; then
+    if [ "${_jail_type}" = "basejail" ] ; then
         _jails=$(__find_jail ALL | \
             awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')
         # Check to see if the jail has a stale upgrade snapshot.
         for _fs in ${_jails} ; do
             _snapcheck="$(zfs list -Ht snap | \
-                     grep -E "${_fulluuid}.*ioc-upgrade" | \
+                     egrep "${_fulluuid}.*ioc-upgrade" | \
                      awk '{print $1}')"
             if [ ! -z ${_snapcheck} ] ; then
                 __error "${_name} has an existing upgrade snapshot" >&2
@@ -252,7 +250,7 @@ __upgrade () {
             fi
         done
 
-        zfs set org.freebsd.iocage:release="${_release}" ${_dataset}
+        __set_jail_prop release="${_release}" "${_fulluuid}" "${_dataset}"
         __check_basejail ${_fulluuid} > /dev/null 2>&1
         cp -Rp ${_mountpoint}/root/etc \
                ${_mountpoint}/etc.old
@@ -261,7 +259,7 @@ __upgrade () {
         chroot ${_mountpoint}/root etcupdate resolve
         _etcsuccess="$?"
 
-        if [ -d ${_mountpoint}/root/var/spool/mqueue ] ; then
+        if [ -d "${_mountpoint}/root/var/spool/mqueue" ] ; then
             chroot ${_mountpoint}/root newaliases > /dev/null 2>&1
         else
             mkdir -p ${_mountpoint}/root/var/spool/mqueue
@@ -275,22 +273,23 @@ __upgrade () {
             echo "    /etc backup: ${_mountpoint}/etc.old"
             echo "    snapshot: ${_dataset}/root@ioc-upgrade_${_date}"
             echo "* if everything is OK."
-            __umount_basejail "${_fulluuid}" "${_template}"
+            __umount_basejail "${_fulluuid}" "${_dataset}"
             exit 0
         else
             echo "" >&2
             echo "* Upgrade failed! Backing out." >&2
-            zfs set org.freebsd.iocage:release="${_oldrelease}" ${_dataset}
+            __set_jail_prop release="${_oldrelease}" "${_fulluuid}" \
+                "${_dataset}"
             zfs rollback -rRf ${_dataset}/root@ioc-upgrade_${_date}
             zfs destroy ${_dataset}/root@ioc-upgrade_${_date}
             rm -rf ${_mountpoint}/root/etc
             mv ${_mountpoint}/etc.old \
                ${_mountpoint}/root/etc
             __check_basejail "${_fulluuid}"
-            __umount_basejail "${_fulluuid}" "${_template}"
+            __umount_basejail "${_fulluuid}" "${_dataset}"
             exit 1
         fi
-    elif [ ${_jail_type} = "thickjail" ] ; then
+    elif [ "${_jail_type}" = "thickjail" ] ; then
         # __spinner needs to be recreated here as we redirect with __update
         _spinner='/-\|'
 
@@ -309,8 +308,8 @@ __upgrade () {
         echo "* Creating back-out upgrade snapshot."
         zfs snapshot ${_dataset}/root@ioc-upgrade_${_date}
         echo "* Upgrading jail."
-        if [ -e ${iocroot}/releases/${_release}/root/etc/freebsd-update.conf ] ; then
-            if [ ! -e ${_mountpoint}/root/etc/resolv.conf ] ; then
+        if [ -e "${iocroot}/releases/${_release}/root/etc/freebsd-update.conf" ] ; then
+            if [ ! -e "${_mountpoint}/root/etc/resolv.conf" ] ; then
                 export _resolv="1"
                 cat /etc/resolv.conf > \
                     ${_mountpoint}/root/etc/resolv.conf
@@ -331,7 +330,8 @@ __upgrade () {
                 fi
                 umount ${_mountpoint}/root/dev
                 # Set jail's zfs property to new release
-                zfs set org.freebsd.iocage:release="${_release}" ${_dataset}
+                __set_jail_prop release="${_release}" "${_fulluuid}" \
+                    "${_dataset}"
             else
                 echo "* Upgrade failed, aborting install." >&2
                 zfs rollback -rRf ${_dataset}/root@ioc-upgrade_${_date}

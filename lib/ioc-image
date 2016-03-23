@@ -36,8 +36,8 @@ __import_old_thickjails () {
             export type=thickjail
             _uuid="$(__create_jail "" -e)"
             tar -xvJf "${_image}" -C "${iocroot}/jails/${_uuid}/root"
-            zfs set org.freebsd.iocage:release="${_irelease}" \
-            "${pool}/iocage/jails/${_uuid}"
+            __set_jail_prop release="${_irelease}" "${_uuid}" \
+                "${pool}/iocage/jails/${_uuid}"
         fi
 
     else
@@ -45,7 +45,7 @@ __import_old_thickjails () {
     fi
 
     cat "${iocroot}/jails/${_uuid}/root/etc/rc.conf" | \
-    sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/${_uuid}/g" \
+    sed -E "s/hostname.*/hostname=\"${_uuid}\"/g" \
     > "${iocroot}/jails/${_uuid}/rc.conf"
 
     mv "${iocroot}/jails/${_uuid}/rc.conf" \
@@ -54,7 +54,7 @@ __import_old_thickjails () {
 
 __import () {
     local _name _fulluuid _tag _image _icount _irelease _idate _jail_release \
-          _spinner _date
+          _spinner _date _dataset
 
     _name="${1}"
 
@@ -83,7 +83,7 @@ __import () {
         __die "multiple matching images, please narrow down UUID."
     fi
 
-    if [ -z "$(echo ${_image} | grep -E 'thickjail|basejail')" ] ; then
+    if [ -z "$(echo ${_image} | egrep 'thickjail|basejail')" ] ; then
         # Strip the extension off the image name for later
         _image="$(echo ${_image} | cut -d "." -f 1)"
 
@@ -97,15 +97,16 @@ __import () {
         _image="${_image}-thickjail-${_date}.tar.xz"
     fi
 
-    if [ "$(echo ${_image} | grep -E 'thickjail.*.tar.xz')" ] ; then
+    if [ "$(echo ${_image} | egrep 'thickjail.*.tar.xz')" ] ; then
         __export_props "$@"
         __import_old_thickjails "${_name}"
         exit $?
     fi
 
     if [ -e "${iocroot}/jails/${_name}" ] ; then
-        _fulluuid="$(__check_name ${_name})"
-        _tag="$(__get_jail_prop tag ${_fulluuid})"
+        _dataset="$(__find_jail ${_name})" || exit $?
+        _fulluuid="$(__check_name ${_name} ${_dataset})"
+        _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
         __die "${_name} has already been imported (${_tag})"
     elif [ ! -e "${iocroot}/releases/${_irelease}" ] ; then
         __die "please fetch ${_irelease} first."
@@ -131,17 +132,17 @@ __export () {
     local _name _dataset _date _fulluuid _jail_release _spinner _state \
           _jail_path _jail_type _clone_check
 
-    _name="${1}"
-    _dataset=$(__find_jail ${_name})
+    _name="$1"
+    _dataset=$(__find_jail ${_name}) || exit $?
     _clone_check="$(zfs get -H origin ${_dataset} | awk '{print $3}')"
-    _fulluuid="$(__check_name ${_name})"
-    _jail_type="$(__get_jail_prop type ${_fulluuid})"
-    _tag="$(__get_jail_prop tag ${_fulluuid})"
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+    _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _date=$(date "+%F")
-    _jail_release="$(__get_jail_prop release ${_fulluuid})"
+    _jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
     _export_name="${iocroot}/images/${_fulluuid}-${_jail_type}-${_date}_${_jail_release}"
-    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid})"
-    _state=$(jls|grep ${_jail_path} | wc -l)
+    _jail_path="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
+    _state=$(jls | grep ${_jail_path} | wc -l)
 
     if [ -z "${_name}" ] ; then
         __die "missing UUID or TAG!"
@@ -158,14 +159,12 @@ __export () {
     if [ "${_jail_type}" = "jail" ] ; then
         # Check for thick or clone jails and migrate their type
         if [ "${_clone_check}" = "-" ] ; then
-            __set_jail_prop type=thickjail ${_fulluuid} \
-                ${pool}/iocage/jails/${_fulluuid}
+            __set_jail_prop "type=thickjail" "${_fulluuid}" "${_dataset}"
         else
-            __set_jail_prop type=clonejail ${_fulluuid} \
-                ${pool}/iocage/jails/${_fulluuid}
+            __set_jail_prop "type=clonejail" "${_fulluuid}" "${_dataset}"
         fi
 
-        _jail_type="$(__get_jail_prop type ${_fulluuid})"
+        _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
         _export_name="${iocroot}/images/${_fulluuid}-${_jail_type}-${_date}_${_jail_release}"
     fi
 

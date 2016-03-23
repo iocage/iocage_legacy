@@ -96,10 +96,10 @@ __parse_cmd () {
                             shift 2
                             for _jdel in $@ ; do
                                 __destroy_jail "${_jdel}"
-                                unset jail_datasets uuid jail_zfs_dataset \
-                                      _fulluuid_dataset _fs _jail_type
+                                unset jail_datasets uuid jail_zfs_dataset _fs \
+                                      _jail_type
                                 export jail_datasets="$(zfs list -d3 -rH -o \
-                                       name ${pool}/iocage | grep -Ev \
+                                       name ${pool}/iocage | egrep -v \
                                        "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
                             done
                         else
@@ -107,10 +107,10 @@ __parse_cmd () {
                             shift
                             for _jdel in $@ ; do
                                 __destroy_jail "${_jdel}"
-                                unset jail_datasets uuid jail_zfs_dataset \
-                                      _fulluuid_dataset _fs _jail_type
+                                unset jail_datasets uuid jail_zfs_dataset _fs \
+                                      _jail_type
                                 export jail_datasets="$(zfs list -d3 -rH -o \
-                                       name ${pool}/iocage | grep -Ev \
+                                       name ${pool}/iocage | egrep -v \
                                        "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
                             done
                         fi
@@ -216,7 +216,7 @@ __parse_cmd () {
                         shift
                         # Big thanks to john@ix for his huge help with this
                         local _nprops _props _njails _jails _var _pair _i \
-                              _jail _fulluuid _j _prop _pname _pval
+                              _jail _fulluuid _j _prop _pname _pval _dataset
 
                         _nprops=0
                         _njails=0
@@ -243,7 +243,8 @@ __parse_cmd () {
                         while [ "${_i}" -lt "${_njails}" ] ; do
                             _var=\$$(printf "_jail_${_i}")
                             _jail=$(eval "echo ${_var}")
-                            _fulluuid="$(__check_name ${_jail})"
+                            _dataset=$(__find_jail ${_jail}) || exit $?
+                            _fulluuid="$(__check_name ${_jail} ${_dataset})"
                             _j=0
 
                             while [ "${_j}" -lt "${_nprops}" ] ; do

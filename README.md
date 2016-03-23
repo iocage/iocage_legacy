@@ -3,12 +3,15 @@ iocage
 
 **A FreeBSD jail manager.**
 
-iocage is a zero dependency, drop in jail/container manager amalgamating some
-of the best features and technologies the FreeBSD operating system has to offer.
-It is geared for ease of use with a simple and easy to understand command syntax.
+iocage is a jail/container manager amalgamating some off the best features and
+technologies the FreeBSD operating system has to offer. It is geared for ease
+of use with a simple and easy to understand command syntax.
 
 iocage is in the FreeBSD ports tree as sysutils/iocage.
 To install using binary packages, simply run: `pkg install iocage`
+
+To build from source, iocage requires the master branch of [libucl](https://github.com/vstakhov/libucl) and [uclcmd](https://github.com/allanjude/uclcmd)
+to also be built.
 
 ## WARNING:
 The `develop` branch may not be functional at any given point. This is where a lot of experimental work gets done. No guarantees for stability or migrations within the branch are given. Things can and do change rapidly. **_Please don't use it if you require stability._**

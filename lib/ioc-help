@@ -1447,11 +1447,12 @@ EOT
 
 __help () {
     local _pager
-    _pager="$PAGER"
-    if [ -z "$_pager" ]; then
-        _pager=less
+    _pager="${PAGER}"
+
+    if [ -z "${_pager}" ]; then
+        _pager="less"
     fi
-    __help_text | $_pager
+    __help_text | ${_pager}
 }
 
 __usage () {
@@ -1466,14 +1467,14 @@ __show () {
     _prop="$1"
 
     {
-        printf "%s\t%s\t%s\n" "UUID" "TAG" "$_prop"
-        for _dataset in $_datasets ; do
-            _fulluuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
-                        $_dataset)"
-            _tag="$(__get_jail_prop tag $_fulluuid $_dataset)"
-            _value="$(__get_jail_prop $_prop $_fulluuid $_dataset)"
+        printf "%s\t%s\t%s\n" "UUID" "TAG" "${_prop}"
+        for _dataset in ${_datasets} ; do
+            # We only have a dataset so fulluuid needs to be faked.
+            _fulluuid="$(__check_name "name" ${_dataset} 2> /dev/null)"
+            _tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
+            _value="$(__get_jail_prop ${_prop} ${_fulluuid} ${_dataset})"
 
-            printf "%s\t%s\t%s\n" "$_fulluuid"  "$_tag" "$_value"
+            printf "%s\t%s\t%s\n" "${_fulluuid}"  "${_tag}" "${_value}"
         done
     } | column -s $'\t' -t
 }

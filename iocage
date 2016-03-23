@@ -29,20 +29,22 @@ unset LANG
 
 PATH=${PATH}:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
-if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
-    echo "iocage DEVELOP (2016-02-17)"
+if [ "${1}" = "--version" ] || [ "${1}" = "version" ] ; then
+    echo "iocage DEVELOP (2016-03-23)"
     exit 0
 fi
 
 # Check if the system has ZFS available. That is required for iocage to work properly.
 # Exit if it doesn't.
 if [ "$(zpool list)" = 'no pools available' ] ; then
-    echo "  ERROR: ZFS is required for iocage to work and I can't find any pools available." >&2
+    echo "  ERROR: ZFS is required for iocage to work" \
+        "and I can't find any pools available." >&2
     exit 1
 fi
 
-if [ "$(uname -K)" -lt "903000" ]; then
-    echo "  ERROR: Unsupported RELEASE found. Please upgrade to 9.3-RELEASE or later." >&2
+if [ "$(uname -K)" -lt "903000" ] ; then
+    echo "  ERROR: Unsupported RELEASE found." \
+        " Please upgrade to 9.3-RELEASE or later." >&2
     exit 1
 fi
 
@@ -56,23 +58,40 @@ else
     exit 1
 fi
 
-# Source the libs needed to use the script
+# Source the libs needed to use the script, include shellcheck directives
+# shellcheck source=lib/ioc-cmd
 . "${LIB}/ioc-cmd"
+# shellcheck source=lib/ioc-globals
 . "${LIB}/ioc-globals"
+# shellcheck source=lib/ioc-info
 . "${LIB}/ioc-info"
+# shellcheck source=lib/ioc-help
 . "${LIB}/ioc-help"
+# shellcheck source=lib/ioc-common
 . "${LIB}/ioc-common"
+# shellcheck source=lib/ioc-zfs
 . "${LIB}/ioc-zfs"
+# shellcheck source=lib/ioc-send
 . "${LIB}/ioc-send"
+# shellcheck source=lib/ioc-snapshot
 . "${LIB}/ioc-snapshot"
+# shellcheck source=lib/ioc-upgrade
 . "${LIB}/ioc-upgrade"
+# shellcheck source=lib/ioc-image
 . "${LIB}/ioc-image"
+# shellcheck source=lib/ioc-common
 . "${LIB}/ioc-common"
+# shellcheck source=lib/ioc-rc
 . "${LIB}/ioc-rc"
+# shellcheck source=lib/ioc-network
 . "${LIB}/ioc-network"
+# shellcheck source=lib/ioc-rctl
 . "${LIB}/ioc-rctl"
+# shellcheck source=lib/ioc-configure
 . "${LIB}/ioc-configure"
+# shellcheck source=lib/ioc-hacks
 . "${LIB}/ioc-hacks"
+# shellcheck source=lib/ioc-git
 . "${LIB}/ioc-git"
 
 if [ -z "$1" ] ; then
@@ -85,21 +104,44 @@ if [ "$1" = "-v" ] ; then
     shift
 fi
 
-if [ "$1" = "help" -o "$1" = "--help" -o "$1" = "-h" ] ; then
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
     __help
     exit 0
 fi
 
-if [ $(__readonly_cmd "$1") != "0" -a "$(whoami)" != "root" ] ; then
+if [ "$(__readonly_cmd "$1")" != "0" ] && [ "$(id -un)" != "root" ] ; then
     echo "* The $1 command needs root credentials!" >&2
+    exit 1
+fi
+
+if [ ! -e "/usr/local/lib/libucl.so" ] || [ ! -e "/usr/local/bin/uclcmd" ] ; then
+    echo "* Please install all dependencies!"
     exit 1
 fi
 
 # Work around zpool activation chicken-egg problem
 # (when activating a pool don't look for an existing one)
 # Also look for an altroot and if it exists change lib/ioc-globals to that value
-if [ "$1" != "activate" -a "$1" != "deactivate" ] ; then
-    __find_mypool
+if [ "$1" != "activate" ] ; then
+    _pool=$(__get_default_prop pool)
+    export pool="${_pool}"
+
+    if [ "${pool}" = "null" ] || [ "${pool}" = "none" ]; then
+        _found="0"
+        for _pool in $(zpool list -H -o name) ; do
+            _mpool=$(zpool get -H comment "${_pool}" | awk '{print $3}')
+
+            if [ "${_mpool}" = "iocage" ] ; then
+                _found="1"
+                __activate "${_pool}"
+                break
+            fi
+        done
+      if [ "${_found}" = "0" ] ; then
+          __die "you need to activate a pool!"
+      fi
+    fi
+
     __check_filesystems
 fi
 

@@ -9,10 +9,10 @@ __init_host () {
 
     _host="$1"
     _pool="$2"
-    _fs_list="base
-              .defaults
-              download
-              releases"
+    _fs_list="download
+              jails
+              releases
+              templates"
 
     if [ -z $_host ] || [ -z $_pool ] ; then
         echo "ERROR: missing host or pool name" >&2

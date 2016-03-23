@@ -1,8 +1,7 @@
 #!/bin/sh
 
 __snapshot () {
-    local _name _snapshot _fulluuid_dataset _fulluuid _dataset _date \
-          _jid _database_check _answer
+    local _name _snapshot _fulluuid _dataset _date _jid _database_check _answer
 
     _date=$(date "+%F_%T")
 
@@ -10,10 +9,8 @@ __snapshot () {
         shift
         _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
         _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-        _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
-        set ${_fulluuid_dataset}
-        _fulluuid="$1"
-        _dataset="$2"
+        _dataset="$(__find_jail ${_name})" || exit $?
+        _fulluuid="$(__check_name ${_name} ${_dataset})"
         _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
         _database_check="$(ps -axJ ${_jid} 2> /dev/null | \
             grep -qE 'mysqld|postgresql' ; echo $?)"
@@ -44,10 +41,8 @@ __snapshot () {
     else
         _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
         _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-        _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
-        set ${_fulluuid_dataset}
-        _fulluuid="$1"
-        _dataset="$2"
+        _dataset="$(__find_jail ${_name})" || exit $?
+        _fulluuid="$(__check_name ${_name} ${_dataset})"
         _jid=$(jls -j ioc-${_fulluuid} jid 2> /dev/null)
         _database_check="$(ps -axJ ${_jid} 2> /dev/null | \
             grep -qE 'mysqld|postgresql' ; echo $?)"
@@ -114,50 +109,49 @@ __snapremove () {
 __snaplist () {
     local _name _dataset _fulluuid _snapshots _snapname \
           _creation _used _referenced _snap
+
     _name="$1"
 
-    if [ -z $_name ] ; then
+    if [ -z ${_name} ] ; then
         __die "missing UUID!"
     fi
 
-    _dataset="$(__find_jail $_name)" || exit $?
+    _dataset="$(__find_jail ${_name})" || exit $?
 
-    if [ -z $_dataset ] ; then
-        __die "$_name not found!"
+    if [ -z ${_dataset} ] ; then
+        __die "${_name} not found!"
     fi
 
-    _fulluuid="$(__check_name $_name)"
-    _snapshots="$(zfs list -Hrt snapshot -d1 $_dataset | awk '{print $1}')"
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
+    _snapshots="$(zfs list -Hrt snapshot -d1 ${_dataset} | awk '{print $1}')"
 
     printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
             "RSIZE" "USED"
 
-    for _snap in $_snapshots ; do
-        _snapname=$(echo $_snap|cut -f 2 -d \@)
-        _creation="$(zfs get -H -o value creation $_snap)"
-        _used="$(zfs get -H -o value used $_snap)"
-        _referenced="$(zfs get -H -o value referenced $_snap)"
+    for _snap in ${_snapshots} ; do
+        _snapname=$(echo ${_snap} | cut -f 2 -d \@)
+        _creation="$(zfs get -H -o value creation ${_snap})"
+        _used="$(zfs get -H -o value used ${_snap})"
+        _referenced="$(zfs get -H -o value referenced ${_snap})"
 
-        printf "%-36s  %-21s  %s    %s\n" "$_snapname" "$_creation"\
-                   "$_referenced" "$_used"
+        printf "%-36s  %-21s  %s    %s\n" "${_snapname}" "${_creation}"\
+                   "${_referenced}" "${_used}"
     done
 
 }
 
 __rollback () {
-    local _name _snapshot _fs _fulluuid_dataset _fulluuid _dataset _jail_type
+    local _name _snapshot _fs _fulluuid _dataset _jail_type
 
     _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
-    set ${_fulluuid_dataset}
-    _fulluuid="$1"
-    _dataset="$2"
-    _jail_type="$(__get_jail_prop type ${_fulluuid})"
-    _fs_list=$(zfs list -rH -o name $_dataset)
+    _dataset="$(__find_jail ${_name})" || exit $?
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
+    _jail_type="$(__get_jail_prop type ${_fulluuid} ${_dataset})"
+    _fs_list=$(zfs list -rH -o name ${_dataset})
 
-    if [ ! -z "$_snapshot" ] ; then
-        for _fs in $_fs_list ; do
+    if [ ! -z "${_snapshot}" ] ; then
+        for _fs in ${_fs_list} ; do
             if [ "${_jail_type}" = "basejail" -a "${_fs}" = "${_dataset}/root" ] ; then
                 continue
             fi
@@ -198,16 +192,13 @@ __promote () {
 }
 
 __mount_snapshot () {
-    local _name _snapshot _destination _fulluuid_dataset _fulluuid \
-          _dataset _snapcheck
+    local _name _snapshot _destination _fulluuid _dataset _snapcheck
 
     _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
     _destination="$2"
-    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
-    set ${_fulluuid_dataset}
-    _fulluuid="$1"
-    _dataset="$2"
+    _dataset="$(__find_jail ${_name})" || exit $?
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
 
     if [ -z "${_snapshot}" ] ; then
         __die "missing snapshot!"
@@ -236,15 +227,12 @@ __mount_snapshot () {
 # If you umount in the reverse order you mounted, otherwise it's all random.
 # TODO : Improve some day.
 __umount_snapshot () {
-    local _name _snapshot _fulluuid_dataset _fulluuid _dataset _mountcheck \
-          _fullsnap
+    local _name _snapshot _fulluuid _dataset _mountcheck _fullsnap
 
     _name="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
     _snapshot="$(echo $1 |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-    _fulluuid_dataset="$(__get_uuid_and_dataset ${_name})" || exit $?
-    set ${_fulluuid_dataset}
-    _fulluuid="$1"
-    _dataset="$2"
+    _dataset="$(__find_jail ${_name})" || exit $?
+    _fulluuid="$(__check_name ${_name} ${_dataset})"
     _fullsnap="${_dataset}@${_snapshot}"
 
     if [ -z "${_snapshot}" ] ; then

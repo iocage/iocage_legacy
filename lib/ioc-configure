@@ -2,20 +2,24 @@
 
 # Configure properties -------------------------------------------------
 __configure_jail () {
-    local _value _CONF
+    local _value _CONF _fulluuid _dataset _prop _prop_name
 
     _CONF="$CONF_NET
            $CONF_JAIL
            $CONF_RCTL
            $CONF_CUSTOM
            $CONF_SYNC
+           $CONF_FTP
            $CONF_GIT"
 
-    for prop in $_CONF ; do
-        prop_name=$prop
-        eval prop="\$${prop}"
-        if [ ! -z "$prop" ] ; then
-            case "${prop_name}" in
+    _fulluuid="$1"
+    _dataset="$2"
+
+    for _prop in $_CONF ; do
+        _prop_name=${_prop}
+        eval _prop="\$${_prop}"
+        if [ ! -z "${_prop}" ] ; then
+            case "${_prop_name}" in
                 tag) _value="${tag}"
                     ;;
                 host_domainname) _value="${host_domainname}"
@@ -25,12 +29,6 @@ __configure_jail () {
                 host_hostuuid) _value="${host_hostuuid}"
                     ;;
                 jail_zfs_dataset) _value="${jail_zfs_dataset}"
-                    ;;
-                base) case "${base}" in
-                          "-") base="$(zfs get -H -o value org.freebsd.iocage:base $1)"
-                              ;;
-                      esac
-                      _value="${base}"
                     ;;
                 basedirs) _value="${basedirs}"
                     ;;
@@ -84,33 +82,43 @@ __configure_jail () {
                            esac
                            _value="${vnet3_mac}"
                     ;;
-                *) _value="${prop}"
+                *) _value="${_prop}"
                     ;;
             esac
 
             if [ "$1" != "generate" ] ; then
-                echo "** $prop_name=$_value"
-                zfs set org.freebsd.iocage:$prop_name="$_value" $1
+                _mountpoint="$(__get_jail_prop mountpoint ${_fulluuid} \
+                    ${_dataset})"
+                echo "** ${prop_name}=${_value}"
+                __ucl_set "${_mountpoint}" "${_prop_name}" "${_value}"
                 unset _value
-            elif [ "$1" == "generate" ] ; then
-                echo -n "-o org.freebsd.iocage:$prop_name=\"$_value\" "
+            elif [ "$1" = "generate" ] ; then
+                _fulluuid="$2"
+                _dataset="$3"
+                _mountpoint="$4"
+
+                if [ -z "${_mountpoint}" ] ; then
+                    _mountpoint="${iocroot}/jails/${_fulluuid}"
+                fi
+
+                if [ -z "${_dataset}" ] ; then
+                    _dataset="${pool}${_mountpoint}"
+                fi
+
+                __ucl_set "${_mountpoint}" "${_prop_name}" "${_value}" "1"
             fi
         fi
     done
 
-    for prop in $CONF_ZFS ; do
-        prop_name=$prop
-        eval prop="\$${prop}"
-        if [ ! -z "$prop" ] && [ "$prop" != "readonly" ] ; then
-            _value="$prop"
+    for _prop in ${CONF_ZFS} ; do
+        _prop_name=${_prop}
+        eval _prop="\$${_prop}"
 
-            if [ "$1" != "generate" ] ; then
-                echo "** $prop_name=$_value"
-                zfs set $prop_name="$_value" $1
-            elif [ "$1" == "generate" ] ; then
-                echo -n "-o $prop_name=\"$_value\" "
-            fi
+        if [ ! -z "${_prop}" ] && [ "${_prop}" != "readonly" ] ; then
+            _value="${_prop}"
+            zfs set ${_prop_name}="${_value}" ${_dataset}
         fi
+
     done
 }
 
@@ -140,7 +148,7 @@ __resolv_conf () {
     _fulluuid="$1"
     _dataset="$2"
     _default_resolver="$(__get_default_prop resolver default)"
-    _resolver="$(__get_jail_prop resolver $_fulluuid $_dataset)"
+    _resolver="$(__get_jail_prop resolver ${_fulluuid} ${_dataset})"
 
     if [ "${_resolver}" != "none" ] ; then
         echo "${_resolver}" | tr \; \\n
@@ -167,23 +175,23 @@ __reset_jail_props () {
     local _name _dataset uuid tag
     _name=$1
 
-    if [ -z "$_name" ] ; then
+    if [ -z "${_name}" ] ; then
         __die "missing UUID!"
     fi
 
-    _dataset="$(__find_jail $_name)" || exit $?
+    _dataset="$(__find_jail ${_name})" || exit $?
 
-    if [ -z "$_dataset" ] ; then
-        __die "$_name not found!"
+    if [ -z "${_dataset}" ] ; then
+        __die "${_name} not found!"
     fi
 
-    if [ $_name == "ALL" ] ; then
+    if [ ${_name} = "ALL" ] ; then
         echo " "
         echo "  WARNING: This will reset ALL jails!"
         echo " "
         echo -n "  Are you sure? y[N]: "
         read answer
-        if [ "$answer" == "Y" ] || [ "$answer" == "y" ] ; then
+        if [ "$answer" = "Y" -o "$answer" = "y" ] ; then
             echo "  Resetting all jails."
 
             __reset_jail_props_all
@@ -196,41 +204,39 @@ __reset_jail_props () {
     fi
 
     # Cache properties to set again later
-    uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
-    host_hostuuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_dataset)"
-    tag="$(zfs get -H -o value org.freebsd.iocage:tag $_dataset)"
-    vnet0_mac="$(zfs get -H -o value org.freebsd.iocage:vnet0_mac $_dataset)"
-    vnet1_mac="$(zfs get -H -o value org.freebsd.iocage:vnet1_mac $_dataset)"
-    vnet2_mac="$(zfs get -H -o value org.freebsd.iocage:vnet2_mac $_dataset)"
-    vnet3_mac="$(zfs get -H -o value org.freebsd.iocage:vnet3_mac $_dataset)"
-    basedirs="$(zfs get -H -o value org.freebsd.iocage:basedirs $_dataset)"
-    hack88="$(zfs get -H -o value org.freebsd.iocage:hack88 $_dataset)"
-    jail_zfs_dataset="$(zfs get -H -o value org.freebsd.iocage:jail_zfs_dataset\
-        $_dataset)"
-    resolver="$(zfs get -H -o value org.freebsd.iocage:resolver $_dataset)"
-    ip4_autostart="$(zfs get -H -o value org.freebsd.iocage:ip4_autostart\
-        $_dataset)"
-    ip4_autoend="$(zfs get -H -o value org.freebsd.iocage:ip4_autoend\
-        $_dataset)"
-    ip4_autosubnet="$(zfs get -H -o value org.freebsd.iocage:ip4_autosubnet\
-        $_dataset)"
-    gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
-    type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
-    boot="$(zfs get -H -o value org.freebsd.iocage:boot $_dataset)"
-    vnet="$(zfs get -H -o value org.freebsd.iocage:vnet $_dataset)"
-    host_hostname="$(zfs get -H -o value org.freebsd.iocage:host_hostname $_dataset)"
-    mount_procfs="$(zfs get -H -o value org.freebsd.iocage:mount_procfs $_dataset)"
-    mount_linprocfs="$(zfs get -H -o value org.freebsd.iocage:mount_linprocfs $_dataset)"
+    uuid=$(__check_name ${_name} ${_dataset} 2> /dev/null)
+    host_hostuuid="${uuid}"
+    tag="$(__get_jail_prop tag ${uuid} ${_dataset})"
+    vnet0_mac="$(__get_jail_prop vnet0_mac ${uuid} ${_dataset})"
+    vnet1_mac="$(__get_jail_prop vnet1_mac ${uuid} ${_dataset})"
+    vnet2_mac="$(__get_jail_prop vnet2_mac ${uuid} ${_dataset})"
+    vnet3_mac="$(__get_jail_prop vnet3_mac ${uuid} ${_dataset})"
+    basedirs="$(__get_jail_prop basedirs ${uuid} ${_dataset})"
+    hack88="$(__get_jail_prop hack88 ${uuid} ${_dataset})"
+    jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset ${uuid} ${_dataset})"
+    resolver="$(__get_jail_prop resolver ${uuid} ${_dataset})"
+    ip4_autostart="$(__get_jail_prop ip4_autostart ${uuid} ${_dataset})"
+    ip4_autoend="$(__get_jail_prop ip4_autoend ${uuid} ${_dataset})"
+    ip4_autosubnet="$(__get_jail_prop ip4_autosubnet ${uuid} ${_dataset})"
+    gitlocation="$(__get_jail_prop gitlocation ${uuid} ${_dataset})"
+    type="$(__get_jail_prop type ${uuid} ${_dataset})"
+    boot="$(__get_jail_prop boot ${uuid} ${_dataset})"
+    vnet="$(__get_jail_prop vnet ${uuid} ${_dataset})"
+    host_hostname="$(__get_jail_prop host_hostname ${uuid} ${_dataset})"
+    mount_procfs="$(__get_jail_prop mount_procfs ${uuid} ${_dataset})"
+    mount_linprocfs="$(__get_jail_prop mount_linprocfs ${uuid} ${_dataset})"
 
-    __configure_jail $_dataset
+    __configure_jail ${uuid} ${_dataset}
 }
 
 __reset_jail_props_all () {
-    local _jails _dataset
-    _jails="$(__find_jail ALL)"
+    local _jails _fulluuid
+    _jails="$(__find_jail ALL | \
+            awk 'BEGIN { FS = "/" } ; { if (length($NF)==36) { print }}')"
 
-    for jail in $_jails ; do
-        _dataset="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)"
-        __reset_jail_props "$_dataset"
+    for _jail in ${_jails} ; do
+        # _jail is actually a dataset, so fulluuid needs to be faked.
+        _fulluuid=$(__check_name "name" ${_jail} 2> /dev/null)
+        __reset_jail_props "${_fulluuid} ${_jail}"
     done
 }
