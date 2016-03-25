@@ -24,9 +24,9 @@ __export_props () {
 __set_jail_prop () {
     local _name _property _dataset _pname _pval _found _CONF \
           _type _state _tag _release _jail_type _jail_zfs_mountpoint \
-          _jail_zfs_dataset _jail_zfs_dataset_olen _jail_zfs_dataset_nlen \
+          _jail_zfs_datasets _old_mountpoint _tmp_mountpoint _zfs_dataset \
           _parent _release_tag _jid _jailed_dataset _jailed_dataset_check \
-          _jail_datasets
+          _jail_zfs _jail_datasets
 
     _name="$2"
     _property="$1"
@@ -64,17 +64,30 @@ __set_jail_prop () {
             __link_tag ${_dataset} "${_pval}"
             ;;
         jail_zfs)
-            _jailed_dataset="$(__get_jail_prop jail_zfs_dataset \
-                ${_fulluuid} ${_dataset})"
-            _jailed_dataset_check="$(zfs get -H creation \
-                ${_jailed_dataset} > \
-                /dev/null 2>&1 ; echo $?)"
-            if [ "${_jailed_dataset_check}" != "0" ] ; then
-                zfs create -o compression=${compression} \
-                    -o mountpoint="${jail_zfs_mountpoint}" \
-                    -o jailed=on \
-                    ${pool}/${_jailed_dataset}
+            if [ "${jail_zfs}" = "on" ] ; then
+                __setup_jail_zfs_datasets "${_fulluuid}" "${_dataset}"
+
+            elif [ "${jail_zfs}" != "off" ] ; then
+                __die "The setting for jail_zfs must be either 'on' or 'off'."
             fi
+
+            ;;
+        jail_zfs_dataset)
+            _jail_zfs="$(__get_jail_prop jail_zfs "${_fulluuid}" "${_dataset}")"
+
+            # Do not create ZFS datasets for a jail unless jail_zfs is on.
+            # If it is currently "off", the datasets will be created when
+            # it is changed to "on".
+            if [ "${_jail_zfs}" = "on" ] ; then
+                _state="$(__is_running ${_fulluuid})"
+                if [ ! -z "${_state}" ] ; then
+                    __die "cannot change ZFS datasets while jail is running!"
+                fi
+
+                __setup_jail_zfs_datasets "${_fulluuid}" "${_dataset}" \
+                    "${jail_zfs_dataset}"
+            fi
+
             ;;
         bpf)
             # Do they want bpf exposed?
@@ -89,30 +102,63 @@ __set_jail_prop () {
             ;;
         jail_zfs_mountpoint)
             _state="$(__is_running ${_fulluuid})"
-            _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
-                ${_fulluuid} ${_dataset})"
-            _jail_zfs_dataset="$(__get_jail_prop jail_zfs_dataset \
-                ${_fulluuid} ${_dataset})"
-            _jail_zfs_dataset_olen="${#_jail_zfs_dataset}"
-            _jail_zfs_dataset="${_jail_zfs_dataset#iocage/jails}"
-            _jail_zfs_dataset_nlen="${#_jail_zfs_dataset}"
+            _jail_zfs="$(__get_jail_prop jail_zfs "${_fulluuid}" "${_dataset}")"
+            _jail_zfs_datasets="$(__get_jail_prop jail_zfs_dataset \
+                "${_fulluuid}" "${_dataset}")"
 
-            if [ -z "${_state}" ] ; then
-                __set_jail_prop ${_pname}="${jail_zfs_mountpoint}" \
-                    "${_fulluuid}" "${_dataset}"
-                _jail_zfs_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
-                    ${_fulluuid} ${_dataset})"
-                if [ "${_jail_zfs_dataset_olen}" -ne "${_jail_zfs_dataset_nlen}" ] ; then
-                    _jail_zfs_dataset="${pool}/iocage/jails${_jail_zfs_dataset}"
+            # Enforce the rule that jail_zfs_mountpoint must be "none" when
+            # the jail has multiple datasets assigned.
+            if [ "$(echo "${_jail_zfs_datasets}" | grep '[ 	]')" ] ; then
+                if [ "${jail_zfs_mountpoint}" != "none" ] ; then
+                    # Do not __die here, as this may be called from
+                    # __create_jail, and that could leave the jail incompletely
+                    # configured.  Instead, just force the value to "none" and
+                    # carry on.
+                    __info "With multiple ZFS datasets per jail," \
+                          "jail_zfs_mountpoint must be set to 'none'."
+                    jail_zfs_mountpoint="none"
+                fi
+            fi
+
+            _old_mountpoint="$(__get_jail_prop jail_zfs_mountpoint \
+                "${_fulluuid}" "${_dataset}")"
+
+            # Nothing to do for the dataset mountpoint properties if:
+            # - jail_zfs isn't "on"
+            # or
+            # - the value isn't changing
+            # or
+            # - the new value is "none".  We don't make changes when the new
+            # value is "none" because "none" is how we say "you have to manage
+            # it directly using 'zfs set'".
+            if [ "${jail_zfs}" = "on" -a "${jail_zfs_mountpoint}" != "none" -a \
+                 "${_old_mountpoint}" != "${jail_zfs_mountpoint}" ] ; then
+
+                if [ ! -z "${_state}" ] ; then
+                    __die " jail is running! please stop it before changing " \
+                        "mountpoints."
                 fi
 
-                zfs set jailed=off "${_jail_zfs_dataset}"
-                zfs set mountpoint="${_jail_zfs_mountpoint}" \
-                    "${_jail_zfs_dataset}"
-                zfs set jailed=on "${_jail_zfs_dataset}"
-            else
-                __die " jail is running! please stop it before" \
-                    "changing the mountpoint."
+                for _zfs_dataset in ${_jail_zfs_datasets} ; do
+
+                    _zfs_dataset=$(__zfs_dataset_add_poolname \
+                        "${_zfs_dataset}")
+
+                    # If the current value of the dataset's mountpoint prop
+                    # doesn't match the old jail_zfs_mountpoint value, assume
+                    # that the dataset's mountpoint property has been
+                    # manipulated directly and don't change it.
+                    _tmp_mountpoint="$(zfs get -Ho value mountpoint \
+                        "${_zfs_dataset}")"
+
+                    if [ "${_tmp_mountpoint}" = "${_old_mountpoint}" ] ; then
+                        zfs set jailed=off "${_zfs_dataset}"
+                        zfs set mountpoint="${jail_zfs_mountpoint}" \
+                            "${_zfs_dataset}"
+                        zfs set jailed=on "${_zfs_dataset}"
+                    fi
+
+                done
             fi
             ;;
         istemplate)
