@@ -628,39 +628,44 @@ __fetch_release () {
     mkdir ${iocroot}/releases/${_release}/root/compat > /dev/null 2>&1
     mkdir ${iocroot}/releases/${_release}/root/usr/ports > /dev/null 2>&1
 
-    echo "* Updating base jail template."
-    sleep 2
-
     # mount devfs for chroot
     mount -t devfs devfs ${iocroot}/releases/${_release}/root/dev
+
     cat /etc/resolv.conf > \
-        ${iocroot}/releases/${_release}/root/etc/resolv.conf
+            ${iocroot}/releases/${_release}/root/etc/resolv.conf
 
-    if [ -e ${iocroot}/releases/${_release}/root/etc/freebsd-update.conf ] \
-        && [ -z "$ftplocaldir" ] ; then
+    if [ ! "$(echo ${_release} | grep -E ${_grepmatch})" ] ; then
 
-        case "${_release}" in
-            9.3-RELEASE | 10.1-RELEASE)
-                # Remove the interactive check in freebsd-update
-                sed 's/\[ ! -t 0 \]/false/' \
-                    ${iocroot}/releases/${_release}/root/usr/sbin/freebsd-update \
-                    > ${iocroot}/releases/${_release}/root/tmp/freebsd-update
-                chmod +x ${iocroot}/releases/${_release}/root/tmp/freebsd-update
-                chroot ${iocroot}/releases/${_release}/root \
-                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
-                    /tmp/freebsd-update fetch
-                rm ${iocroot}/releases/${_release}/root/tmp/freebsd-update
-                ;;
-            *)
-                chroot ${iocroot}/releases/${_release}/root \
-                    env UNAME_r="${_release}" env PAGER="/bin/cat" \
-                    freebsd-update --not-running-from-cron fetch
-                ;;
-            esac
+        echo "* Updating base jail template."
+        sleep 2
 
-        chroot ${iocroot}/releases/${_release}/root \
-            env UNAME_r="${_release}" env PAGER="/bin/cat" \
-            freebsd-update install
+
+        if [ -e ${iocroot}/releases/${_release}/root/etc/freebsd-update.conf ] \
+            && [ -z "$ftplocaldir" ] ; then
+
+            case "${_release}" in
+                9.3-RELEASE | 10.1-RELEASE)
+                    # Remove the interactive check in freebsd-update
+                    sed 's/\[ ! -t 0 \]/false/' \
+                        ${iocroot}/releases/${_release}/root/usr/sbin/freebsd-update \
+                        > ${iocroot}/releases/${_release}/root/tmp/freebsd-update
+                    chmod +x ${iocroot}/releases/${_release}/root/tmp/freebsd-update
+                    chroot ${iocroot}/releases/${_release}/root \
+                        env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                        /tmp/freebsd-update fetch
+                    rm ${iocroot}/releases/${_release}/root/tmp/freebsd-update
+                    ;;
+                *)
+                    chroot ${iocroot}/releases/${_release}/root \
+                        env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                        freebsd-update --not-running-from-cron fetch
+                    ;;
+                esac
+
+            chroot ${iocroot}/releases/${_release}/root \
+                env UNAME_r="${_release}" env PAGER="/bin/cat" \
+                freebsd-update install
+        fi
     fi
 
     if [ "${_dist}" = "1" ] ; then
