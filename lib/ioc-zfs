@@ -549,6 +549,8 @@ __create_jail () {
 
     zfs create -p ${pool}/iocage/jails/${uuid}/root
     touch "${iocroot}/jails/${uuid}/config"
+    # Work around the different UUID for jail datasets at creation.
+    export jail_zfs_dataset="iocage/jails/${uuid}/data"
     _zfsconfig="$(__configure_jail generate ${uuid})"
     _configured="1"
 
