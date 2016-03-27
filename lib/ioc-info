@@ -3,7 +3,7 @@
 # Print supported releases----------------------------------
 __print_release () {
     supported="11.0-CURRENT
-               10.3-PRERELEASE
+               10.3-RELEASE
                10.2-RELEASE
                9.3-RELEASE"
 
