@@ -458,8 +458,8 @@ __get_jail_prop () {
             fi
         fi
     else
-        _template=="$(__get_jail_prop istemplate $_name $_dataset)"
-        if [ "${_template}" != "=yes" ]; then
+        _template="$(__get_jail_prop istemplate $_name $_dataset)"
+        if [ "${_template}" != "yes" ]; then
             _fulluuid="$(uclcmd get -qf ${_mountpoint}/config host_hostuuid 2> \
                 /dev/null)"
             _state="$(__is_running ${_fulluuid})"
