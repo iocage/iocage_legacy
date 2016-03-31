@@ -946,8 +946,13 @@ __check_filesystems () {
                         > /dev/null 2>&1
                 fi
 
-                if [ "${_altroot}" != "-" ] ; then
+                if [ "${_altroot}" != "-" -a ! -d "/iocage" ] ; then
                     sed -i '' s#.*iocroot.*#iocroot="${_altroot}/iocage"# \
+                        "${LIB}/ioc-globals"
+                    export iocroot="${_altroot}/iocage"
+                elif [ "${_altroot}" = "/mnt" -a -d "/iocage" ] ; then
+                    # we're in a chroot.
+                    sed -i '' s#.*iocroot.*#iocroot="/iocage"# \
                         "${LIB}/ioc-globals"
                     export iocroot="${_altroot}/iocage"
                 elif [ "${_altroot}" = "-" ] ; then
@@ -971,7 +976,7 @@ __check_filesystems () {
     # Checks to see if the user changed the altroot and modify ioc-globals
     # If the user decided to unset their altroot, they need to run again as
     # root to set it back to the default location
-    if [ "${_altroot}" != "-" ] && [ "$(id -un)" = "root" ] ; then
+    if [ "${_altroot}" != "-" ] && [ "$(id -un)" = "root" ] && [ ! -d "/iocage" ] ; then
         sed -i '' s#.*iocroot.*#iocroot="${_altroot}/iocage"# \
             "${LIB}/ioc-globals"
         export iocroot="${_altroot}/iocage"
