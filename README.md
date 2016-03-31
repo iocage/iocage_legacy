@@ -1,3 +1,7 @@
+<h1>**No longer supported. iocage is being rewritten in a different language. To fetch 10.3-RELEASE or above, supply the release to iocage:
+<h2>`iocage fetch release=10.3-RELEASE`
+<h1>This will skip the interactive dialog and proceed.
+
 iocage
 ======
 
