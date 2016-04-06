@@ -3,7 +3,7 @@
 # Print supported releases----------------------------------
 __print_release () {
     supported="11.0-CURRENT
-               10.3-PRERELEASE
+               10.3-RELEASE
                10.2-RELEASE
                9.3-RELEASE"
 
@@ -458,9 +458,14 @@ __get_jail_prop () {
             fi
         fi
     else
-        _fulluuid="$(uclcmd get -qf ${_mountpoint}/config host_hostuuid 2> \
-            /dev/null)"
-        _state="$(__is_running ${_fulluuid})"
+        _template="$(__get_jail_prop istemplate $_name $_dataset)"
+        if [ "${_template}" != "yes" ]; then
+            _fulluuid="$(uclcmd get -qf ${_mountpoint}/config host_hostuuid 2> \
+                /dev/null)"
+            _state="$(__is_running ${_fulluuid})"
+        else
+            _state="$(__is_running ${_name})"
+        fi
 
         if [ "${_state}" ] ; then
             echo "up"
