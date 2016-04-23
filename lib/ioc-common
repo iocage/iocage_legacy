@@ -317,7 +317,9 @@ __set_jail_prop () {
 
             if [ ! -z "${_jid}" ] ; then
                 # These actually still want one _ instead of all periods.
-                if [ "${_pname}" = "allow_raw_sockets" -o "${_pname}" = "allow_socket_af" ] ; then
+                if [ "${_pname}" = "allow_raw_sockets" \
+                    -o "${_pname}" = "allow_socket_af" \
+                    -o "${_pname}" = "allow_set_hostname" ] ; then
                     _pname="$(echo ${_pname} | sed 's/_/./')"
                 else
                     _pname="$(echo ${_pname} | sed 's/_/./g')"
