@@ -51,6 +51,12 @@ Example:
 
 ``iocage set ip4_addr="em0|10.1.1.10/24,em0|10.1.1.11/24" UUID| TAG``
 
+**Allow raw sockets**
+
+``iocage set allow_raw_sockets=1 UUID | TAG``
+
+This allows the prison root to create raw sockets, which allows utilites like ping and tracroute to operate. This also needs to be enabled if you want to install ports via pkg from the network.
+
 **Start jail:**
 
 ``iocage start UUID | TAG``
