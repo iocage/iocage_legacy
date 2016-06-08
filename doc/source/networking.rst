@@ -55,7 +55,7 @@ Example:
 
 ``iocage set allow_raw_sockets=1 UUID | TAG``
 
-This allows the prison root to create raw sockets, which allows utilites like ping and tracroute to operate. This also needs to be enabled if you want to install ports via pkg from the network.
+This allows the prison root to create raw sockets, which allows utilites like ping and tracroute to operate.
 
 **Start jail:**
 
