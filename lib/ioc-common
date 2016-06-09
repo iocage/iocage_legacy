@@ -729,7 +729,7 @@ __fetch_release () {
 # reads tag property from given jail dataset
 # creates symlink from $iocroot/jails/<uuid> to $iocroot/tags/<tag>
 __link_tag () {
-    local _dataset _mountpoint _tag _readlink_tag _readlink_mount _tag_date
+    local _dataset _mountpoint _tag _readlink_tag _readlink_mount _tag_date _altroot
     _dataset=$1
     _tag="$2"
 
@@ -744,18 +744,31 @@ __link_tag () {
         _tag_date=$(date "+%F@%T")
         mkdir -p ${iocroot}/tags
         if [ ! -e ${iocroot}/tags/${_tag} ] ; then
-            ln -s ${_mountpoint} ${iocroot}/tags/${_tag}
+            _altroot="$(zpool get -H altroot "${pool}" | awk '{print $3}')"
+            if [ "${_altroot}" != "-" ]; then
+                _mountpoint=${_mountpoint#${iocroot}}
+                cd ${iocroot}/tags
+                ln -s ..${_mountpoint} ${_tag}
+            else
+                ln -s ${_mountpoint} ${iocroot}/tags/${_tag}
+            fi
         elif [ -e ${iocroot}/tags/${_tag} ] && [ "${_readlink_mount}" != "${_mountpoint}" ] ; then
             echo " "
             echo "  WARNING: Replacing tag ${_tag}!" >&2
             echo "  Renaming ${_readlink_tag}'s tag to ${_tag_date}." >&2
             echo " "
-
-
-            # Link new tag to jail, and relink old jail to new tag.
-            ln -shf ${_mountpoint} ${iocroot}/tags/${_tag}
-            ln -s ${_readlink_mount} ${iocroot}/tags/${_tag_date}
-            __ucl_set "${_readlink_mount}" "tag" "${_tag_date}"
+            if [ "${_altroot}" != "-" ]; then
+                _mountpoint=${_mountpoint#${iocroot}}
+                cd ${iocroot}/tags
+                ln -s ..${_mountpoint} ${_tag}
+                ln -s ${_readlink_mount} ${iocroot}/tags/${_tag_date}
+                __ucl_set "${_readlink_mount}" "tag" "${_tag_date}"
+            else
+                # Link new tag to jail, and relink old jail to new tag.
+                ln -shf ${_mountpoint} ${iocroot}/tags/${_tag}
+                ln -s ${_readlink_mount} ${iocroot}/tags/${_tag_date}
+                __ucl_set "${_readlink_mount}" "tag" "${_tag_date}"
+            fi
         fi
     else
         __die "no such dataset: ${_dataset}!"
@@ -768,6 +781,9 @@ __unlink_tag () {
     _dataset=$1
 
     if _mountpoint=$(zfs get -H -o value mountpoint ${_dataset}) ; then
+        find ${iocroot}/tags -type l -lname "${_mountpoint}*" \
+            -exec rm -f \{\} \; > /dev/null 2>&1
+        _mountpoint=..${_mountpoint#${iocroot}}
         find ${iocroot}/tags -type l -lname "${_mountpoint}*" \
             -exec rm -f \{\} \; > /dev/null 2>&1
     fi
