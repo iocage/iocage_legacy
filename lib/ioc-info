@@ -113,7 +113,7 @@ __list_jails () {
         exit 0
     fi
 
-    printf "%-4s  %-36s  %s  %s  %-20s  %-16s  %s\n" "JID" "UUID"  "BOOT"\
+    printf "%-4s  %-36s  %s  %s  %-20s  %-15s  %s\n" "JID" "UUID"  "BOOT"\
            "STATE" "TAG" "IP" "HOSTNAME"
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
@@ -143,12 +143,12 @@ __list_jails () {
 
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-4s  %-+.36s  %-3s   %-4s   %-4s   %-16s  %s\n" "$jid" "$uuid" \
+                printf "%-4s  %-+.36s  %-3s   %-4s   %-4s   %-15s  %s\n" "$jid" "$uuid" \
                 "$boot" "$state" "$tag" "$ip4_addr" "$hostname"
             fi
         elif [ $switch != "-t" ] ; then
             if [ $template != "yes" ] ; then
-                printf "%-4s  %-+.36s  %-4s  %-4s   %-4s   %-16s  %s\n" "$jid" "$uuid"  \
+                printf "%-4s  %-+.36s  %-4s  %-4s   %-4s   %-15s  %s\n" "$jid" "$uuid"  \
                 "$boot" "$state" "$tag" "$ip4_addr" "$hostname"
             fi
         fi
