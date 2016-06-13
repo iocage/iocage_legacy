@@ -102,8 +102,15 @@ __list_jails () {
     local all_jids=$(jls -N -h jid | grep -v -x jid )
     local ioc_jids=""
     local non_ioc_jids=""
+    local display_template=""
+    local display_full_uuid=""
+    local uuid_width=""
 
-    if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
+    if [ -z ${switch} ] ; then
+        switch=zero
+    fi
+
+    if [ $switch == "-r" ] ; then
         echo "Downloaded releases:"
         local releases="$(zfs list -o name -Hr $pool/iocage/releases \
                         | grep RELEASE$ | cut -d \/ -f 4)"
@@ -112,8 +119,22 @@ __list_jails () {
         done
         exit 0
     fi
+    
+    if [ $switch == "-t" ] || [ $switch == "-tu" ] || [ $switch == "-ut" ] ; then
+        display_template="yes"
+    fi
 
-    printf "%-4s  %-36s  %s  %s  %-20s  %-15s  %s\n" "JID" "UUID"  "BOOT"\
+    if [ $switch == "-u" ] || [ $switch == "-tu" ] || [ $switch == "-ut" ] ; then
+        display_full_uuid="yes"
+    fi
+
+    if [ -z ${display_full_uuid} ] ; then
+        uuid_width="-8s"
+    else
+        uuid_width="-36s"
+    fi
+
+    printf "%-4s  %uuid_width  %s  %s  %-20s  %-15s  %s\n" "JID" "UUID"  "BOOT"\
            "STATE" "TAG" "IP" "HOSTNAME"
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
@@ -137,18 +158,18 @@ __list_jails () {
             state=up
         fi
 
-        if [ -z ${switch} ] ; then
-            switch=zero
+        if [ -z ${display_full_uuid} ]; then
+            uuid=$(echo $uuid | cut -d'-' -f1)
         fi
 
-        if [ $switch == "-t" ] ; then
+        if [ ! -z ${display_template} ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-4s  %-+.36s  %-3s   %-4s   %-4s   %-15s  %s\n" "$jid" "$uuid" \
+                printf "%-4s  %$uuid_width  %-3s   %-4s   %-4s   %-15s  %s\n" "$jid" "$uuid" \
                 "$boot" "$state" "$tag" "$ip4_addr" "$hostname"
             fi
-        elif [ $switch != "-t" ] ; then
+        elif [ -z ${display_template} ] ; then
             if [ $template != "yes" ] ; then
-                printf "%-4s  %-+.36s  %-4s  %-4s   %-4s   %-15s  %s\n" "$jid" "$uuid"  \
+                printf "%-4s  %$uuid_width  %-4s  %-4s   %-4s   %-15s  %s\n" "$jid" "$uuid"  \
                 "$boot" "$state" "$tag" "$ip4_addr" "$hostname"
             fi
         fi
