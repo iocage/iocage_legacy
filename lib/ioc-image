@@ -141,10 +141,10 @@ __import () {
             exit 1
         fi
 
-		_new_cksum="$(sha256 -q $_package)"
-		_old_cksum="$(cat $_pcksum)"
-		_uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
-		_mountpoint="$(__get_jail_prop mountpoint $_uuid)"
+        _new_cksum="$(sha256 -q $_package)"
+        _old_cksum="$(cat $_pcksum)"
+        _uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
+        _mountpoint="$(__get_jail_prop mountpoint $_uuid)"
 
         if [ $_new_cksum != $_old_cksum ] ; then
             echo "  ERROR: Checksum mismatch. Exiting"
