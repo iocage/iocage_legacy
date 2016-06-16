@@ -111,10 +111,6 @@ __import () {
     _icount="$(echo $_image|wc -w)"
     _pcksum="$(find $iocroot/packages/ -name $_name\*.sha256)"
     _icksum="$(find $iocroot/images/ -name $_name\*.sha256)"
-    _new_cksum="$(sha256 -q $_package)"
-    _old_cksum="$(cat $_pcksum)"
-    _uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
-    _mountpoint="$(__get_jail_prop mountpoint $_uuid)"
 
     if [ -z $_name ] ; then
         echo "  ERROR: Missing package UUID!"
@@ -145,6 +141,10 @@ __import () {
             exit 1
         fi
 
+		_new_cksum="$(sha256 -q $_package)"
+		_old_cksum="$(cat $_pcksum)"
+		_uuid="$(__create_jail create | grep uuid | cut -f2 -d=)"
+		_mountpoint="$(__get_jail_prop mountpoint $_uuid)"
 
         if [ $_new_cksum != $_old_cksum ] ; then
             echo "  ERROR: Checksum mismatch. Exiting"
