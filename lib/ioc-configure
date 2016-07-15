@@ -225,6 +225,7 @@ __reset_jail_props () {
      $_dataset)"
     gitlocation="$(zfs get -H -o value org.freebsd.iocage:gitlocation $_dataset)"
     type="$(zfs get -H -o value org.freebsd.iocage:type $_dataset)"
+    volumes="$(zfs get -H -o value org.freebsd.iocage:volumes $_dataset)"
     __configure_jail $_dataset
 }
 

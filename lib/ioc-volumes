@@ -1,0 +1,196 @@
+#!/bin/sh
+
+__print_exit () {
+    echo "$1"
+    __stop_jail $fulluuid no_unmount
+    exit 1
+}
+
+# format of $volumes: /path/to/some/host/dir[:/location/in/jail/root[:mount,options]]
+# multiple volumes can be space separated
+__mount_volumes () {
+    local _uuid=$1
+    local _mountpoint _source _dest _full_dest _mount_options
+    local _mounts _mounted _retval
+    local volumes="$(__get_jail_prop volumes ${_uuid})"
+
+    if [ -z "${volumes}" -o "${volumes}" == "none" ] ; then
+        return
+    fi
+
+    _mountpoint="$(__get_jail_prop mountpoint ${_uuid})"
+
+    for _volume in ${volumes} ; do
+        _source=""
+        _dest=""
+        _mount_opions=""
+
+        if [ -z "$(echo "${_volume}" | grep ':')" ] ; then
+            _source="${_volume}"
+        else
+            # split into source, dest and mount options
+            _source=$(echo "${_volume}" | cut -d: -f1)
+            _dest=$(echo "${_volume}" | cut -d: -f2)
+            _mount_options=$(echo "${_volume}" | cut -d: -f3)
+        fi
+
+        # set destination path to same as source if missing
+        if [ -z "${_dest}" ] ; then
+            _dest="${_source}"
+        fi
+
+        # add mointpoint
+        _full_dest="${_mountpoint}/root${_dest}"
+
+        # set default mount options if missing
+        if [ -z "${_mount_options}" ] ; then
+            _mount_options="rw"
+        fi
+
+        # source path checking
+        if [ -z "${_source}" ] ; then
+            __print_exit "  ERROR: volume source cannot be empty: ${_source}"
+        fi
+
+        # all paths must be absolute
+        if [ -z $(echo ${_source} | grep "^/") ] ; then
+            __print_exit "  ERROR: source volume path must be absolute: ${_source}"
+        fi
+        if [ -z $(echo ${_dest} | grep "^/") ] ; then
+            __print_exit "  ERROR: destination volume path must be absolute: ${_dest}"
+        fi
+
+        # sanity check mount options
+        if [ $(echo "${_mount_options}" | grep "[^a-z0-9_-]") ] ; then
+            __print_exit "  ERROR: mount options can only contain the following [a-z0-9_-]: ${_mount_options}"
+        fi
+
+        # check existence
+        if [ ! -d "${_source}" -a ! -f "${_source}" ] ; then
+            __print_exit "  ERROR: volume source must be an existing directory or file: ${_source}"
+        fi
+        if [ -f "${_source}" ] ; then
+            if [ -e "${_full_dest}" -a ! -f "${_full_dest}" ] ; then
+                __print_exit "  ERROR: volume destination must not exist or be a regular file: ${_full_dest}"
+            fi
+        elif [ ! -d "${_full_dest}" ] ; then
+            __print_exit "  ERROR: volume destination must be an existing directory: ${_full_dest}"
+        fi
+
+        # prepare mount
+        if [ -z "${_mounts}" ] ; then
+            _mounts="${_source}:${_dest}:${_full_dest}:${_mount_options}"
+        else
+            _mounts=$(printf "%s\n%s:%s:%s:%s" "${_mounts}" "${_source}" "${_dest}" "${_full_dest}" "${_mount_options}")
+        fi
+    done
+
+    echo "  + Mounting Volumes:"
+
+    local IFS=$'\n'
+    for _mount in ${_mounts} ; do
+        _source=$(echo "${_mount}" | cut -d: -f1)
+        _dest=$(echo "${_mount}" | cut -d: -f2)
+        _full_dest=$(echo "${_mount}" | cut -d: -f3)
+        _mount_options=$(echo "${_mount}" | cut -d: -f4)
+        _retval=0
+
+        if [ -d "${_source}" ] ; then
+            mount -t nullfs -o "${_mount_options},late" "${_source}" "${_full_dest}"
+            _retval=$?
+        else
+            cp -a "${_source}" "${_full_dest}"
+            if [ $? -eq 0 -a -n "$(echo ${_mount_options} | grep -E '(^|,)ro(,|$)')" ] ; then
+                chflags schg "${_full_dest}"
+                _retval=$?
+            fi
+        fi
+
+        if [ "${_retval}" -eq 0 ] ; then
+            _mounted="${_full_dest} ${_mounted}"
+            echo "    ${_source} -> ${_dest} (${_mount_options})"
+        else
+            echo "  ERROR: Mounting volume ${_source} at ${_full_dest} ${_mount_options} FAILED"
+
+            if [ -n "$_mounted" ] ; then
+                echo "  - Unmounting previously mounted volumes:"
+                for _mount in ${_mounted} ; do
+                    if [ -d "${_source}" ] ; then
+                        umount "${_mount}"
+                    else
+                        chflags noschg "${_mount}"
+                        rm "${_mount}"
+                    fi
+                    echo "    ${_mount}"
+                done
+            fi
+
+            __stop_jail ${_uuid} no_unmount
+            exit 1
+        fi
+    done
+}
+
+__unmount_volumes () {
+    local _uuid=$1
+    local _mountpoint _mount_list _source _dest _full_dest _retval
+    local volumes="$(__get_jail_prop volumes ${_uuid})"
+
+    if [ -z "${volumes}" -o "${volumes}" == "none" ] ; then
+        return
+    fi
+
+    _mountpoint="$(__get_jail_prop mountpoint ${_uuid})"
+    _mount_list="$(mount -v)"
+
+    echo "  + Unmounting volumes:"
+
+    # reverse volume order for unmounting correctly
+    volumes=$(echo $volumes | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }')
+
+    for _volume in ${volumes} ; do
+        _source=""
+        _dest=""
+        _retval=0
+
+        if [ -z "$(echo ${_volume} | grep ':')" ] ; then
+            _source=${_volume}
+        else
+            # split into source, dest and mount options
+            _source=$(echo ${_volume} | cut -d: -f1)
+            _dest=$(echo ${_volume} | cut -d: -f2)
+        fi
+
+        # set destination path to same as source if missing
+        if [ -z "${_dest}" ] ; then
+            _dest="${_source}"
+        fi
+
+        # add mointpoint
+        _full_dest="${_mountpoint}/root${_dest}"
+
+        if [ -d "${_source}" ] ; then
+            if [ -n "$(echo "${_mount_list}" | grep -F "${_full_dest}")" ] ; then
+                umount "${_full_dest}"
+                _retval=$?
+            else
+                echo "  WARNING: volume ${_source} was not mounted"
+                continue
+            fi
+        elif [ -f "${_full_dest}" ] ; then
+            chflags noschg "${_full_dest}"
+            rm "${_full_dest}"
+            _retval=$?
+        else
+            # not supported or nothing to do
+            continue
+        fi
+
+        if [ ${_retval} -eq 0 ] ; then
+            echo "    ${_source}"
+        else
+            echo "  ERROR: Unmounting volume ${_source} from ${tag}:${_dest} FAILED"
+            exit 1
+        fi
+    done
+}

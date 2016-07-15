@@ -140,6 +140,9 @@ __start_jail () {
 
     __resolv_conf ${fulluuid} > ${jail_path}/root/etc/resolv.conf
 
+    # mount optional volumes
+    __mount_volumes $fulluuid
+
     echo -n "  + Starting services"
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
      >> $iocroot/log/${fulluuid}-console.log 2>&1
@@ -350,6 +353,7 @@ __legacy_start () {
 
 __stop_jail () {
     local name="$1"
+    local _no_unmount="$2"
 
     if [ -z $name ] ; then
         echo "  ERROR: missing UUID"
@@ -439,6 +443,11 @@ __stop_jail () {
     umount ${jail_path}/root/dev/fd > /dev/null 2>&1
     umount ${jail_path}/root/dev    > /dev/null 2>&1
     umount ${jail_path}/root/proc   > /dev/null 2>&1
+
+    # unmount optional volumes
+    if [ -z "${_no_unmount}" ] ; then
+        __unmount_volumes $fulluuid
+    fi
 
     if [ -d $iocroot/jails/${fulluuid}/recorded ] ; then
         umount -ft unionfs $iocroot/jails/${fulluuid}/root > /dev/null 2>&1
