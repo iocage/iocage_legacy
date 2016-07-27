@@ -134,7 +134,7 @@ __list_jails () {
         uuid_width="-36s"
     fi
 
-    printf "%-4s  %uuid_width  %s  %s  %-20s  %-15s  %s\n" "JID" "UUID"  "BOOT"\
+    printf "%-4s  %$uuid_width  %s  %s  %-20s  %-15s  %s\n" "JID" "UUID"  "BOOT"\
            "STATE" "TAG" "IP" "HOSTNAME"
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
