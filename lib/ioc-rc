@@ -169,6 +169,7 @@ __vnet_start () {
 
     jail -c vnet \
     name="ioc-$(__get_jail_prop host_hostuuid $name)" \
+    host.domainname="$(__get_jail_prop domainname $name)" \
     host.hostname="$(__get_jail_prop hostname $name)" \
     path="${jail_path}/root" \
     securelevel="$(__get_jail_prop securelevel $name)" \
@@ -272,6 +273,7 @@ __legacy_start () {
         ip6.saddrsel="$(__get_jail_prop ip6_saddrsel $name)" \
         ip6="${ip6}" \
         name="ioc-$(__get_jail_prop host_hostuuid $name)" \
+        host.domainname="$(__get_jail_prop domainname $name)" \
         host.hostname="$(__get_jail_prop hostname $name)" \
         path="${jail_path}/root" \
         securelevel="$(__get_jail_prop securelevel $name)" \
@@ -310,6 +312,7 @@ __legacy_start () {
         ip4.saddrsel="$(__get_jail_prop ip4_saddrsel $name)" \
         ip4="${ip4}" \
         name="ioc-$(__get_jail_prop host_hostuuid $name)" \
+        host.domainname="$(__get_jail_prop domainname $name)" \
         host.hostname="$(__get_jail_prop hostname $name)" \
         path="${jail_path}/root" \
         securelevel="$(__get_jail_prop securelevel $name)" \
