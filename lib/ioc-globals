@@ -19,6 +19,7 @@ fi
 ipv6="on"
 
 interfaces="vnet0:bridge0,vnet1:bridge1"
+domainname=""
 host_hostname=$uuid
 exec_fib=0
 hostname=$uuid
@@ -163,6 +164,7 @@ CONF_RCTL="memoryuse
 # Networking configuration
 CONF_NET="interfaces
           vnet
+          domainname
           host_hostname
           hostname
           ip4_addr
