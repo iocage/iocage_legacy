@@ -768,7 +768,7 @@ PROPERTIES
     jail cannot perform any sysvmsg-related system calls.
     Ignored in FreeBSD 10.3 and earlier.
 
-    Default: disable
+    Default: new
     Source: jail(8)
 
   sysvsem=disable | inherit | new
@@ -776,7 +776,7 @@ PROPERTIES
     Allow access to SYSV IPC semaphore primitives in the same
     manner as sysvmsg.  Ignored in FreeBSD 10.3 and earlier.
 
-    Default: disable
+    Default: new
     Source: jail(8)
 
   sysvshm=disable | inherit | new
@@ -785,7 +785,7 @@ PROPERTIES
     same manner as sysvmsg.  Ignored in FreeBSD 10.3 and
     earlier.
 
-    Default: disable
+    Default: new
     Source: jail(8)
 
   allow_raw_sockets=0 | 1

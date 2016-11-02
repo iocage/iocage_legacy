@@ -424,7 +424,7 @@ __get_sysv_prop () {
     if [ "$_value" != 'none' ] ; then
         echo "$_value"
     else
-        echo "disable"
+        echo "new"
     fi
 }
 
