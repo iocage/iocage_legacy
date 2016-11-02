@@ -838,13 +838,47 @@ PROPERTIES
   allow_sysvipc=0 | 1
 
     A process within the jail has access to System V IPC
-    primitives.  In the current jail implementation, System V
-    primitives share a single namespace across the host and
-    jail environments, meaning that processes within a jail
-    would be able to communicate with (and potentially interfere
-    with) processes outside of the jail, and in other jails.
+    primitives.  Prior to FreeBSD 11.0, System V primitives
+    share a single namespace across the host and jail
+    environments, meaning that processes within a jail would be
+    able to communicate with (and potentially interfere with)
+    processes outside of the jail, and in other jails.  In
+    FreeBSD 11.0 and later, this setting is deprecated in favor
+    of sysvmsg, sysvsem, and sysvshm.
 
     Default: 0
+    Source: jail(8)
+
+  sysvmsg=disable | inherit | new
+
+    Allow access to SYSV IPC message primitives.  If set to
+    inherit, all IPC objects on the system are visible to this
+    jail, whether they were created by the jail itself, the base
+    system, or other jails.  If set to new, the jail will have
+    its own key namespace, and can only see the objects that it
+    has created; the system (or parent jail) has access to the
+    jail's objects, but not to its keys.  If set to disable, the
+    jail cannot perform any sysvmsg-related system calls.
+    Ignored in FreeBSD 10.3 and earlier.
+
+    Default: new
+    Source: jail(8)
+
+  sysvsem=disable | inherit | new
+
+    Allow access to SYSV IPC semaphore primitives in the same
+    manner as sysvmsg.  Ignored in FreeBSD 10.3 and earlier.
+
+    Default: new
+    Source: jail(8)
+
+  sysvshm=disable | inherit | new
+
+    Allow access to SYSV IPC shared memory primitives in the
+    same manner as sysvmsg.  Ignored in FreeBSD 10.3 and
+    earlier.
+
+    Default: new
     Source: jail(8)
 
   allow_raw_sockets=0 | 1

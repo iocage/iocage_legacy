@@ -270,10 +270,20 @@ __vnet_start () {
         ${_dataset})"
     _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs ${_fulluuid} \
         ${_dataset})"
+     _sysvmsg="sysvmsg=$(__get_jail_prop sysvmsg ${_fulluuid} ${_dataset})"
+     _sysvsem="sysvsem=$(__get_jail_prop sysvsem ${_fulluuid} ${_dataset})"
+     _sysvshm="sysvshm=$(__get_jail_prop sysvshm ${_fulluuid} ${_dataset})"
 
     if [ "$(uname -U)" = "903000" ] ; then
       _fdescfs=""
       _tmpfs=""
+    fi
+
+    if [ "$(uname -U)" -lt "100400" ];
+    then
+      _sysvmsg=""
+      _sysvsem=""
+      _sysvshm=""
     fi
 
     jail -c vnet \
@@ -291,6 +301,9 @@ __vnet_start () {
     allow.set_hostname="$(__get_jail_prop allow_set_hostname ${_fulluuid} \
         ${_dataset})" \
     allow.sysvipc="$(__get_jail_prop allow_sysvipc ${_fulluuid} ${_dataset})" \
+    ${_sysvmsg} \
+    ${_sysvsem} \
+    ${_sysvshm} \
     allow.raw_sockets="$(__get_jail_prop allow_raw_sockets ${_fulluuid} \
         ${_dataset})" \
     allow.chflags="$(__get_jail_prop allow_chflags ${_fulluuid} ${_dataset})" \
@@ -340,6 +353,9 @@ __legacy_start () {
         ${_dataset})"
     _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs \
         "${_fulluuid}" ${_dataset})"
+     _sysvmsg="sysvmsg=$(__get_jail_prop sysvmsg ${_fulluuid} ${_dataset})"
+     _sysvsem="sysvsem=$(__get_jail_prop sysvsem ${_fulluuid} ${_dataset})"
+     _sysvshm="sysvshm=$(__get_jail_prop sysvshm ${_fulluuid} ${_dataset})"
     # Get the default and current interfaces specified
     _default_iface="$(__get_default_iface)"
     _cur_ip4_iface=$(echo "${_ip4_addr}" | cut -d '|' -f 1)
@@ -349,6 +365,13 @@ __legacy_start () {
     then
       _fdescfs=""
       _tmpfs=""
+    fi
+
+    if [ "$(uname -U)" -lt "100400" ];
+    then
+      _sysvmsg=""
+      _sysvsem=""
+      _sysvshm=""
     fi
 
     if [ "${_ip4_addr}" = "none" ] ; then
@@ -419,6 +442,9 @@ __legacy_start () {
             "${_fulluuid}" ${_dataset})" \
         allow.sysvipc="$(__get_jail_prop allow_sysvipc "${_fulluuid}" \
             ${_dataset})" \
+        ${_sysvmsg} \
+        ${_sysvsem} \
+        ${_sysvshm} \
         allow.raw_sockets="$(__get_jail_prop allow_raw_sockets "${_fulluuid}" \
             ${_dataset})" \
         allow.chflags="$(__get_jail_prop allow_chflags "${_fulluuid}" \
@@ -480,6 +506,9 @@ __legacy_start () {
             "${_fulluuid}" ${_dataset})" \
         allow.sysvipc="$(__get_jail_prop allow_sysvipc "${_fulluuid}" \
             ${_dataset})" \
+        ${_sysvmsg} \
+        ${_sysvsem} \
+        ${_sysvshm} \
         allow.raw_sockets="$(__get_jail_prop allow_raw_sockets "${_fulluuid}" \
             ${_dataset})" \
         allow.chflags="$(__get_jail_prop allow_chflags "${_fulluuid}" \
