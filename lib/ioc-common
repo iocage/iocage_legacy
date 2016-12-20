@@ -320,12 +320,12 @@ __set_jail_prop () {
                 if [ "${_pname}" = "allow_raw_sockets" \
                     -o "${_pname}" = "allow_socket_af" \
                     -o "${_pname}" = "allow_set_hostname" ] ; then
-                    _pname="$(echo ${_pname} | sed 's/_/./')"
+                    _jail_pname="$(echo ${_pname} | sed 's/_/./')"
                 else
-                    _pname="$(echo ${_pname} | sed 's/_/./g')"
+                    _jail_pname="$(echo ${_pname} | sed 's/_/./g')"
                 fi
 
-                jail -m "jid=${_jid}" "${_pname}=${_pval}"
+                jail -m "jid=${_jid}" "${_jail_pname}=${_pval}"
             fi
             ;;
         template)
