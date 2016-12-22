@@ -64,6 +64,9 @@ securelevel="2"
 host_hostuuid=$uuid
 allow_set_hostname=0
 allow_sysvipc=0
+sysvmsg=new
+sysvsem=new
+sysvshm=new
 allow_raw_sockets=0
 allow_chflags=0
 allow_mount=0
@@ -208,6 +211,9 @@ CONF_JAIL="devfs_ruleset
            securelevel
            allow_set_hostname
            allow_sysvipc
+           sysvmsg
+           sysvsem
+           sysvshm
            allow_raw_sockets
            allow_chflags
            allow_mount

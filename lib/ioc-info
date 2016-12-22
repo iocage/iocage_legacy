@@ -411,3 +411,21 @@ __is_running () {
 
     echo "${_running}"
 }
+
+# Get one of the sysvshm, sysvmsg, or sysvsem properties, or a suitable
+# default if none is found.
+__get_sysv_prop () {
+    local _property _value _name
+
+    _name="$2"
+    _property="$1"
+    _value="$(__get_jail_prop $_property $_name)"
+
+    if [ "$_value" != 'none' ] ; then
+        echo "$_value"
+    else
+        echo "new"
+    fi
+}
+
+

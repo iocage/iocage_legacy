@@ -160,11 +160,21 @@ __vnet_start () {
     local jail_path="$(__get_jail_prop mountpoint $name)"
     local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $name)"
     local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $name)"
+    local sysvmsg="sysvmsg=$(__get_sysv_prop sysvmsg $name)"
+    local sysvsem="sysvsem=$(__get_sysv_prop sysvsem $name)"
+    local sysvshm="sysvshm=$(__get_sysv_prop sysvshm $name)"
 
     if [ "$(uname -U)" == "903000" ];
     then
       fdescfs=""
       tmpfs=""
+    fi
+
+    if [ "$(uname -U)" -lt "100400" ];
+    then
+      sysvmsg=""
+      sysvsem=""
+      sysvshm=""
     fi
 
     jail -c vnet \
@@ -179,6 +189,9 @@ __vnet_start () {
     children.max="$(__get_jail_prop children_max $name)" \
     allow.set_hostname="$(__get_jail_prop allow_set_hostname $name)" \
     allow.sysvipc="$(__get_jail_prop allow_sysvipc $name)" \
+    ${sysvmsg} \
+    ${sysvsem} \
+    ${sysvshm} \
     allow.raw_sockets="$(__get_jail_prop allow_raw_sockets $name)" \
     allow.chflags="$(__get_jail_prop allow_chflags $name)" \
     allow.mount="$(__get_jail_prop allow_mount $name)" \
@@ -214,6 +227,9 @@ __legacy_start () {
 
     local fdescfs="mount.fdescfs=$(__get_jail_prop mount_fdescfs $name)"
     local tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs $name)"
+    local sysvmsg="sysvmsg=$(__get_sysv_prop sysvmsg $name)"
+    local sysvsem="sysvsem=$(__get_sysv_prop sysvsem $name)"
+    local sysvshm="sysvshm=$(__get_sysv_prop sysvshm $name)"
 
     # Get the default and current interfaces specified
     local default_iface="$(netstat -f inet -nrW | grep '^default' |\
@@ -225,6 +241,13 @@ __legacy_start () {
     then
       fdescfs=""
       tmpfs=""
+    fi
+
+    if [ "$(uname -U)" -lt "100400" ];
+    then
+      sysvmsg=""
+      sysvsem=""
+      sysvshm=""
     fi
 
     if [ "$ip4_addr" == "none" ] ; then
@@ -283,6 +306,9 @@ __legacy_start () {
         children.max="$(__get_jail_prop children_max $name)" \
         allow.set_hostname="$(__get_jail_prop allow_set_hostname $name)" \
         allow.sysvipc="$(__get_jail_prop allow_sysvipc $name)" \
+        ${sysvmsg} \
+        ${sysvsem} \
+        ${sysvshm} \
         allow.raw_sockets="$(__get_jail_prop allow_raw_sockets $name)" \
         allow.chflags="$(__get_jail_prop allow_chflags $name)" \
         allow.mount="$(__get_jail_prop allow_mount $name)" \
@@ -322,6 +348,9 @@ __legacy_start () {
         children.max="$(__get_jail_prop children_max $name)" \
         allow.set_hostname="$(__get_jail_prop allow_set_hostname $name)" \
         allow.sysvipc="$(__get_jail_prop allow_sysvipc $name)" \
+        ${sysvmsg} \
+        ${sysvsem} \
+        ${sysvshm} \
         allow.raw_sockets="$(__get_jail_prop allow_raw_sockets $name)" \
         allow.chflags="$(__get_jail_prop allow_chflags $name)" \
         allow.mount="$(__get_jail_prop allow_mount $name)" \
