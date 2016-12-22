@@ -1090,6 +1090,7 @@ __mount_basejail () {
 
     # Mount tmpfs
     mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
+    chmod 1777 ${iocroot}/jails/${_fulluuid}/root/tmp
 }
 
 # Accepts one argument. Which is used as the UUID for the umount operations,
@@ -1140,6 +1141,7 @@ __mount_istemplate () {
 
     # Mount tmpfs
     mount -t tmpfs tmpfs ${iocroot}/templates/${_tag}/root/tmp
+    chmod 1777 ${iocroot}/templates/${_tag}/root/tmp
 }
 
 # Accepts two arguments. Which is used as the name for the mount operations,
