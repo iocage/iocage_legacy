@@ -121,7 +121,7 @@ __networking () {
             local brmtu=$(\ifconfig $memberif | head -n1 |cut -d' ' -f6)
             epair_a=$(\ifconfig epair create)
             epair_b=$(echo $epair_a | sed s/a\$/b/)
-            ifconfig ${epair_a} name ${nic}:${_jid} mtu $brmtu
+            ifconfig ${epair_a} name ${nic}:${_jid} mtu $brmtu > /dev/null
             _mac_epair_a="$(__validate_mac ${nic} ${_mac_offset} a ${_uuid} $_dataset)"
             ifconfig ${nic}:${_jid} link ${_mac_epair_a}
             ifconfig ${nic}:${_jid} description "associated with jail: ${_uuid}"

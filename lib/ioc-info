@@ -445,6 +445,14 @@ __get_jail_prop () {
     # If they don't supply state, then it's a normal property to be returned.
     if [ "${_property}" != "state" ] ; then
         # These are our properties
+        if [ "${_property}" = "sysvmsg" -o "${_property}" = "sysvsem" \
+            -o "${_property}" = "sysvshm" ] ; then
+            if [ "${_value}" = "null" ] ; then
+                _found=1
+                echo "new"
+            fi
+        fi
+
         if [ "${_value}" != "null" ] ; then
             _found=1
             echo "${_value}"

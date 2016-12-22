@@ -270,9 +270,9 @@ __vnet_start () {
         ${_dataset})"
     _tmpfs="allow.mount.tmpfs=$(__get_jail_prop allow_mount_tmpfs ${_fulluuid} \
         ${_dataset})"
-     _sysvmsg="sysvmsg=$(__get_jail_prop sysvmsg ${_fulluuid} ${_dataset})"
-     _sysvsem="sysvsem=$(__get_jail_prop sysvsem ${_fulluuid} ${_dataset})"
-     _sysvshm="sysvshm=$(__get_jail_prop sysvshm ${_fulluuid} ${_dataset})"
+    _sysvmsg="sysvmsg=$(__get_jail_prop sysvmsg ${_fulluuid} ${_dataset})"
+    _sysvsem="sysvsem=$(__get_jail_prop sysvsem ${_fulluuid} ${_dataset})"
+    _sysvshm="sysvshm=$(__get_jail_prop sysvshm ${_fulluuid} ${_dataset})"
 
     if [ "$(uname -U)" = "903000" ] ; then
       _fdescfs=""
