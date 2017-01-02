@@ -147,6 +147,9 @@ __parse_cmd () {
             upgrade)     __upgrade "$2"
                         exit
                 ;;
+            pkg)        __pkg_wrapper "$@"
+                        exit
+                ;;
                 *)      __usage
                         exit
                 ;;
