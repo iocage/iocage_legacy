@@ -28,14 +28,14 @@ Promoting a clone
 
 **To promote a cloned jail, simply run:**
 
-``iocage promote UUID | TAG``
+``iocage promote UUID|TAG``
 
 The above step will reverse the clone and source jail relationship.
 Basically the clone will become the source and the source jail will be demoted to a clone.
 
 **Now you can remove the demoted jail with:**
 
-``iocage destroy UUID | TAG``
+``iocage destroy UUID|TAG``
 
 Updating jails
 --------------
@@ -45,7 +45,7 @@ while they are stopped or running.
 
 To update a jail to latest patch level run:
 
-``iocage update UUID | TAG``
+``iocage update UUID|TAG``
 
 This will create a back-out snapshot of the jail automatically.
 
@@ -79,7 +79,7 @@ Upgrade non-basejail
 
 To upgrade a normal jail (non basejail) to the hosts RELEASE run:
 
-``iocage upgrade UUID | TAG``
+``iocage upgrade UUID|TAG``
 
 This will upgrade the jail to the same RELEASE as the host.
 
@@ -187,14 +187,14 @@ Apply limits
 
 Apply limit on-the-fly:
 
-``iocage cap UUID | TAG``
+``iocage cap UUID|TAG``
 
 Check limits
 ++++++++++++
 
 Check active limits:
 
-``iocage limits UUID | TAG``
+``iocage limits UUID|TAG``
 
 Limit CPU use by %
 ++++++++++++++++++
@@ -206,7 +206,7 @@ Limit CPU execution to 20%:
 
 Check limits:
 
-``iocage limits UUID | TAG``
+``iocage limits UUID|TAG``
 
 Resetting a jail's properties
 +++++++++++++++++++++++++++++
@@ -215,7 +215,7 @@ If you have many properties on a jail that you would like to reset back to defau
 
 To reset to defaults:
 
-``iocage reset UUID | TAG``
+``iocage reset UUID|TAG``
 
 You can also reset every jail to the default properties:
 
@@ -249,3 +249,30 @@ Now simply create a jail and supply the pkgs.txt file:
 ``iocage create pkglist=/path-to/pkgs.txt tag=myjail``
 
 This will install ``nginx`` and ``tmux`` in the newly created jail.
+
+Using volumes
+-------------
+
+Jails can have shared directories from the host which is implemented using nullfs(5). The idea is based on volumes used in the docker world. Files can also be Volumes and are copied over at jail startup.
+
+The ``volumes`` property has the following syntax:
+    ::
+
+        /source/path(:/destination/path(:mount_options)) /another/source/path...
+
+``source_path`` is the minimum required input and causes ``destination_path`` to be the same as ``source_path``, but located within the jail's root path.
+
+All options are separated by a colon and multiple volumes can be specified by whitespace separation.
+All paths must be absolute and therefore start with a slash.
+Optionally comma separated ``mount_options`` can be passed onto the underlying mount command, mostly useful to specify read-only volumes. For files this is done by setting the immutable attribute after copying them into the jail.
+Volumes are only mounted during runtime.
+
+Volumes can be added at creation time:
+
+``iocage create volumes="/path/to/some/host/dir:/destination/within/jail/root /other/host/dir:/dest/in/jail:ro" tag=myjail``
+
+or set as a property later:
+
+``iocage set volumes="/new/path:/same/dir:ro" UUID|TAG``
+
+however the ``volumes`` property cannot be changed while the jail is running.

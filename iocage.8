@@ -1626,6 +1626,16 @@ cpuset=1 | 1,2,3,4 | 1-2 | off
 
 .fam T
 .fi
+volumes=/host/dir[:/jail/dir[:mount_options]]
+.PP
+Mounts and unmounts directories from the host into the jail root using
+\fBnullfs\fP(5).
+\(cqmount_options' are passed direcly to the mount \fIcommand\fP and \fIdefaults\fP to "rw"
+if ommitted.
+If '/jail/dir' is also ommitted then the same value as '/host/dir' will be
+used inside the jail's root.
+.PP
+Default: none
 .SH RESOURCE LIMITS
 Resource \fIlimits\fP (except cpuset and rlimits) use the following value
 field formatting in the \fIproperty\fP: limit:action.

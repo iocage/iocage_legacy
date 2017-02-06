@@ -118,6 +118,7 @@ jail_zfs="off"
 jail_zfs_dataset="iocage/jails/${uuid}/root/data"
 mount_procfs="0"
 hack88="0"
+volumes="none"
 
 # Native ZFS properties
 compression="lz4"
@@ -241,7 +242,8 @@ CONF_CUSTOM="tag
              jail_zfs
              jail_zfs_dataset
              release
-             hack88"
+             hack88
+             volumes"
 
 # Native ZFS properties
 CONF_ZFS="compression

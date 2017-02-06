@@ -18,7 +18,7 @@ __export_props () {
 
 # Set properties ------------------------------------------------------
 __set_jail_prop () {
-    local _name _property _dataset _pname _pval _found _CONF
+    local _name _property _dataset _fulluuid _running _pname _pval _found _CONF
     _name="$2"
     _property="$1"
 
@@ -28,6 +28,8 @@ __set_jail_prop () {
     fi
 
     _dataset="$(__find_jail $_name)"
+    _fulluuid="$(__check_name $_name)"
+    _running="$(__is_running $_fulluuid)"
 
     if [ -z "$_dataset" ] ; then
         echo "  ERROR: $_name not found."
@@ -39,8 +41,8 @@ __set_jail_prop () {
         exit 1
     fi
 
-    _pname="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
-    _pval="$(echo $_property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
+    _pname="$(echo $_property | awk 'BEGIN { FS = "=" } ; { print $1 }')"
+    _pval="$(echo $_property | awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
     if [ -z "$_pname" ] || [ -z "$_pval" ] ; then
         echo "  ERROR: Set failed, incorrect property syntax!"
@@ -60,11 +62,19 @@ __set_jail_prop () {
     for prop in $_CONF ; do
         if [ "$prop" == "$_pname" ] ; then
             _found=1
+
+            # don't allow changing volumes while jail is running
+            if [ -n "$(echo $_pname | grep '^volumes')" -a "${_running}" -gt 0 ] ; then
+                echo "  ERROR: not allowed to change 'volumes' properties while jail is running"
+                exit 1
+            fi
+
             zfs set org.freebsd.iocage:${prop}="${_pval}" $_dataset
             if [ "$_pname" == "tag" ] ; then
                 __unlink_tag $_dataset
                 __link_tag $_dataset
             fi
+            break
         fi
     done
 
@@ -72,6 +82,7 @@ __set_jail_prop () {
         if [ "$prop" == "$_pname" ] ; then
             zfs set $prop="$_pval" $_dataset
             _found=1
+            break
         fi
     done
 

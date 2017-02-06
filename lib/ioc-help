@@ -1138,6 +1138,17 @@ PROPERTIES
     Default: off
     Source: cpuset(1)
 
+  volumes=/host/dir[:/jail/dir[:mount_options]]
+
+  Mounts and unmounts directories from the host into the jail root using
+  nullfs(5).
+  'mount_options' are passed direcly to the mount command and defaults to "rw"
+  if ommitted.
+  If '/jail/dir' is also ommitted then the same value as '/host/dir' will be
+  used inside the jail's root.
+
+  Default: none
+
 RESOURCE LIMITS
   Resource limits (except cpuset and rlimits) use the following value
   field formatting in the property: limit:action.
