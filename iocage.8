@@ -179,7 +179,7 @@ Kernel compiled with:
 
 .fam T
 .fi
-\fIcreate\fP [\fB-b\fP|\fB-c\fP|\fB-e\fP] [\fIrelease=RELEASE\fP] [\fIproperty=value\fP] [\fIproperty=value\fP]
+\fIcreate\fP [\fB-b\fP|\fB-c\fP|\fB-e\fP] [\fIrelease=RELEASE\fP] [\fIpkglist=file\fP] [\fIproperty=value\fP] [\fIproperty=value\fP]
 .PP
 .nf
 .fam C
@@ -707,12 +707,12 @@ resolver=none | nameserver \fIIP\fP;nameserver \fIIP\fP;search domain.local
 
 .fam T
 .fi
-ip6.addr, ip6.saddrsel, ip6
+ip6_addr, ip6_saddrsel, ip6
 .PP
 .nf
 .fam C
     A set of IPv6 options for the prison, the counterparts to
-    ip4.addr, ip4.saddrsel and ip4 above.
+    ip4_addr, ip4_saddrsel and ip4 above.
 
 .fam T
 .fi
