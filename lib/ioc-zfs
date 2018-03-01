@@ -239,7 +239,7 @@ __migrate_basejail () {
     _ofulluuid="${_fulluuid}"
     _release="$2"
     _orelease="${_release}"
-    _grepstring="jails$|base|releases|templates$|download|${pool}/iocage$"
+    _grepstring="jails$|base|releases|templates$|download|.defaults|${pool}/iocage$"
     _grepstring="${_grepstring}|*./data|*./root"
     _bfs_list="bin
                boot
@@ -1031,7 +1031,7 @@ __check_children () {
 
     _fulluuid="$1"
     _dataset="$2"
-    _grepstring="jails$|base|releases|templates$|download|${pool}/iocage$"
+    _grepstring="jails$|base|releases|templates$|download|.defaults|${pool}/iocage$"
     _grepstring="${_grepstring}|*./data"
     _jail_datasets=$(zfs list -d3 -rH -o name "${pool}/iocage" \
         | egrep -v "${_grepstring}")
