@@ -38,7 +38,7 @@ __set_jail_prop () {
     # Avoid having a stale list when called.
     export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
         | egrep -v \
-        "jails$|releases$|templates$|download|${pool}/iocage$|*./root")"
+        "jails$|releases$|templates$|download|.defaults|${pool}/iocage$|*./root")"
 
     if [ "$3" ] ; then
         _dataset="$3"
@@ -241,7 +241,7 @@ __set_jail_prop () {
                 # We need to ignore a few more datasets here.
                 _jail_datasets="$(zfs list -d3 -rH -o name \
                     ${pool}/iocage | egrep -v \
-                    "jails$|base|releases|templates$|download|${pool}/iocage$|*./root")"
+                    "jails$|base|releases|templates$|download|.defaults|${pool}/iocage$|*./root")"
 
                 for _fs in ${_jail_datasets} ; do
                     # _jail_fs is actually a dataset, so fulluuid needs to
